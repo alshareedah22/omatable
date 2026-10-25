@@ -88,11 +88,10 @@ Item {
 
         RowLayout {
           Layout.fillWidth: true
-          TextField {
+          Ui.TextField {
             id: searchField
             Layout.fillWidth: true
             placeholderText: "Search connections"
-            color: Color.foreground
             font.family: Style.font.family
             onTextChanged: welcome.search = text
             Keys.onDownPressed: list.forceActiveFocus()

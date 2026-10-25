@@ -1,6 +1,6 @@
 # OmaTable M2: SQL sessions, tunnels, sidebar and data grid
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Connect to PostgreSQL, MySQL/MariaDB and SQLite (directly or over SSH), browse the schema in a sidebar, page/sort/filter a table in a data grid, and commit staged edits with Ctrl+S.
 
@@ -59,27 +59,27 @@
 ## Tasks
 
 ### Task 1: sqlgen
-- [ ] Tests `tests/test_sqlgen.py`: quoting per dialect (embedded quote doubled), unknown column rejected (`invalid`), unknown op rejected, each op's SQL and params, IN splits a comma list, LIKE escapes `%`/`_`, sort multi-column, limit/offset bound, count, changes order + expect_one, inserts with no values use DEFAULT VALUES, update with empty key rejected, render inlines literals.
-- [ ] Implement `omatable/sqlgen.py`; tests pass; commit.
+- [x] Tests `tests/test_sqlgen.py`: quoting per dialect (embedded quote doubled), unknown column rejected (`invalid`), unknown op rejected, each op's SQL and params, IN splits a comma list, LIKE escapes `%`/`_`, sort multi-column, limit/offset bound, count, changes order + expect_one, inserts with no values use DEFAULT VALUES, update with empty key rejected, render inlines literals.
+- [x] Implement `omatable/sqlgen.py`; tests pass; commit.
 
 ### Task 2: SSH tunnel
-- [ ] Tests `tests/test_tunnel.py`: free port picker; argv contains no password and has `ExitOnForwardFailure`; askpass prints FIFO content; failure (closed port on 127.0.0.1:1) raises `tunnel` with stderr; end-to-end through a private unprivileged `sshd` (temp host key, key auth, skipped if `/usr/bin/sshd` missing) forwarding to a local TCP echo server.
-- [ ] Implement `omatable/tunnel.py` + `omatable/askpass`; commit.
+- [x] Tests `tests/test_tunnel.py`: free port picker; argv contains no password and has `ExitOnForwardFailure`; askpass prints FIFO content; failure (closed port on 127.0.0.1:1) raises `tunnel` with stderr; end-to-end through a private unprivileged `sshd` (temp host key, key auth, skipped if `/usr/bin/sshd` missing) forwarding to a local TCP echo server.
+- [x] Implement `omatable/tunnel.py` + `omatable/askpass`; commit.
 
 ### Task 3: adapters
-- [ ] Tests `tests/test_adapters.py`: SQLite always (temp file): tree, columns, key, rows sort/filter/paging, count, commit update/insert/delete, rollback when a key matches nothing, rowid editing for keyless tables, views not editable. PostgreSQL and MySQL against `zt-pg`/`zt-my` OmaDB servers when `OMATABLE_TEST_DB=1`: same flow plus databases/use and auth failure → `auth`.
-- [ ] Implement `base.py`, `sqlite.py`, `postgres.py`, `mysql.py`, `__init__.py`; commit.
+- [x] Tests `tests/test_adapters.py`: SQLite always (temp file): tree, columns, key, rows sort/filter/paging, count, commit update/insert/delete, rollback when a key matches nothing, rowid editing for keyless tables, views not editable. PostgreSQL and MySQL against `zt-pg`/`zt-my` OmaDB servers when `OMATABLE_TEST_DB=1`: same flow plus databases/use and auth failure → `auth`.
+- [x] Implement `base.py`, `sqlite.py`, `postgres.py`, `mysql.py`, `__init__.py`; commit.
 
 ### Task 4: sessions + protocol
-- [ ] Tests `tests/test_session.py`: open a saved SQLite connection, rows over the protocol, unknown session → `notfound`, conn.test with unsaved form data, close releases; OmaDB connection ids resolve through `omadb.server`.
-- [ ] Implement `omatable/session.py`, register methods in `__main__.py`, close all sessions on exit; commit.
+- [x] Tests `tests/test_session.py`: open a saved SQLite connection, rows over the protocol, unknown session → `notfound`, conn.test with unsaved form data, close releases; OmaDB connection ids resolve through `omadb.server`.
+- [x] Implement `omatable/session.py`, register methods in `__main__.py`, close all sessions on exit; commit.
 
 ### Task 5: themed controls
-- [ ] `qml/Btn.qml`, `qml/Combo.qml` in the Omarchy theme; replace stock Button/ComboBox in Welcome/ConnectionForm/Panel; dim disabled fields; opaque window background. Add Test and Connect buttons to the form. Click-test; commit.
+- [x] `qml/Btn.qml`, `qml/Combo.qml` in the Omarchy theme; replace stock Button/ComboBox in Welcome/ConnectionForm/Panel; dim disabled fields; opaque window background. Add Test and Connect buttons to the form. Click-test; commit.
 
 ### Task 6: workspace
-- [ ] `qml/Workspace.qml` (title strip, database switcher, back button, sidebar, tabs), `qml/Sidebar.qml` (search + tree), `qml/TableTab.qml` (filter bar, grid, status bar, staged edits, Ctrl+S, Ctrl+Shift+Delete, Ctrl+I, Delete, Preview SQL), `qml/DataGrid.qml`, `qml/FilterBar.qml`. Panel routes Welcome ↔ Workspace.
-- [ ] Click-test against `zt-pg`: connect, open table, sort, filter, edit a cell, Ctrl+S, insert, delete, preview; commit.
+- [x] `qml/Workspace.qml` (title strip, database switcher, back button, sidebar, tabs), `qml/Sidebar.qml` (search + tree), `qml/TableTab.qml` (filter bar, grid, status bar, staged edits, Ctrl+S, Ctrl+Shift+Delete, Ctrl+I, Delete, Preview SQL), `qml/DataGrid.qml`, `qml/FilterBar.qml`. Panel routes Welcome ↔ Workspace.
+- [x] Click-test against `zt-pg`: connect, open table, sort, filter, edit a cell, Ctrl+S, insert, delete, preview; commit.
 
 ### Task 7: wrap-up
-- [ ] Full test run with `OMATABLE_TEST_DB=1`; README section; merge to main.
+- [x] Full test run with `OMATABLE_TEST_DB=1`; README section; merge to main.
