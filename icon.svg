@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- OmaTable: a database with a data table in front of it — browse and edit. -->
+  <defs>
+    <linearGradient id="body" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#047857"/>
+      <stop offset="0.45" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#065f46"/>
+    </linearGradient>
+    <linearGradient id="cap" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#d1fae5"/>
+      <stop offset="1" stop-color="#6ee7b7"/>
+    </linearGradient>
+    <linearGradient id="head" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#f59e0b"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <!-- database, back left -->
+  <path d="M4 10 v32 a17 5.5 0 0 0 34 0 v-32 z" fill="url(#body)"/>
+  <path d="M4 21 a17 5.5 0 0 0 34 0 M4 32 a17 5.5 0 0 0 34 0" fill="none" stroke="#064e3b" stroke-opacity="0.45" stroke-width="1.6"/>
+  <ellipse cx="21" cy="10" rx="17" ry="5.5" fill="url(#cap)"/>
+  <ellipse cx="16" cy="8.8" rx="6" ry="1.6" fill="#ffffff" opacity="0.6"/>
+  <!-- table, front right -->
+  <rect x="24" y="27" width="37" height="32" rx="4" fill="#0f172a" opacity="0.35" transform="translate(1.5 1.5)"/>
+  <rect x="24" y="27" width="37" height="32" rx="4" fill="#f8fafc"/>
+  <path d="M28 27 h29 a4 4 0 0 1 4 4 v5 h-37 v-5 a4 4 0 0 1 4 -4 z" fill="url(#head)"/>
+  <g stroke="#cbd5e1" stroke-width="1.4">
+    <line x1="24" y1="43.5" x2="61" y2="43.5"/>
+    <line x1="24" y1="51" x2="61" y2="51"/>
+    <line x1="36.5" y1="36" x2="36.5" y2="59"/>
+    <line x1="49" y1="36" x2="49" y2="59"/>
+  </g>
+  <rect x="37.2" y="44.2" width="11.1" height="6.1" fill="#fde68a"/>
+</svg>

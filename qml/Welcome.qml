@@ -64,7 +64,7 @@ Item {
     return (c.user ? c.user + "@" : "") + c.host + ":" + c.port + (c.database ? "/" + c.database : "")
   }
 
-  Component.onCompleted: reload()
+  Component.onCompleted: if (helper && helper.status === "ready") reload()  // else onStatusChanged loads it
 
   Connections {
     target: welcome.helper
@@ -218,8 +218,14 @@ Item {
         anchors.centerIn: parent
         visible: !form.visible
         spacing: 8
-        Text { anchors.horizontalCenter: parent.horizontalCenter; text: ""; color: Color.muted
-          font.family: Style.font.family; font.pixelSize: 64 }
+        Image {
+          anchors.horizontalCenter: parent.horizontalCenter
+          source: Qt.resolvedUrl("../icon.svg")
+          width: 88
+          height: 88
+          sourceSize: Qt.size(176, 176)
+          opacity: 0.85
+        }
         Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Select a connection, or press + to create one"
           color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
       }

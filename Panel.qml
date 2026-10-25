@@ -81,12 +81,23 @@ Item {
       spacing: 12
       visible: helperProc.status !== "ready"
 
-      Text {
+      Row {
         anchors.horizontalCenter: parent.horizontalCenter
-        text: "  OmaTable"
-        color: Color.foreground
-        font.family: Style.font.family
-        font.pixelSize: Style.font.body * 2
+        spacing: 12
+        Image {
+          anchors.verticalCenter: parent.verticalCenter
+          source: Qt.resolvedUrl("icon.svg")
+          width: Math.round(Style.font.body * 3)
+          height: width
+          sourceSize: Qt.size(width * 2, height * 2)
+        }
+        Text {
+          anchors.verticalCenter: parent.verticalCenter
+          text: "OmaTable"
+          color: Color.foreground
+          font.family: Style.font.family
+          font.pixelSize: Style.font.body * 2
+        }
       }
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
