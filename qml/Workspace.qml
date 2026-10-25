@@ -15,6 +15,7 @@ Item {
   property string toast: ""
   property var palette: ({})
   property int queryCount: 0
+  property string downloads: ""
   signal closeRequested()
 
   readonly property bool dirty: {
@@ -36,13 +37,50 @@ Item {
     })
   }
 
-  function openTable(schema, table) {
+  function openTable(schema, table, view) {
+    let i = 0
+    for (; i < tabModel.count; i++) {
+      const t = tabModel.get(i)
+      if (t.kind === "table" && t.schema === schema && t.table === table) break
+    }
+    if (i === tabModel.count) tabModel.append({ kind: "table", schema: schema, table: table, title: table })
+    current = i
+    if (view) Qt.callLater(function() { const p = page(i); if (p) p.showView(view) })
+  }
+
+  function tabIndex(schema, table) {
     for (let i = 0; i < tabModel.count; i++) {
       const t = tabModel.get(i)
-      if (t.kind === "table" && t.schema === schema && t.table === table) { current = i; return }
+      if (t.kind === "table" && t.schema === schema && t.table === table) return i
     }
-    tabModel.append({ kind: "table", schema: schema, table: table, title: table })
-    current = tabModel.count - 1
+    return -1
+  }
+
+  function tableAction(act, schema, name, kind) {
+    if (act === "open") openTable(schema, name)
+    else if (act === "structure") openTable(schema, name, "structure")
+    else if (act === "export") exportDialog.show({ schema: schema, table: name }, name)
+    else if (act === "import") importDialog.show(schema, name)
+    else if (act === "truncate" || act === "drop") {
+      const i = tabIndex(schema, name)
+      if (i >= 0 && page(i) && page(i).dirty) { current = i; toast = "Commit or discard the changes in " + name + " first"; return }
+      const drop = act === "drop"
+      confirm.ask({ title: (drop ? "Drop " + kind + " " : "Truncate ") + name + "?",
+                    text: drop ? "This deletes the " + kind + (kind === "table" ? " and all its rows" : "") + ". It cannot be undone."
+                               : "This deletes every row in " + name + ". It cannot be undone.",
+                    confirm: drop ? "Drop " + kind : "Truncate", danger: true }, function(dlg) {
+        const params = { session: info.session, schema: schema, table: name }
+        if (drop) params.kind = kind
+        helper.request(drop ? "table.drop" : "table.truncate", params, function(r, e) {
+          if (e) { dlg.fail(e.message); return }
+          dlg.done()
+          const j = tabIndex(schema, name)
+          if (drop) { if (j >= 0) closeTab(j); loadTree() }
+          else if (j >= 0 && page(j)) page(j).reload(true)
+          toast = (drop ? "Dropped " : "Emptied ") + name
+        })
+      })
+    }
   }
 
   function openQuery() {
@@ -85,6 +123,7 @@ Item {
   Component.onCompleted: {
     loadTree()
     helper.request("app.palette", {}, function(r, e) { if (!e) palette = r })
+    helper.request("app.paths", {}, function(r, e) { if (!e) downloads = r.downloads })
   }
 
   Shortcut { sequence: "Ctrl+T"; enabled: ws.visible; onActivated: ws.openQuery() }
@@ -167,6 +206,7 @@ Item {
         tree: ws.tree
         loading: ws.treeLoading
         onOpenRequested: function(schema, table) { ws.openTable(schema, table) }
+        onActionRequested: function(act, schema, name, kind) { ws.tableAction(act, schema, name, kind) }
         onRefreshRequested: ws.loadTree()
       }
       Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
@@ -244,8 +284,10 @@ Item {
                 TableTab {
                   schema: tabLoader.model.schema
                   table: tabLoader.model.table
+                  engine: ws.info.engine
                   helper: ws.helper
                   sid: ws.info.session
+                  onExportRequested: function(target, name) { exportDialog.show(target, name) }
                   active: ws.visible && tabLoader.index === ws.current
                   onNotify: function(text) { ws.toast = text }
                 }
@@ -262,6 +304,7 @@ Item {
                   onNotify: function(text) { ws.toast = text }
                   onDdlRan: ws.loadTree()
                   onDatabaseReported: function(db) { ws.followDatabase(db) }
+                  onExportRequested: function(sql) { exportDialog.show({ sql: sql }, "query") }
                 }
               }
             }
@@ -281,6 +324,23 @@ Item {
         }
       }
     }
+  }
+
+  Confirm { id: confirm }
+  ExportDialog {
+    id: exportDialog
+    helper: ws.helper
+    sid: ws.info ? ws.info.session : ""
+    folder: ws.downloads
+    onNotify: function(text) { ws.toast = text }
+  }
+  ImportDialog {
+    id: importDialog
+    helper: ws.helper
+    sid: ws.info ? ws.info.session : ""
+    folder: ws.downloads
+    onNotify: function(text) { ws.toast = text }
+    onImported: function(schema, table) { const i = ws.tabIndex(schema, table); if (i >= 0 && ws.page(i)) ws.page(i).reload(true) }
   }
 
   Rectangle {

@@ -15,6 +15,7 @@ Rectangle {
   property var collapsed: ({})
   property bool loading: false
   signal openRequested(string schema, string table, string kind)
+  signal actionRequested(string action, string schema, string name, string kind)
   signal refreshRequested()
 
   color: Qt.lighter(Color.background, 1.05)
@@ -117,7 +118,12 @@ Rectangle {
             if (d.kind === "schema") side.toggle(d.id, !!side.collapsed[d.id])
             else if (d.kind === "group") side.toggle(d.id, d.shut)
             else if (mouse.button === Qt.RightButton) {
-              Quickshell.execDetached(["wl-copy", "--", d.name])
+              side.selected = d.id
+              menu.item = d
+              const p = mapToItem(side, mouse.x, mouse.y)
+              menu.x = Math.min(p.x, side.width - menu.width - 4)
+              menu.y = Math.min(p.y, side.height - menu.implicitHeight - 4)
+              menu.open()
             } else if (parent.openable) {
               side.selected = d.id
               side.openRequested(d.schema, d.name, d.kind)
@@ -134,6 +140,43 @@ Rectangle {
         color: Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
+      }
+    }
+  }
+
+  Popup {
+    id: menu
+    property var item: null
+    readonly property var actions: !item ? []
+      : item.kind === "tables" ? [
+          { act: "open", label: "Open" }, { act: "structure", label: "Structure" },
+          { act: "export", label: "Export…" }, { act: "import", label: "Import CSV…" },
+          { act: "truncate", label: "Truncate…", danger: true }, { act: "drop", label: "Drop table…", danger: true },
+          { act: "copy", label: "Copy name" }]
+      : item.kind === "views" ? [
+          { act: "open", label: "Open" }, { act: "export", label: "Export…" },
+          { act: "drop", label: "Drop view…", danger: true }, { act: "copy", label: "Copy name" }]
+      : [{ act: "copy", label: "Copy name" }]
+    padding: 4
+    width: 180
+    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    Column {
+      width: parent.width
+      Repeater {
+        model: menu.actions
+        delegate: Ui.Button {
+          required property var modelData
+          width: menu.width - 8
+          leftAlign: true
+          text: modelData.label
+          foreground: modelData.danger ? Color.urgent : Color.foreground
+          onClicked: {
+            const d = menu.item
+            menu.close()
+            if (modelData.act === "copy") Quickshell.execDetached(["wl-copy", "--", d.name])
+            else side.actionRequested(modelData.act, d.schema, d.name, d.kind === "views" ? "view" : "table")
+          }
+        }
       }
     }
   }

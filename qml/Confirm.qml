@@ -1,0 +1,106 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import qs.Commons
+import qs.Ui as Ui
+
+// A question with an optional block of SQL to read before saying yes.
+Popup {
+  id: dlg
+
+  property string title: ""
+  property string text: ""
+  property string detail: ""
+  property string confirmText: "OK"
+  property bool danger: false
+  property bool busy: false
+  property string error: ""
+  property var onYes: null
+
+  // opts: { title, text, detail, confirm, danger }; yes(dialog) runs on confirm
+  // and closes the dialog itself (dlg.done()) or reports dlg.fail(message).
+  function ask(opts, yes) {
+    title = opts.title || ""
+    text = opts.text || ""
+    detail = opts.detail || ""
+    confirmText = opts.confirm || "OK"
+    danger = !!opts.danger
+    busy = false
+    error = ""
+    onYes = yes
+    open()
+  }
+  function done() { busy = false; close() }
+  function fail(message) { busy = false; error = message }
+
+  parent: Overlay.overlay
+  anchors.centerIn: parent
+  width: Math.min(parent ? parent.width - 80 : 600, detail ? 860 : 460)
+  height: detail ? Math.min(parent ? parent.height - 80 : 500, 520) : implicitHeight
+  padding: 16
+  modal: true
+  focus: true
+  closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
+  background: Rectangle { color: Color.popups.background; border.color: dlg.danger ? Color.urgent : Color.popups.border; border.width: 1 }
+
+  ColumnLayout {
+    anchors.fill: parent
+    spacing: 10
+    Text {
+      text: dlg.title
+      color: dlg.danger ? Color.urgent : Color.foreground
+      font.family: Style.font.family
+      font.pixelSize: Style.font.body
+      font.bold: true
+    }
+    Text {
+      Layout.fillWidth: true
+      visible: dlg.text !== ""
+      text: dlg.text
+      wrapMode: Text.Wrap
+      color: Color.foreground
+      font.family: Style.font.family
+      font.pixelSize: Style.font.body
+    }
+    ScrollView {
+      Layout.fillWidth: true
+      Layout.fillHeight: true
+      visible: dlg.detail !== ""
+      TextArea {
+        readOnly: true
+        selectByMouse: true
+        text: dlg.detail
+        wrapMode: TextEdit.Wrap
+        color: Color.foreground
+        font.family: "monospace"
+        font.pixelSize: Style.font.body
+        background: Rectangle { color: Qt.lighter(Color.background, 1.1) }
+      }
+    }
+    Text {
+      Layout.fillWidth: true
+      visible: dlg.error !== ""
+      text: dlg.error
+      wrapMode: Text.Wrap
+      color: Color.urgent
+      font.family: "monospace"
+      font.pixelSize: Style.font.bodySmall
+    }
+    RowLayout {
+      Layout.fillWidth: true
+      Item { Layout.fillWidth: true }
+      Ui.Button { text: "Cancel"; enabled: !dlg.busy; onClicked: dlg.close() }
+      Ui.Button {
+        bordered: true
+        foreground: dlg.danger ? Color.urgent : Color.accent
+        text: dlg.busy ? "Working…" : dlg.confirmText
+        enabled: !dlg.busy
+        onClicked: {
+          dlg.busy = true
+          dlg.error = ""
+          if (dlg.onYes) dlg.onYes(dlg); else dlg.done()
+        }
+      }
+    }
+  }
+}

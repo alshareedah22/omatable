@@ -1,8 +1,8 @@
 # OmaTable
 
-A TablePlus-style database GUI for [Omarchy](https://omarchy.org). Status: early (M3): connections, table
-browsing and editing, and a SQL editor for PostgreSQL, MySQL/MariaDB and SQLite. Structure editing, export and
-the Redis/MongoDB browsers come next.
+A TablePlus-style database GUI for [Omarchy](https://omarchy.org). Status: early (M4): connections, table
+browsing and editing, a SQL editor, structure editing, export and CSV import for PostgreSQL, MySQL/MariaDB and
+SQLite. The Redis/MongoDB browsers come next.
 
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDB](https://github.com/alshareedah22/omadb) are listed automatically, with their credentials
@@ -33,6 +33,25 @@ the Redis/MongoDB browsers come next.
 - **History** (Ctrl+H) lists what you ran on this connection, searchable; click an entry to load it.
   **Save** (Ctrl+S) keeps a query under a name in the **Saved** list.
 - `CREATE`/`DROP`/`ALTER` refresh the sidebar, and MySQL `USE` switches the database.
+
+### Structure, export and import
+
+- **Structure** (the switch under a table, or right-click → Structure) lists columns, indexes, foreign keys and
+  the table's DDL. Rename columns, change type, NULL rule, default (as SQL, e.g. `0`, `'none'`, `now()`) or
+  comment, add and drop columns and indexes, drop foreign keys. Changes are staged; Ctrl+S shows the SQL and
+  applies it after you confirm.
+  - PostgreSQL and SQLite apply all of it in one transaction. MySQL commits each statement on its own, so a
+    failure there says how many statements already ran.
+  - SQLite can only rename, add and drop columns; changing a type means recreating the table.
+- **Export** (under a table, on a query result, or right-click → Export…) writes CSV, JSON or SQL `INSERT`s. A
+  table export respects the current filters and sort; a result export runs that statement again and saves all
+  its rows. Files are written atomically, readable only by you, and never over an existing file unless you
+  say Replace.
+- **Import CSV…** (right-click a table) reads the file, guesses the delimiter, maps CSV columns to table columns
+  by name (change any mapping or skip a column) and inserts every row in one transaction: one bad row and
+  nothing is imported, with the line numbers in the error.
+- Right-click a table for **Truncate…** and **Drop…**; both ask first. Right-click a cell to copy the row as
+  TSV, JSON or an `INSERT`.
 
 | Shortcut | Action |
 |---|---|

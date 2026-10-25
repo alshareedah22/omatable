@@ -16,6 +16,8 @@ Item {
   property string sid: ""
   property string schema: ""
   property string table: ""
+  property string engine: ""
+  property string view: "data"        // data | structure
   property bool active: false
 
   // data from table.rows
@@ -42,13 +44,14 @@ Item {
   property int revision: 0
   readonly property int rowCount: { revision; return rows.length + inserted.length }
   readonly property int changeCount: { revision; return Object.keys(edits).length + Object.keys(deleted).length + inserted.length }
-  readonly property bool dirty: changeCount > 0
+  readonly property bool dirty: changeCount > 0 || (structureLoader.item !== null && structureLoader.item.dirty)
 
   property int selRow: -1
   property int selCol: 0
   property string statements: ""
 
   signal notify(string text)
+  signal exportRequested(var target, string name)
 
   // ---- loading ----
   function reload(resetOffset) {
@@ -239,6 +242,32 @@ Item {
 
   function copyText(text) { Quickshell.execDetached(["wl-copy", "--", text]) }
 
+  function rowObject(r) {
+    const out = {}
+    for (const c of visibleColumns) out[columns[c].name] = cellValue(r, c)
+    return out
+  }
+
+  function copyRowJson() {
+    if (selRow < 0) return
+    copyText(JSON.stringify(rowObject(selRow)))
+    notify("Copied row as JSON")
+  }
+
+  function copyInsert() {
+    if (selRow < 0) return
+    helper.request("table.preview", { session: sid, schema: schema, table: table,
+                                      changes: { inserts: [{ values: rowObject(selRow) }] } }, function(r, e) {
+      if (e) { notify(e.message); return }
+      copyText(r.statements.join("\n"))
+      notify("Copied row as INSERT")
+    })
+  }
+
+  function exportTable() {
+    exportRequested({ schema: schema, table: table, sort: sort, filters: filters, match: match }, table)
+  }
+
   function copyCell() {
     if (selRow < 0) return
     copyText(editText(cellValue(selRow, visibleColumns[selCol])))
@@ -259,16 +288,50 @@ Item {
 
   Component.onCompleted: reload(true)
 
-  Shortcut { sequences: [StandardKey.Save]; enabled: tab.active; onActivated: tab.commit() }
-  Shortcut { sequence: "Ctrl+Shift+Delete"; enabled: tab.active; onActivated: tab.discard() }
-  Shortcut { sequence: "Ctrl+I"; enabled: tab.active; onActivated: tab.addRow() }
-  Shortcut { sequence: "Ctrl+R"; enabled: tab.active; onActivated: { if (tab.dirty) tab.notify("Commit or discard first"); else tab.reload(false) } }
-  Shortcut { sequences: [StandardKey.Refresh]; enabled: tab.active; onActivated: { if (!tab.dirty) tab.reload(false) } }
-  Shortcut { sequences: [StandardKey.Find]; enabled: tab.active; onActivated: filterBar.addFilter() }
+  readonly property bool dataActive: active && view === "data"
+  Shortcut { sequences: [StandardKey.Save]; enabled: tab.dataActive; onActivated: tab.commit() }
+  Shortcut { sequence: "Ctrl+Shift+Delete"; enabled: tab.dataActive; onActivated: tab.discard() }
+  Shortcut { sequence: "Ctrl+I"; enabled: tab.dataActive; onActivated: tab.addRow() }
+  Shortcut { sequence: "Ctrl+R"; enabled: tab.dataActive; onActivated: { if (tab.changeCount) tab.notify("Commit or discard first"); else tab.reload(false) } }
+  Shortcut { sequences: [StandardKey.Refresh]; enabled: tab.dataActive; onActivated: { if (!tab.changeCount) tab.reload(false) } }
+  Shortcut { sequences: [StandardKey.Find]; enabled: tab.dataActive; onActivated: filterBar.addFilter() }
+
+  function showView(v) {
+    if (v === view) return
+    if (v === "structure" && changeCount) { notify("Commit (Ctrl+S) or discard (Ctrl+Shift+Delete) your data changes first"); return }
+    if (v === "data" && structureLoader.item && structureLoader.item.dirty) { notify("Apply or discard your structure changes first"); return }
+    view = v
+    if (v === "structure") {
+      // a fresh view loads itself; an existing one may be stale
+      if (structureLoader.item) structureLoader.item.reload()
+      else structureLoader.active = true
+    }
+  }
+
+  Loader {
+    id: structureLoader
+    anchors.fill: parent
+    anchors.bottomMargin: switchBar.height
+    active: false
+    visible: tab.view === "structure"
+    sourceComponent: Structure {
+      helper: tab.helper
+      sid: tab.sid
+      schema: tab.schema
+      table: tab.table
+      engine: tab.engine
+      active: tab.active && tab.view === "structure"
+      onNotify: function(text) { tab.notify(text) }
+      onApplied: tab.reload(true)
+      Component.onCompleted: reload()
+    }
+  }
 
   ColumnLayout {
     anchors.fill: parent
+    anchors.bottomMargin: switchBar.height
     spacing: 0
+    visible: tab.view === "data"
 
     FilterBar {
       id: filterBar
@@ -337,6 +400,7 @@ Item {
           font.pixelSize: Style.font.bodySmall
         }
         Item { Layout.fillWidth: true }
+        Ui.Button { visible: !tab.dirty; bordered: true; text: "Export"; tooltipText: "Export these rows to CSV, JSON or SQL"; onClicked: tab.exportTable() }
         Ui.Button { bordered: true; text: "+ Row"; tooltipText: "Insert row (Ctrl+I)"; onClicked: tab.addRow() }
         Ui.Button { visible: tab.dirty; bordered: true; text: "Preview SQL"; onClicked: tab.preview() }
         Ui.Button { visible: tab.dirty; bordered: true; text: "Discard"; tooltipText: "Ctrl+Shift+Delete"; onClicked: tab.discard() }
@@ -350,6 +414,23 @@ Item {
           onClicked: tab.commit()
         }
       }
+    }
+  }
+
+  Rectangle {
+    id: switchBar
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.bottom: parent.bottom
+    height: switchRow.implicitHeight + 8
+    color: Qt.lighter(Color.background, 1.12)
+    Row {
+      id: switchRow
+      x: 8
+      anchors.verticalCenter: parent.verticalCenter
+      spacing: 4
+      Ui.Button { bordered: tab.view === "data"; text: "Data"; fontSize: Style.font.bodySmall; onClicked: tab.showView("data") }
+      Ui.Button { bordered: tab.view === "structure"; text: "Structure"; fontSize: Style.font.bodySmall; onClicked: tab.showView("structure") }
     }
   }
 

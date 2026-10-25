@@ -305,9 +305,11 @@ FocusScope {
       width: parent.width
       Repeater {
         model: grid.tab && grid.tab.readOnly
-          ? [{ label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" }]
+          ? [{ label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" },
+             { label: "Copy row as JSON", act: "copyjson" }]
           : [{ label: "Edit cell", act: "edit" }, { label: "Set NULL", act: "null" },
              { label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" },
+             { label: "Copy row as JSON", act: "copyjson" }, { label: "Copy row as INSERT", act: "copyinsert" },
              { label: "Insert row", act: "insert" }, { label: "Delete / restore row", act: "delete" }]
         delegate: Ui.Button {
           required property var modelData
@@ -321,6 +323,8 @@ FocusScope {
             else if (modelData.act === "null") t.setCell(t.selRow, grid.vis[t.selCol], null)
             else if (modelData.act === "copy") t.copyCell()
             else if (modelData.act === "copyrow") t.copyRow()
+            else if (modelData.act === "copyjson") t.copyRowJson()
+            else if (modelData.act === "copyinsert") t.copyInsert()
             else if (modelData.act === "insert") t.addRow()
             else if (modelData.act === "delete") t.toggleDelete(t.selRow)
           }

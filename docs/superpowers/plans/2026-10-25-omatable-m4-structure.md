@@ -54,24 +54,24 @@
 
 ### Task 1: Structure read and DDL generation
 **Files:** Create `omatable/ddl.py`; Modify adapters; Test `tests/test_ddl.py`, `tests/test_adapters.py`
-- [ ] Unit tests for `ddl.statements` on all three dialects (add/drop/rename/alter type/null/default/comment, indexes, FK drop, ordering, SQLite refusals, fragment checks, MySQL CHANGE keeps auto_increment).
-- [ ] Live tests: `structure()` columns/indexes/FKs/DDL per engine; `alter()` round trip; failing PostgreSQL alter rolls back.
-- [ ] Implement, commit "Read table structure and apply DDL changes".
+- [x] Unit tests for `ddl.statements` on all three dialects (add/drop/rename/alter type/null/default/comment, indexes, FK drop, ordering, SQLite refusals, fragment checks, MySQL CHANGE keeps auto_increment).
+- [x] Live tests: `structure()` columns/indexes/FKs/DDL per engine; `alter()` round trip; failing PostgreSQL alter rolls back.
+- [x] Implement, commit "Read table structure and apply DDL changes".
 
 ### Task 2: Streaming, export, CSV import, drop/truncate
 **Files:** Create `omatable/transfer.py`; Modify `sqlgen.py`, adapters; Test `tests/test_transfer.py`
-- [ ] Tests: CSV/JSON/SQL export of a table with NULL, bytes, unicode, `%`; filter applied; query export; refuse overwrite; mode 600; SQL export re-imports into a fresh table and matches; CSV preview sniffs `;`; import with mapping/skip/empty→NULL; bad row rolls back with its row number; drop/truncate.
-- [ ] Implement, commit "Export tables and queries, import CSV, drop and truncate".
+- [x] Tests: CSV/JSON/SQL export of a table with NULL, bytes, unicode, `%`; filter applied; query export; refuse overwrite; mode 600; SQL export re-imports into a fresh table and matches; CSV preview sniffs `;`; import with mapping/skip/empty→NULL; bad row rolls back with its row number; drop/truncate.
+- [x] Implement, commit "Export tables and queries, import CSV, drop and truncate".
 
 ### Task 3: Protocol methods
 **Files:** Modify `omatable/__main__.py`; Test `tests/test_session.py`
-- [ ] Tests through `build()` for each new method on SQLite; commit "Add structure, export and import protocol methods".
+- [x] Tests through `build()` for each new method on SQLite; commit "Add structure, export and import protocol methods".
 
 ### Task 4: Window
 **Files:** Create `qml/Structure.qml`, `qml/ExportDialog.qml`, `qml/ImportDialog.qml`, `qml/Confirm.qml`; Modify `TableTab.qml`, `Sidebar.qml`, `Workspace.qml`, `ResultTabs.qml`, `DataGrid.qml`
-- [ ] Structure view: editable column list (name, type, nullable, default, comment), add/drop column, index list with add/drop, FK list with drop, DDL tab; staged like data edits; Ctrl+S previews the DDL in a confirm dialog.
-- [ ] Sidebar menu, export/import dialogs, confirm before drop/truncate.
-- [ ] Click test on PostgreSQL, MariaDB and SQLite; commit "Add the structure view, export, import and table actions".
+- [x] Structure view: editable column list (name, type, nullable, default, comment), add/drop column, index list with add/drop, FK list with drop, DDL tab; staged like data edits; Ctrl+S previews the DDL in a confirm dialog.
+- [x] Sidebar menu, export/import dialogs, confirm before drop/truncate.
+- [x] Click test on PostgreSQL, MariaDB and SQLite; commit "Add the structure view, export, import and table actions".
 
 ### Task 5: Docs and merge
-- [ ] README, tick plan, full tests, merge to `main`.
+- [x] README, tick plan, full tests, merge to `main`.

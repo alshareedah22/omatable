@@ -31,6 +31,7 @@ Item {
   property string savedName: ""
 
   signal notify(string text)
+  signal exportRequested(string sql)
   signal ddlRan()
   signal databaseReported(string database)
 
@@ -186,6 +187,7 @@ Item {
           results: q.results
           placeholder: q.error ? q.error : q.running ? "Running…" : "Ctrl+Enter runs the statement at the cursor (or the selection), Ctrl+Shift+Enter runs them all"
           onNotify: function(text) { q.notify(text) }
+          onExportRequested: function(sql) { q.exportRequested(sql) }
         }
       }
     }

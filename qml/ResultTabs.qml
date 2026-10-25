@@ -13,6 +13,7 @@ Item {
   property string placeholder: "Run a query with Ctrl+Enter"
   readonly property var shown: results.length ? results[Math.min(current, results.length - 1)] : null
   signal notify(string text)
+  signal exportRequested(string sql)
 
   onResultsChanged: {
     // open the error if there is one, else the last result with rows
@@ -118,10 +119,21 @@ Item {
       visible: rt.shown !== null
       implicitHeight: statusText.implicitHeight + 10
       color: Qt.lighter(Color.background, 1.08)
+      Ui.Button {
+        id: exportBtn
+        anchors.right: parent.right
+        anchors.rightMargin: 6
+        anchors.verticalCenter: parent.verticalCenter
+        visible: rt.shown !== null && rt.shown.columns !== undefined
+        text: "Export"
+        fontSize: Style.font.bodySmall
+        tooltipText: "Run this statement again and save all its rows to a file"
+        onClicked: rt.exportRequested(rt.shown.sql)
+      }
       Text {
         id: statusText
         x: 8
-        width: parent.width - 16
+        width: parent.width - 16 - (exportBtn.visible ? exportBtn.width + 8 : 0)
         anchors.verticalCenter: parent.verticalCenter
         elide: Text.ElideRight
         text: !rt.shown ? "" : rt.summary(rt.shown) + " · " + rt.shown.ms + " ms"

@@ -94,6 +94,14 @@ Item {
     notify("Copied")
   }
 
+  function copyRowJson() {
+    if (selRow < 0) return
+    const out = {}
+    for (const c of visibleColumns) out[columns[c].name] = cellValue(selRow, c)
+    copyText(JSON.stringify(out))
+    notify("Copied row as JSON")
+  }
+
   function copyRow() {
     if (selRow < 0) return
     copyText(visibleColumns.map(function(c) { return editText(cellValue(selRow, c)) }).join("\t"))
