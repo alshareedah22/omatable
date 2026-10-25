@@ -44,6 +44,10 @@ class MySQL(SQLAdapter):
         finally:
             side.close()
 
+    def stream_cursor(self):
+        # unbuffered: rows come as they are read
+        return self.db.cursor(self.pymysql.cursors.SSCursor)
+
     def describe(self, cursor):
         from pymysql.constants import FIELD_TYPE
         names = {v: SQL_TYPES.get(k.lower(), k.lower()) for k, v in vars(FIELD_TYPE).items() if k.isupper()}

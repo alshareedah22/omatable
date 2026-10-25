@@ -277,3 +277,61 @@ class SQLAdapter:
     def truncate(self, schema, table):
         self.query(f"TRUNCATE TABLE {self.d.table(schema, table)}")
         return {"ok": True}
+
+    # transfer ---------------------------------------------------------------
+    def stream_cursor(self):
+        return self.db.cursor()
+
+    def stream(self, sql, params=None, batch=2000):
+        """(names, rows) batches without holding the whole result; at least one batch."""
+        with self.guard():
+            cur = self.stream_cursor()
+            try:
+                self.execute(cur, sql, params or ())
+                if not cur.description:
+                    raise Error("invalid", "This statement returns no rows to export")
+                names = [d[0] for d in cur.description]
+                sent = False
+                while True:
+                    rows = cur.fetchmany(batch)
+                    if not rows:
+                        break
+                    sent = True
+                    yield names, rows
+                if not sent:
+                    yield names, []
+            finally:
+                cur.close()
+
+    def insert_many(self, sql, rows, batch=500):
+        """Insert (line, values) pairs in one transaction; all or nothing."""
+        cur = self.db.cursor()
+        count, first, last = 0, None, None
+        try:
+            with self.guard():
+                try:
+                    cur.execute("BEGIN")
+                    chunk = []
+                    for line, values in rows:
+                        if not chunk:
+                            first = line
+                        chunk.append(values)
+                        last = line
+                        count += 1
+                        if len(chunk) >= batch:
+                            cur.executemany(self.d.finish(sql), chunk)
+                            chunk = []
+                    if chunk:
+                        cur.executemany(self.d.finish(sql), chunk)
+                    cur.execute("COMMIT")
+                except BaseException:
+                    with contextlib.suppress(Exception):
+                        cur.execute("ROLLBACK")
+                    raise
+        except Error as e:
+            where = "" if e.code == "invalid" or first is None else \
+                f" (in lines {first}–{last})" if first != last else f" (line {first})"
+            raise Error(e.code, f"{e.message}{where}; nothing was imported") from e
+        finally:
+            cur.close()
+        return count

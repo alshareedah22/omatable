@@ -43,6 +43,27 @@ class Postgres(SQLAdapter):
             return Error("network", msg)
         return Error("sql", msg)
 
+    def stream(self, sql, params=None, batch=2000):
+        # cursor.stream reads rows one by one instead of the whole result
+        with self.guard():
+            cur = self.db.cursor()
+            try:
+                names, rows = None, []
+                for row in cur.stream(self.d.finish(sql) if params else sql, params or None):
+                    if names is None:
+                        names = [d[0] for d in cur.description]
+                    rows.append(row)
+                    if len(rows) >= batch:
+                        yield names, rows
+                        rows = []
+                if names is None:
+                    if not cur.description:
+                        raise Error("invalid", "This statement returns no rows to export")
+                    names = [d[0] for d in cur.description]
+                yield names, rows
+            finally:
+                cur.close()
+
     def describe(self, cursor):
         types = self.db.adapters.types
         return [getattr(types.get(d.type_code), "name", "") for d in cursor.description]

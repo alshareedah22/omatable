@@ -4,6 +4,7 @@ SQLite always runs. PostgreSQL and MySQL need the OmaDB servers zt-pg and
 zt-my and run only with OMATABLE_TEST_DB=1.
 """
 
+import json
 import os
 import sqlite3
 import sys
@@ -14,7 +15,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, omadb
+from omatable import adapters, omadb, sqlsplit, transfer
 from omatable.protocol import Error
 
 LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
@@ -214,8 +215,38 @@ class Flow:
         self.assertNotIn("v_people", tree["views"])
 
 
+    def test_export_import_round_trip(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        mark = self.a.d.mark
+        self.a.query(f"UPDATE people SET data = {mark} WHERE name = {mark}", (b"\x00\xff", "ann"))
+        target = {"schema": self.schema, "table": "people", "sort": [{"column": "id"}]}
+        out = transfer.export(self.a, target, "csv", os.path.join(tmp.name, "p.csv"))
+        self.assertEqual(out["rows"], 5)
+        self.a.query(f"CREATE TABLE people2 (id int, name {self.TEXT}, age int)")
+        self.assertEqual(transfer.preview_csv(out["path"])["header"], ["id", "name", "age", "data"])
+        self.assertEqual(transfer.import_csv(self.a, self.schema, "people2", out["path"], ["id", "name", "age", None]),
+                         {"inserted": 5})
+        rows = self.a.query("SELECT id, name, age FROM people2 ORDER BY id")[1]
+        self.assertEqual(rows[2], [3, "cy_d", None])
+        self.assertEqual(rows[4][1], "50%")
+        # an SQL export loads back into an identical table
+        out = transfer.export(self.a, target, "sql", os.path.join(tmp.name, "p.sql"), table_name="people3")
+        self.a.query(f"CREATE TABLE people3 (id int, name {self.TEXT}, age int, data {self.BLOB})")
+        with open(out["path"]) as f:
+            for _, _, sql in sqlsplit.split(f.read(), self.engine):
+                self.a.query(sql)
+        self.assertEqual(self.a.query("SELECT * FROM people3 ORDER BY id")[1],
+                         self.a.query("SELECT * FROM people ORDER BY id")[1])
+        out = transfer.export(self.a, {"sql": "SELECT name, age FROM people WHERE age > 30 ORDER BY age"}, "json",
+                              os.path.join(tmp.name, "q.json"))
+        with open(out["path"]) as f:
+            self.assertEqual(json.load(f), [{"name": "ann", "age": 31}, {"name": "dee", "age": 40}])
+
+
 class SQLiteTest(Flow, unittest.TestCase):
     TEXT = "TEXT"
+    BLOB = "BLOB"
     SLOW = "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) FROM c"
     engine = "sqlite"
     schema = "main"
@@ -264,6 +295,7 @@ def live_conn(name, database):
 @unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-pg running")
 class PostgresTest(Flow, unittest.TestCase):
     TEXT = "text"
+    BLOB = "bytea"
     SLOW = "SELECT pg_sleep(30)"
     engine = "postgresql"
     schema = "zt_flow"
@@ -329,6 +361,7 @@ class PostgresTest(Flow, unittest.TestCase):
 @unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-my running")
 class MySQLTest(Flow, unittest.TestCase):
     TEXT = "varchar(40)"
+    BLOB = "blob"
     SLOW = "SELECT SLEEP(30)"
     engine = "mariadb"
     schema = "zt_flow"
