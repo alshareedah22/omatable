@@ -224,6 +224,136 @@ def build(store, server=None, sessions=None):
         saved.delete(id)
         return {"ok": True}
 
+    def kind(session, engine):
+        s = sessions.get(session)
+        if getattr(s.adapter, "engine", "") != engine:
+            raise Error("invalid", "this is not a " + ("Redis" if engine == "redis" else "MongoDB") + " connection")
+        return s
+
+    def remember(s, text, ms, error=None):
+        history.add({"conn": s.conn.get("id"), "name": s.conn.get("name"), "engine": s.conn.get("engine"),
+                     "database": s.adapter.database, "sql": str(text).strip(), "ok": error is None,
+                     "error": error, "ms": ms, "statements": 1})
+
+    @server.method("redis.scan")
+    def redis_scan(session, pattern="*", cursor="0", count=500, type=None):  # noqa: A002
+        s = kind(session, "redis")
+        return s.run(s.adapter.scan, pattern, cursor, count, type)
+
+    @server.method("redis.keyspace")
+    def redis_keyspace(session):
+        s = kind(session, "redis")
+        return s.run(s.adapter.keyspace)
+
+    @server.method("redis.get")
+    def redis_get(session, key):
+        s = kind(session, "redis")
+        return s.run(s.adapter.get, key)
+
+    @server.method("redis.create")
+    def redis_create(session, key, type, value, ttl=None):  # noqa: A002
+        s = kind(session, "redis")
+        return s.run(s.adapter.create, key, type, value, ttl)
+
+    @server.method("redis.edit")
+    def redis_edit(session, key, type, action, item=None, value=None, score=None, old=None):  # noqa: A002
+        s = kind(session, "redis")
+        return s.run(s.adapter.edit, key, type, action, item, value, score, old)
+
+    @server.method("redis.del")
+    def redis_del(session, keys):
+        s = kind(session, "redis")
+        return s.run(s.adapter.delete, keys)
+
+    @server.method("redis.rename")
+    def redis_rename(session, key, new):
+        s = kind(session, "redis")
+        return s.run(s.adapter.rename, key, new)
+
+    @server.method("redis.ttl")
+    def redis_ttl(session, key, ttl=None):
+        s = kind(session, "redis")
+        return s.run(s.adapter.expire, key, ttl)
+
+    @server.method("redis.cmd")
+    def redis_cmd(session, text):
+        s = kind(session, "redis")
+        try:
+            out = s.run(s.adapter.command, text)
+        except Error as e:
+            if e.code == "query":
+                remember(s, text, 0, e.message)
+            raise
+        remember(s, text, out["ms"])
+        return out
+
+    @server.method("mongo.find")
+    def mongo_find(session, collection, filter="", sort="", projection="", skip=0, limit=100):  # noqa: A002
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.find, collection, filter, sort, projection, skip, limit)
+
+    @server.method("mongo.aggregate")
+    def mongo_aggregate(session, collection, pipeline, limit=100):
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.aggregate, collection, pipeline, limit)
+
+    @server.method("mongo.count")
+    def mongo_count(session, collection, filter=""):  # noqa: A002
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.count, collection, filter)
+
+    @server.method("mongo.insert")
+    def mongo_insert(session, collection, text):
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.insert, collection, text)
+
+    @server.method("mongo.update")
+    def mongo_update(session, collection, id, text):  # noqa: A002
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.update, collection, id, text)
+
+    @server.method("mongo.delete")
+    def mongo_delete(session, collection, ids):
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.delete, collection, ids)
+
+    @server.method("mongo.indexes")
+    def mongo_indexes(session, collection):
+        s = kind(session, "mongodb")
+        return {"indexes": s.run(s.adapter.indexes, collection)}
+
+    @server.method("mongo.create_index")
+    def mongo_create_index(session, collection, keys, unique=False, name=""):
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.create_index, collection, keys, unique, name)
+
+    @server.method("mongo.drop_index")
+    def mongo_drop_index(session, collection, name):
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.drop_index, collection, name)
+
+    @server.method("mongo.create_collection")
+    def mongo_create_collection(session, name):
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.create_collection, name)
+
+    @server.method("mongo.drop_collection")
+    def mongo_drop_collection(session, name):
+        s = kind(session, "mongodb")
+        return s.run(s.adapter.drop_collection, name)
+
+    @server.method("mongo.run")
+    def mongo_run(session, text):
+        s = kind(session, "mongodb")
+        try:
+            out = s.run(s.adapter.command, text)
+        except Error as e:
+            if e.code == "query":
+                remember(s, text, 0, e.message)
+            raise
+        remember(s, text, out["ms"])
+        return out
+
     return server
 
 

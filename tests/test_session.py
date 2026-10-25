@@ -164,11 +164,12 @@ class SessionTest(unittest.TestCase):
             self.m["conn.test"](conn={"name": "", "engine": "sqlite"})
         self.assertEqual(e.exception.code, "invalid")
 
-    def test_non_sql_engine(self):
-        redis = self.store.save({"name": "R", "engine": "redis", "host": "127.0.0.1"})
-        with self.assertRaises(Error) as e:
-            self.m["session.open"](id=redis["id"])
-        self.assertEqual(e.exception.code, "invalid")
+    def test_wrong_kind_of_session(self):
+        sid = self.m["session.open"](id=self.conn["id"])["session"]
+        for method, params in (("redis.get", {"key": "k"}), ("mongo.find", {"collection": "c"})):
+            with self.assertRaises(Error) as e:
+                self.m[method](session=sid, **params)
+            self.assertEqual(e.exception.code, "invalid")
 
     def test_sigterm_closes_cleanly(self):
         env = {**os.environ, "PYTHONPATH": ROOT, "OMATABLE_CONFIG": os.path.join(self.tmp.name, "cfg"),
@@ -183,6 +184,66 @@ class SessionTest(unittest.TestCase):
         self.assertEqual(proc.wait(timeout=10), 0)
         proc.stdin.close()
         proc.stdout.close()
+
+
+@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-vk and zt-mg running")
+class KeyValueSessionTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.store = Store(os.path.join(self.tmp.name, "cfg"), Keyring(False))
+        self.server = build(self.store)
+        self.m = self.server.methods
+
+    def tearDown(self):
+        self.server.sessions.close_all()
+        self.tmp.cleanup()
+
+    def test_redis_methods(self):
+        info = self.m["session.open"](id="omadb:zt-vk")
+        self.assertEqual((info["engine"], info["database"]), ("valkey", "0"))
+        self.assertTrue(info["version"].startswith("Valkey"))
+        sid = info["session"]
+        self.m["session.use"](session=sid, database="9")
+        self.m["redis.cmd"](session=sid, text="FLUSHDB")
+        self.m["redis.create"](session=sid, key="greet", type="hash", value=[["en", "hi"]], ttl=60)
+        self.m["redis.edit"](session=sid, key="greet", type="hash", action="set", item="ar", value="مرحبا")
+        got = self.m["redis.get"](session=sid, key="greet")
+        self.assertEqual(sorted(got["value"]), [["ar", "مرحبا"], ["en", "hi"]])
+        self.assertEqual(self.m["redis.scan"](session=sid, pattern="gr*")["keys"][0]["key"], "greet")
+        self.assertEqual(self.m["redis.keyspace"](session=sid)["9"], 1)
+        self.assertEqual(self.m["redis.ttl"](session=sid, key="greet", ttl=None)["ttl"], -1)
+        self.m["redis.rename"](session=sid, key="greet", new="hello")
+        out = self.m["redis.cmd"](session=sid, text="HGET hello en")
+        self.assertEqual(out["reply"], "hi")
+        hist = self.m["query.history"](conn="omadb:zt-vk")["items"]
+        self.assertEqual(hist[0]["sql"], "HGET hello en")
+        self.assertEqual(self.m["redis.del"](session=sid, keys=["hello"])["deleted"], 1)
+        self.m["query.history_clear"](conn="omadb:zt-vk")
+
+    def test_mongo_methods(self):
+        info = self.m["session.open"](id="omadb:zt-mg")
+        sid = info["session"]
+        self.m["session.use"](session=sid, database="zt_session")
+        try:
+            self.m["mongo.create_collection"](session=sid, name="notes")
+            self.assertEqual(self.m["schema.tree"](session=sid)["schemas"][0]["tables"], ["notes"])
+            self.m["mongo.insert"](session=sid, collection="notes", text="[{n: 1}, {n: 2}]")
+            found = self.m["mongo.find"](session=sid, collection="notes", sort="{n: -1}")
+            self.assertEqual([r[1] for r in found["rows"]], [2, 1])
+            self.m["mongo.update"](session=sid, collection="notes", id=found["ids"][0], text="{n: 20}")
+            self.assertEqual(self.m["mongo.count"](session=sid, collection="notes", filter="{n: 20}")["count"], 1)
+            self.assertEqual(self.m["mongo.delete"](session=sid, collection="notes", ids=found["ids"][1:])["deleted"], 1)
+            self.m["mongo.create_index"](session=sid, collection="notes", keys="{n: 1}")
+            self.assertEqual(len(self.m["mongo.indexes"](session=sid, collection="notes")["indexes"]), 2)
+            self.m["mongo.drop_index"](session=sid, collection="notes", name="n_1")
+            agg = self.m["mongo.aggregate"](session=sid, collection="notes", pipeline="[{$project: {_id: 0}}]")
+            self.assertEqual(agg["rows"], [[20]])
+            self.assertIn('"ok": 1.0', self.m["mongo.run"](session=sid, text="{ping: 1}")["reply"])
+            self.m["mongo.drop_collection"](session=sid, name="notes")
+        finally:
+            s = self.server.sessions.get(sid)
+            s.run(s.adapter.client.drop_database, "zt_session")
+        self.m["query.history_clear"](conn="omadb:zt-mg")
 
 
 @unittest.skipUnless(LIVE and os.access(SSHD, os.X_OK), "set OMATABLE_TEST_DB=1 with zt-pg running")
@@ -216,6 +277,17 @@ class TunnelSessionTest(unittest.TestCase):
         self.server.methods["session.close"](session=info["session"])
         time.sleep(0.2)
         self.assertFalse(tunnel.alive())
+
+    def test_valkey_over_ssh(self):
+        from omatable import omadb
+        vk = omadb.server("zt-vk")
+        conn = self.store.save({"name": "kv via ssh", "engine": "valkey", "host": "127.0.0.1", "port": vk["port"],
+                                "user": vk["user"], "password": vk["password"], "database": "9",
+                                "ssh": {"enabled": True, "host": "127.0.0.1", "port": self.sshd.port,
+                                        "user": os.environ["USER"], "auth": "key", "key_path": self.sshd.key}})
+        info = self.server.methods["session.open"](id=conn["id"])
+        self.assertTrue(info["ssh"])
+        self.assertEqual(self.server.methods["redis.cmd"](session=info["session"], text="PING")["reply"], "PONG")
 
 
 if __name__ == "__main__":
