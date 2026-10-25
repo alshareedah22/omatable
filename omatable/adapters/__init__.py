@@ -14,4 +14,10 @@ def create(conn):
     if engine == "sqlite":
         from .sqlite import SQLite
         return SQLite(conn)
-    raise Error("invalid", f"{engine} connections open in their own browser, not the SQL workspace")
+    if engine in ("redis", "valkey"):
+        from .redis import Redis
+        return Redis(conn)
+    if engine == "mongodb":
+        from .mongo import Mongo
+        return Mongo(conn)
+    raise Error("invalid", f"unknown engine {engine!r}")
