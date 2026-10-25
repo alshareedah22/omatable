@@ -1,8 +1,9 @@
 # OmaTable
 
-A TablePlus-style database GUI for [Omarchy](https://omarchy.org). Status: early (M4): connections, table
+A TablePlus-style database GUI for [Omarchy](https://omarchy.org). Status: early (M5): connections, table
 browsing and editing, a SQL editor, structure editing, export and CSV import for PostgreSQL, MySQL/MariaDB and
-SQLite. The Redis/MongoDB browsers come next.
+SQLite, plus key browsers for Redis/Valkey and a document browser for MongoDB. Safe mode for production
+connections comes next.
 
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDB](https://github.com/alshareedah22/omadb) are listed automatically, with their credentials
@@ -53,6 +54,37 @@ SQLite. The Redis/MongoDB browsers come next.
 - Right-click a table for **Truncate…** and **Drop…**; both ask first. Right-click a cell to copy the row as
   TSV, JSON or an `INSERT`.
 
+### Redis and Valkey
+
+- Keys are listed with SCAN: type a pattern (`user:*`) and press Enter, or pick a type. **Load more** keeps
+  scanning big databases. Each key shows its type and time to live.
+- The value pane fits the type: a text editor for strings (**Format JSON**, Ctrl+S saves), tables for hashes,
+  lists, sets, sorted sets and streams. Double-click an item (or hover it for ✎ and ✕) to change or remove it,
+  **+ Field / Push / Member / Entry** to add one. Collections show their first 1,000 items.
+- List edits check the item is still the one you saw, so a concurrent change is refused instead of
+  overwriting the wrong position.
+- **Rename**, **Set TTL…** (or remove the expiry) and **Delete** act on the key; deleting asks first.
+  **+ Key** (Ctrl+N) creates one of any type.
+- Binary keys and values are shown with `\xHH` escapes and are written back byte for byte.
+- **Console** (Ctrl+`) runs any command with redis-cli style replies and Up/Down history. Commands that
+  would block the connection (SUBSCRIBE, MONITOR, BLPOP, …) are refused; `SELECT n` switches the browser.
+
+### MongoDB
+
+- Collections and views are on the left (right-click to drop, **+** for a new collection).
+- **Find** takes a filter, sort and field list in mongosh syntax: `{age: {$gt: 30}, city: 'Riyadh'}`,
+  `{_id: ObjectId('…')}`, `{joined: {$gte: ISODate('2025-01-01')}}`, `/regex/i`. Plain JSON and Extended JSON
+  work too. Click a column header to sort on the server. Pages hold 50 to 1,000 documents.
+- **Aggregate** runs a pipeline (Ctrl+Enter); results are read-only.
+- **Documents** shows top-level fields as columns; **JSON** shows whole documents. Double-click or **Edit**
+  opens a document in the JSON editor (Ctrl+S saves the whole document; the `_id` cannot change).
+  **+ Insert** (Ctrl+I) takes one document or a list; right-click a row to duplicate it or copy it.
+- **Indexes** lists, creates (`{email: 1}`, unique or not) and drops indexes.
+- **Console** runs database commands such as `{dbStats: 1}` or `{count: 'orders'}`.
+- Views are read-only. Finds and aggregations stop after 60 seconds.
+- Users sign in against the `admin` database (where OmaDB and most installs create them); `mongodb+srv://`
+  URLs are not supported yet.
+
 | Shortcut | Action |
 |---|---|
 | Ctrl+S | Commit staged changes |
@@ -68,6 +100,8 @@ SQLite. The Redis/MongoDB browsers come next.
 | Ctrl+. | Cancel the running query |
 | Ctrl+S (query tab) | Save the query |
 | Ctrl+H | History and saved queries |
+| Ctrl+` | Redis / MongoDB console |
+| Ctrl+N | New Redis key |
 
 ## Install
 
@@ -96,7 +130,8 @@ version and SHA-256 in `requirements.lock`; anything that does not match is refu
     OMATABLE_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -t . -v # plus driver install
     tools/update-requirements-lock                                              # bump drivers
 
-Database tests need the OmaDB servers `zt-pg` (PostgreSQL) and `zt-my` (MariaDB) and the drivers' venv:
+Database tests need the OmaDB servers `zt-pg` (PostgreSQL 17), `zt-my` (MariaDB), `zt-vk` (Valkey 9),
+`zt-rd` (Redis 8) and `zt-mg` (MongoDB 8, user `dev`), and the drivers' venv:
 
     OMATABLE_TEST_DB=1 ~/.local/share/omatable/venv/bin/python -m unittest discover -s tests -t . -v
 

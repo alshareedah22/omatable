@@ -54,24 +54,24 @@ A method called on the wrong kind of session fails with `invalid`.
 
 ### Task 1: Redis adapter
 **Files:** Create `omatable/adapters/redis.py`; Modify `adapters/__init__.py`; Test `tests/test_redis.py`
-- [ ] Live tests on Valkey and Redis: version/databases/use; scan with pattern, type filter and cursor paging; get each type (incl. binary key and value, truncation); create refuses existing; edits per type incl. stale list edit refused; delete, rename refuses existing target, expire/persist; command reply shapes, quoting, refused SUBSCRIBE, SELECT switches database.
-- [ ] Implement, commit "Add the Redis and Valkey adapter".
+- [x] Live tests on Valkey and Redis: version/databases/use; scan with pattern, type filter and cursor paging; get each type (incl. binary key and value, truncation); create refuses existing; edits per type incl. stale list edit refused; delete, rename refuses existing target, expire/persist; command reply shapes, quoting, refused SUBSCRIBE, SELECT switches database.
+- [x] Implement, commit "Add the Redis and Valkey adapter".
 
 ### Task 2: MongoDB adapter
 **Files:** Create `omatable/mongojs.py`, `omatable/adapters/mongo.py`; Test `tests/test_mongojs.py`, `tests/test_mongo.py`
-- [ ] Unit tests for `mongojs.parse` (shell syntax, EJSON, errors with position) and `cell`.
-- [ ] Live tests: databases/tree; find with filter/sort/projection/paging and column union; aggregate; count; insert one/many; update round trip keeps types, refuses `_id` change and missing doc; delete; indexes create/drop (refuse `_id_`); collection create/drop; command.
-- [ ] Implement, commit "Add the MongoDB adapter".
+- [x] Unit tests for `mongojs.parse` (shell syntax, EJSON, errors with position) and `cell`.
+- [x] Live tests: databases/tree; find with filter/sort/projection/paging and column union; aggregate; count; insert one/many; update round trip keeps types, refuses `_id` change and missing doc; delete; indexes create/drop (refuse `_id_`); collection create/drop; command.
+- [x] Implement, commit "Add the MongoDB adapter".
 
 ### Task 3: Protocol methods
 **Files:** Modify `omatable/__main__.py`; Test `tests/test_session.py`
-- [ ] Live tests through `build()` for a few redis.* and mongo.* calls and the wrong-engine error; commit "Add Redis and MongoDB protocol methods".
+- [x] Live tests through `build()` for a few redis.* and mongo.* calls and the wrong-engine error; commit "Add Redis and MongoDB protocol methods".
 
 ### Task 4: Window
 **Files:** Create the QML files above; Modify `Panel.qml`, `Workspace.qml`, `DataGrid.qml`
-- [ ] Redis browser: database picker with key counts, pattern + type filter, key list (type badge, TTL, load more), value pane per type with add/edit/delete items, rename, TTL, delete key, new key dialog, console with history.
-- [ ] Mongo browser: collection list (new/drop), filter/sort/projection bar, Find/Aggregate, paging with count, grid and JSON views, JSON editor for edit/insert/duplicate, delete selected, indexes page, command runner.
-- [ ] Click test on zt-vk and zt-mg; commit "Add the Redis and MongoDB browsers".
+- [x] Redis browser: database picker with key counts, pattern + type filter, key list (type badge, TTL, load more), value pane per type with add/edit/delete items, rename, TTL, delete key, new key dialog, console with history.
+- [x] Mongo browser: collection list (new/drop), filter/sort/projection bar, Find/Aggregate, paging with count, grid and JSON views, JSON editor for edit/insert/duplicate, delete selected, indexes page, command runner.
+- [x] Click test on zt-vk and zt-mg; commit "Add the Redis and MongoDB browsers".
 
 ### Task 5: Docs and merge
-- [ ] README, tick plan, full tests, merge to `main`.
+- [x] README, tick plan, full tests, merge to `main`.
