@@ -8,6 +8,8 @@ import os
 import sqlite3
 import sys
 import tempfile
+import threading
+import time
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -122,7 +124,43 @@ class Flow:
         self.assertFalse(self.a.rows(self.schema, "nokey")["editable"])
 
 
+    def test_run_select_and_affected(self):
+        r = self.a.run(["SELECT name, age FROM people ORDER BY id",
+                        "UPDATE people SET age = 1 WHERE name = 'bob'"])["results"]
+        self.assertEqual([c["name"] for c in r[0]["columns"]], ["name", "age"])
+        self.assertEqual(r[0]["rows"][0], ["ann", 31])
+        self.assertFalse(r[0]["truncated"])
+        self.assertEqual(r[1]["affected"], 1)
+        self.assertGreaterEqual(r[1]["ms"], 0)
+
+    def test_run_truncates(self):
+        r = self.a.run(["SELECT * FROM people"], max_rows=2)["results"][0]
+        self.assertEqual(len(r["rows"]), 2)
+        self.assertTrue(r["truncated"])
+
+    def test_run_stops_at_first_error(self):
+        r = self.a.run(["SELECT 1", "SELECT * FROM nope", "SELECT 2"])["results"]
+        self.assertEqual(len(r), 2)
+        self.assertEqual(r[0]["rows"], [[1]])
+        self.assertEqual(r[1]["error"]["code"], "sql")
+        self.assertEqual(self.a.run(["SELECT 3"])["results"][0]["rows"], [[3]])
+
+    def test_cancel(self):
+        threading.Timer(0.5, self.a.cancel).start()
+        start = time.monotonic()
+        r = self.a.run([self.SLOW, "SELECT 2"])["results"]
+        self.assertLess(time.monotonic() - start, 8)
+        self.assertEqual(len(r), 1)
+        self.assertEqual(r[0]["error"]["code"], "cancelled")
+        self.assertEqual(self.a.run(["SELECT 3"])["results"][0]["rows"], [[3]])
+
+    def test_cancel_when_idle_is_harmless(self):
+        self.a.cancel()
+        self.assertEqual(self.a.run(["SELECT 4"])["results"][0]["rows"], [[4]])
+
+
 class SQLiteTest(Flow, unittest.TestCase):
+    SLOW = "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) FROM c"
     engine = "sqlite"
     schema = "main"
 
@@ -169,6 +207,7 @@ def live_conn(name, database):
 
 @unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-pg running")
 class PostgresTest(Flow, unittest.TestCase):
+    SLOW = "SELECT pg_sleep(30)"
     engine = "postgresql"
     schema = "zt_flow"
 
@@ -199,6 +238,10 @@ class PostgresTest(Flow, unittest.TestCase):
         self.assertEqual(self.a.database, "postgres")
         self.assertNotIn("zt_flow", [s["name"] for s in self.a.tree()])
 
+    def test_result_types(self):
+        cols = self.a.run(["SELECT id, name FROM people"])["results"][0]["columns"]
+        self.assertEqual([c["type"] for c in cols], ["int4", "text"])
+
     def test_auth_and_network_errors(self):
         with self.assertRaises(Error) as e:
             adapters.create({**live_conn("zt-pg", "postgres"), "password": "wrong"}).connect()
@@ -213,6 +256,7 @@ class PostgresTest(Flow, unittest.TestCase):
 
 @unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-my running")
 class MySQLTest(Flow, unittest.TestCase):
+    SLOW = "SELECT SLEEP(30)"
     engine = "mariadb"
     schema = "zt_flow"
 
@@ -240,6 +284,12 @@ class MySQLTest(Flow, unittest.TestCase):
         names = [s["name"] for s in self.a.tree()]
         self.assertIn("zt_flow", names)
         self.assertNotIn("mysql", names)
+
+    def test_use_follows_the_editor(self):
+        self.assertEqual(self.a.run(["USE mysql"])["database"], "mysql")
+        self.assertEqual(self.a.database, "mysql")
+        cols = self.a.run(["SELECT 1 AS n"])["results"][0]["columns"]
+        self.assertIn(cols[0]["type"], ("int", "bigint"))
 
     def test_auth_and_network_errors(self):
         with self.assertRaises(Error) as e:

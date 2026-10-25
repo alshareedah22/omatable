@@ -26,7 +26,12 @@ class SQLite(SQLAdapter):
     def translate(self, exc):
         if isinstance(exc, sqlite3.DatabaseError) and "not a database" in str(exc):
             return Error("invalid", "this file is not a SQLite database")
+        if isinstance(exc, sqlite3.OperationalError) and str(exc) == "interrupted":
+            return Error("cancelled", "Query cancelled")
         return None
+
+    def interrupt(self):
+        self.db.interrupt()
 
     def version(self):
         return "SQLite " + sqlite3.sqlite_version

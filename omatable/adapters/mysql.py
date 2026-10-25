@@ -1,29 +1,62 @@
 """MySQL and MariaDB through PyMySQL. Databases are the top level of the tree."""
 
+from .. import sqlsplit
 from ..protocol import Error
-from .base import SQLAdapter
+from .base import MAX_ROWS, SQLAdapter
 
 SYSTEM = ("information_schema", "performance_schema", "mysql", "sys")
+# PyMySQL FIELD_TYPE names that differ from the SQL type names people know.
+SQL_TYPES = {"tiny": "tinyint", "short": "smallint", "long": "int", "int24": "mediumint",
+             "longlong": "bigint", "newdecimal": "decimal", "var_string": "varchar", "string": "char",
+             "newdate": "date", "tiny_blob": "blob", "medium_blob": "blob", "long_blob": "blob"}
 
 
 class MySQL(SQLAdapter):
     engine = "mysql"
 
-    def connect(self):
-        import pymysql
-        from pymysql.constants import CLIENT
-        self.pymysql = pymysql
+    def params(self):
         c = self.conn
         tls = c.get("tls") or "prefer"
         extra = {"ssl_disabled": True} if tls == "disable" else \
             {"ssl": {"check_hostname": False}} if tls == "require" else {}
+        return {"host": c.get("host") or "127.0.0.1", "port": int(c.get("port") or 3306),
+                "user": c.get("user") or None, "password": c.get("password") or "",
+                "connect_timeout": 10, "charset": "utf8mb4", **extra}
+
+    def connect(self):
+        import pymysql
+        from pymysql.constants import CLIENT
+        self.pymysql = pymysql
         with self.guard():
             # FOUND_ROWS: rowcount is rows matched, not rows changed, so an
             # update that keeps a value still counts as touching its row.
-            self.db = pymysql.connect(host=c.get("host") or "127.0.0.1", port=int(c.get("port") or 3306),
-                                      user=c.get("user") or None, password=c.get("password") or "",
-                                      database=self.database or None, connect_timeout=10, charset="utf8mb4",
-                                      autocommit=True, client_flag=CLIENT.FOUND_ROWS, **extra)
+            self.db = pymysql.connect(**self.params(), database=self.database or None,
+                                      autocommit=True, client_flag=CLIENT.FOUND_ROWS)
+
+    def interrupt(self):
+        # The running connection is busy, so kill its query from a second one.
+        side = self.pymysql.connect(**self.params())
+        try:
+            with side.cursor() as cur:
+                cur.execute("KILL QUERY %s", (self.db.thread_id(),))
+        finally:
+            side.close()
+
+    def describe(self, cursor):
+        from pymysql.constants import FIELD_TYPE
+        names = {v: SQL_TYPES.get(k.lower(), k.lower()) for k, v in vars(FIELD_TYPE).items() if k.isupper()}
+        return [names.get(d[1], "") for d in cursor.description]
+
+    def run(self, statements, max_rows=MAX_ROWS):
+        out = super().run(statements, max_rows)
+        if any(sqlsplit.keyword(s) == "USE" for s in statements):
+            try:
+                self.database = self.query("SELECT DATABASE()")[1][0][0] or ""
+                self.forget()
+            except Error:
+                pass
+            out["database"] = self.database
+        return out
 
     def translate(self, exc):
         pymysql = self.pymysql
@@ -31,6 +64,8 @@ class MySQL(SQLAdapter):
             return None
         code = exc.args[0] if exc.args and isinstance(exc.args[0], int) else None
         msg = exc.args[1] if len(exc.args) > 1 else str(exc)
+        if code == 1317:
+            return Error("cancelled", "Query cancelled")
         if code in (1044, 1045, 1698):
             return Error("auth", msg)
         if code == 1049:

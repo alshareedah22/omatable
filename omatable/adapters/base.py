@@ -12,9 +12,13 @@ import time
 from .. import sqlgen
 from ..protocol import Error
 
+MAX_ROWS = 1000
+
 
 class SQLAdapter:
     engine = ""
+    running = False
+    cancelled = False
 
     def __init__(self, conn):
         self.conn = conn
@@ -53,6 +57,13 @@ class SQLAdapter:
     def row_extra(self, schema, table, key):
         """Extra select list prefix, hidden column names and raw key SQL (sqlite rowid)."""
         return "", (), {}
+
+    def describe(self, cursor):
+        """Type names for the columns of the cursor's result."""
+        return [""] * len(cursor.description)
+
+    def interrupt(self):
+        """Stop the running statement; called from another thread."""
 
     # shared ---------------------------------------------------------------
     @contextlib.contextmanager
@@ -160,3 +171,52 @@ class SQLAdapter:
             finally:
                 cur.close()
         return {"affected": affected}
+
+    # editor queries ---------------------------------------------------------
+    def cancel(self):
+        """Thread safe: stop the running run() after (or during) its current statement."""
+        self.cancelled = True
+        if self.running:
+            with contextlib.suppress(Exception):
+                self.interrupt()
+
+    def run_one(self, sql, max_rows):
+        with self.guard():
+            cur = self.db.cursor()
+            try:
+                cur.execute(sql)
+                if not cur.description:
+                    return {"affected": cur.rowcount}
+                names = [d[0] for d in cur.description]
+                types = self.describe(cur)
+                rows = cur.fetchmany(max_rows + 1)
+                return {"columns": [{"name": n, "type": t} for n, t in zip(names, types)],
+                        "rows": [[self.clean(v) for v in r] for r in rows[:max_rows]],
+                        "truncated": len(rows) > max_rows}
+            finally:
+                cur.close()
+
+    def run(self, statements, max_rows=MAX_ROWS):
+        """Run statements in order, stopping at the first error; the error is the last result."""
+        self.cancelled = False
+        results = []
+        for sql in statements:
+            start = time.monotonic()
+            try:
+                if self.cancelled:
+                    raise Error("cancelled", "Query cancelled")
+                self.running = True
+                try:
+                    out = self.run_one(sql, max(1, int(max_rows)))
+                finally:
+                    self.running = False
+                # Some statements end normally when interrupted (MySQL SLEEP).
+                if self.cancelled:
+                    raise Error("cancelled", "Query cancelled")
+            except Error as e:
+                err = {"code": "cancelled", "message": "Query cancelled"} if self.cancelled \
+                    else {"code": e.code, "message": e.message}
+                results.append({"sql": sql, "error": err, "ms": round((time.monotonic() - start) * 1000)})
+                break
+            results.append({"sql": sql, **out, "ms": round((time.monotonic() - start) * 1000)})
+        return {"results": results, "database": self.database}

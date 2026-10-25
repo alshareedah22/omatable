@@ -32,6 +32,8 @@ class Postgres(SQLAdapter):
         msg = str(exc).strip()
         state = getattr(exc, "sqlstate", None)
         low = msg.lower()
+        if state == "57014":
+            return Error("cancelled", "Query cancelled")
         if state in ("28P01", "28000") or "password authentication failed" in low or "no password supplied" in low:
             return Error("auth", msg)
         if state == "3D000" or ("database" in low and "does not exist" in low and isinstance(exc, psycopg.OperationalError)):
@@ -39,6 +41,13 @@ class Postgres(SQLAdapter):
         if isinstance(exc, psycopg.OperationalError) and state is None:
             return Error("network", msg)
         return Error("sql", msg)
+
+    def describe(self, cursor):
+        types = self.db.adapters.types
+        return [getattr(types.get(d.type_code), "name", "") for d in cursor.description]
+
+    def interrupt(self):
+        self.db.cancel_safe(timeout=5)
 
     def version(self):
         return "PostgreSQL " + self.query("SHOW server_version")[1][0][0]
