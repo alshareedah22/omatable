@@ -61,5 +61,19 @@ class OmaDBTest(unittest.TestCase):
         self.assertEqual(omadb.servers(), [])
 
 
+    def test_import_omadb_copies_password(self):
+        import tempfile as tf
+        from omatable.__main__ import build
+        from omatable.store import Store
+        from tests.test_store import MemoryKeyring
+        with tf.TemporaryDirectory() as cfg:
+            store = Store(cfg, MemoryKeyring())
+            server = build(store)
+            saved = server.methods["conn.import_omadb"](
+                name="app", conn={"name": "App", "engine": "postgresql", "host": "127.0.0.1", "port": 5433,
+                                  "user": "dev", "database": "postgres", "omadb": "app"})
+            self.assertEqual(store.get(saved["id"], secrets=True)["password"], "pw")
+
+
 if __name__ == "__main__":
     unittest.main()

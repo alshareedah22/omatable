@@ -18,7 +18,7 @@ Item {
   function open(payloadJson) {
     closingFromHost = false
     window.visible = true
-    helper.start()
+    helperProc.start()
   }
 
   function close() {
@@ -33,7 +33,7 @@ Item {
   }
 
   Helper {
-    id: helper
+    id: helperProc
     program: root.ctl
   }
 
@@ -46,7 +46,7 @@ Item {
     minimumSize: Qt.size(760, 480)
 
     onVisibleChanged: {
-      if (!visible) helper.stop()
+      if (!visible) helperProc.stop()
       if (!visible && !root.closingFromHost && root.shell && typeof root.shell.hide === "function")
         root.shell.hide(root.pluginId)
     }
@@ -55,7 +55,7 @@ Item {
     Column {
       anchors.centerIn: parent
       spacing: 12
-      visible: helper.status !== "ready"
+      visible: helperProc.status !== "ready"
 
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -66,10 +66,10 @@ Item {
       }
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
-        text: helper.fatalText !== "" ? helper.fatalText
-          : helper.status === "installing" ? helper.progressText
-          : helper.status === "stopped" ? "Stopped" : "Starting…"
-        color: helper.fatalText !== "" ? Color.urgent : Color.muted
+        text: helperProc.fatalText !== "" ? helperProc.fatalText
+          : helperProc.status === "installing" ? helperProc.progressText
+          : helperProc.status === "stopped" ? "Stopped" : "Starting…"
+        color: helperProc.fatalText !== "" ? Color.urgent : Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         width: Math.min(implicitWidth, window.width - 80)
@@ -78,10 +78,17 @@ Item {
       }
       Button {
         anchors.horizontalCenter: parent.horizontalCenter
-        visible: helper.status === "stopped"
+        visible: helperProc.status === "stopped"
         text: "Retry"
-        onClicked: helper.start()
+        onClicked: helperProc.start()
       }
+    }
+  
+    Welcome {
+      anchors.fill: parent
+      visible: helperProc.status === "ready"
+      helper: helperProc
+      onConnectRequested: function(conn) { toast = "Connecting arrives in the next milestone: " + conn.name }
     }
   }
 }

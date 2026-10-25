@@ -1,0 +1,48 @@
+import QtQuick
+import QtQuick.Controls
+import qs.Commons
+
+// A label above a single-line input, in the Omarchy theme.
+Item {
+  id: field
+  property string label: ""
+  property alias text: input.text
+  property alias placeholder: input.placeholderText
+  property bool secret: false
+  property bool dirty: false
+
+  // Equal implicit widths so a RowLayout splits the row evenly between fields.
+  implicitWidth: 200
+  implicitHeight: column.implicitHeight
+
+  function setText(value) { input.text = value; dirty = false }
+  function focusInput() { input.forceActiveFocus() }
+
+  Column {
+    id: column
+    width: field.width
+    spacing: 4
+
+    Text {
+      text: field.label
+      color: Color.muted
+      font.family: Style.font.family
+      font.pixelSize: Style.font.bodySmall
+    }
+    TextField {
+      id: input
+      width: column.width
+      echoMode: field.secret ? TextInput.Password : TextInput.Normal
+      color: Color.foreground
+      placeholderTextColor: Color.muted
+      font.family: Style.font.family
+      font.pixelSize: Style.font.body
+      onTextEdited: field.dirty = true
+      background: Rectangle {
+        color: Qt.lighter(Color.background, 1.25)
+        border.color: input.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.6)
+        radius: 4
+      }
+    }
+  }
+}

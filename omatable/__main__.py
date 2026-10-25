@@ -29,6 +29,14 @@ def build(store, server=None):
     def conn_duplicate(id):  # noqa: A002
         return store.duplicate(id)
 
+    @server.method("conn.import_omadb")
+    def conn_import_omadb(name, conn):
+        source = omadb.server(name)
+        merged = {**conn, "password": conn["password"] if "password" in conn else source["password"]}
+        merged.pop("omadb", None)
+        merged.pop("id", None)
+        return store.save(merged)
+
     return server
 
 

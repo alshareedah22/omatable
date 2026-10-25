@@ -1355,7 +1355,7 @@ import Quickshell.Io
 
 // Owns the tablectl process and the request/reply bookkeeping.
 Item {
-  id: helper
+  id: helperProc
 
   property string program: ""
   property string status: "stopped"   // stopped | starting | installing | ready
@@ -1411,8 +1411,8 @@ Item {
     stdout: SplitParser { onRead: function(line) { helper.receive(String(line)) } }
     stderr: SplitParser { onRead: function(line) { helper.lastStderr = String(line) } }
     onExited: function(exitCode) {
-      helper.status = "stopped"
-      if (exitCode !== 0 && !helper.fatalText) helper.fatalText = helper.lastStderr || ("Helper exited with code " + exitCode)
+      helperProc.status = "stopped"
+      if (exitCode !== 0 && !helperProc.fatalText) helperProc.fatalText = helper.lastStderr || ("Helper exited with code " + exitCode)
       const pending = helper.callbacks
       helper.callbacks = ({})
       for (const id in pending) if (pending[id]) pending[id](null, { code: "stopped", message: "The helper stopped" })
@@ -1445,7 +1445,7 @@ Item {
   function open(payloadJson) {
     closingFromHost = false
     window.visible = true
-    helper.start()
+    helperProc.start()
   }
 
   function close() {
@@ -1460,7 +1460,7 @@ Item {
   }
 
   Helper {
-    id: helper
+    id: helperProc
     program: root.ctl
   }
 
@@ -1473,7 +1473,7 @@ Item {
     minimumSize: Qt.size(760, 480)
 
     onVisibleChanged: {
-      if (!visible) helper.stop()
+      if (!visible) helperProc.stop()
       if (!visible && !root.closingFromHost && root.shell && typeof root.shell.hide === "function")
         root.shell.hide(root.pluginId)
     }
@@ -1482,7 +1482,7 @@ Item {
     Column {
       anchors.centerIn: parent
       spacing: 12
-      visible: helper.status !== "ready"
+      visible: helperProc.status !== "ready"
 
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -1493,10 +1493,10 @@ Item {
       }
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
-        text: helper.fatalText !== "" ? helper.fatalText
-          : helper.status === "installing" ? helper.progressText
-          : helper.status === "stopped" ? "Stopped" : "Starting…"
-        color: helper.fatalText !== "" ? Color.urgent : Color.muted
+        text: helperProc.fatalText !== "" ? helperProc.fatalText
+          : helperProc.status === "installing" ? helperProc.progressText
+          : helperProc.status === "stopped" ? "Stopped" : "Starting…"
+        color: helperProc.fatalText !== "" ? Color.urgent : Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         width: Math.min(implicitWidth, window.width - 80)
@@ -1505,9 +1505,9 @@ Item {
       }
       Button {
         anchors.horizontalCenter: parent.horizontalCenter
-        visible: helper.status === "stopped"
+        visible: helperProc.status === "stopped"
         text: "Retry"
-        onClicked: helper.start()
+        onClicked: helperProc.start()
       }
     }
   }
@@ -1562,6 +1562,10 @@ Column {
   property bool secret: false
   property bool dirty: false
   spacing: 4
+  // Equal implicit widths so RowLayout splits the row evenly between fields.
+  implicitWidth: 200
+
+  function forceActiveFocus() { input.forceActiveFocus() }
 
   function setText(value) { input.text = value; dirty = false }
 
@@ -1917,8 +1921,8 @@ Item {
 
   function select(c) {
     selectedId = c ? c.id : ""
-    form.load(c)
     form.visible = true
+    form.load(c)
   }
 
   function subtitle(c) {
@@ -1930,7 +1934,7 @@ Item {
 
   Connections {
     target: welcome.helper
-    function onStatusChanged() { if (welcome.helper.status === "ready") welcome.reload() }
+    function onStatusChanged() { if (welcome.helperProc.status === "ready") welcome.reload() }
   }
 
   RowLayout {
@@ -2117,8 +2121,8 @@ In `Panel.qml`, inside `FloatingWindow` after the splash `Column`, add:
 ```qml
     Welcome {
       anchors.fill: parent
-      visible: helper.status === "ready"
-      helper: helper
+      visible: helperProc.status === "ready"
+      helper: helperProc
       onConnectRequested: function(conn) { toast = "Connecting arrives in the next milestone: " + conn.name }
     }
 ```
