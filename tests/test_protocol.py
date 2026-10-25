@@ -72,5 +72,46 @@ class ProtocolTest(unittest.TestCase):
                          {"b": {"$t": "bytes", "v": "AAE="}, "d": "2026-01-02", "n": "1.50"})
 
 
+import subprocess
+import tempfile
+
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+
+
+class EndToEndTest(unittest.TestCase):
+    def test_conn_methods_over_stdio(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            env = {**os.environ, "PYTHONPATH": ROOT, "OMATABLE_CONFIG": tmp, "OMATABLE_NO_KEYRING": "1",
+                   "OMATABLE_DBCTL": os.path.join(tmp, "none")}
+            requests = [
+                {"id": 1, "method": "conn.save", "params": {"conn": {
+                    "name": "PG", "engine": "postgresql", "host": "localhost", "password": "pw"}}},
+            ]
+            out = subprocess.run([sys.executable, "-m", "omatable"], input="".join(json.dumps(r) + "\n" for r in requests),
+                                 capture_output=True, text=True, env=env, timeout=30).stdout.splitlines()
+            msgs = [json.loads(l) for l in out]
+            self.assertEqual(msgs[0]["event"], "ready")
+            saved = msgs[1]["result"]
+            self.assertEqual(saved["password_storage"], "file")
+            requests = [
+                {"id": 2, "method": "conn.duplicate", "params": {"id": saved["id"]}},
+            ]
+            out = subprocess.run([sys.executable, "-m", "omatable"], input="".join(json.dumps(r) + "\n" for r in requests),
+                                 capture_output=True, text=True, env=env, timeout=30).stdout.splitlines()
+            copy = json.loads(out[1])["result"]
+            requests = [
+                {"id": 3, "method": "conn.delete", "params": {"id": copy["id"]}},
+            ]
+            subprocess.run([sys.executable, "-m", "omatable"], input="".join(json.dumps(r) + "\n" for r in requests),
+                           capture_output=True, text=True, env=env, timeout=30)
+            out = subprocess.run([sys.executable, "-m", "omatable"], input=json.dumps({"id": 4, "method": "conn.list"}) + "\n",
+                                 capture_output=True, text=True, env=env, timeout=30).stdout.splitlines()
+            listing = json.loads(out[1])["result"]
+            self.assertEqual([c["name"] for c in listing["connections"]], ["PG"])
+            self.assertEqual(listing["omadb"], [])
+            self.assertFalse(listing["keyring"])
+            self.assertNotIn("pw", out[1])
+
+
 if __name__ == "__main__":
     unittest.main()
