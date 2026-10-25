@@ -119,12 +119,7 @@ Hiding the window ends the session, so commit before you hide it.
 
 ## Install
 
-Install from the Omarchy plugin manager, or:
-
-    git clone https://github.com/alshareedah22/omatable ~/.config/omarchy/plugins/blackcode.omatable
-    omarchy restart shell
-
-Then add the **OmaTable** bar widget, or open the window with:
+Install OmaTable from the Omarchy plugin manager. Then add the **OmaTable** bar widget, or open the window with:
 
     omarchy-shell shell summon blackcode.omatable '{}'
 
