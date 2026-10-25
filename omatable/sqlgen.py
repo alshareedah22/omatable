@@ -6,6 +6,10 @@ for the "Preview SQL" view only, never for execution.
 """
 
 import base64
+import datetime
+import json
+import math
+import re
 
 from .protocol import Error
 
@@ -26,6 +30,10 @@ class Dialect:
     def quote(self, name):
         q = self.quote_char
         return q + str(name).replace(q, q + q) + q
+
+    def finish(self, sql):
+        """SQL about to run with parameters: a literal % (in a quoted name) must be %%."""
+        return re.sub(r"%(?!s)", "%%", sql) if self.mark == "%s" else sql
 
     def table(self, schema, name):
         return (self.quote(schema) + "." if schema else "") + self.quote(name)
@@ -116,6 +124,12 @@ def select(d, schema, table, columns, sort=(), filters=(), match="and", limit=30
     return sql, params + [max(1, min(int(limit), MAX_LIMIT)), max(0, int(offset))]
 
 
+def select_all(d, schema, table, columns, sort=(), filters=(), match="and", extra=""):
+    """Every matching row, for exports; no LIMIT."""
+    sql, params = select(d, schema, table, columns, sort, filters, match, 1, 0, extra)
+    return sql[:sql.rindex(" LIMIT ")], params[:-2]
+
+
 def count(d, schema, table, columns, filters=(), match="and"):
     cond, params = where(d, columns, filters, match)
     return f"SELECT COUNT(*) FROM {d.table(schema, table)}{cond}", params
@@ -170,22 +184,36 @@ def changes(d, schema, table, columns, key, changes, raw_keys=None):
     return out
 
 
-def literal(value):
+def literal(value, d=None):
+    """A value written into SQL text: previews and SQL exports, never execution."""
+    name = d.name if d else ""
     if value is None:
         return "NULL"
     if isinstance(value, bool):
         return "TRUE" if value else "FALSE"
-    if isinstance(value, (int, float)):
+    if isinstance(value, float) and not math.isfinite(value):
+        value = {"nan": "NaN", "inf": "Infinity", "-inf": "-Infinity"}[repr(value)]
+    elif isinstance(value, (int, float)):
         return repr(value)
-    if isinstance(value, (bytes, bytearray)):
-        return "X'" + bytes(value).hex().upper() + "'"
-    return "'" + str(value).replace("'", "''") + "'"
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        raw = bytes(value).hex()
+        return f"'\\x{raw}'::bytea" if name == "postgresql" else "X'" + raw.upper() + "'"
+    if hasattr(value, "is_finite") and value.is_finite():   # Decimal
+        return str(value)
+    if isinstance(value, (dict, list)):
+        value = json.dumps(value, ensure_ascii=False)
+    elif isinstance(value, (datetime.date, datetime.time)):
+        value = value.isoformat(sep=" ") if isinstance(value, datetime.datetime) else value.isoformat()
+    text = str(value).replace("'", "''")
+    if name == "mysql":
+        text = text.replace("\\", "\\\\")
+    return "'" + text + "'"
 
 
 def render(d, sql, params):
     pieces = sql.split(d.mark)
     out = [pieces[0]]
     for i, piece in enumerate(pieces[1:]):
-        out.append(literal(params[i]) if i < len(params) else d.mark)
+        out.append(literal(params[i], d) if i < len(params) else d.mark)
         out.append(piece)
     return "".join(out)

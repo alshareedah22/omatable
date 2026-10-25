@@ -1,6 +1,8 @@
 """MySQL and MariaDB through PyMySQL. Databases are the top level of the tree."""
 
-from .. import sqlsplit
+import re
+
+from .. import sqlgen, sqlsplit
 from ..protocol import Error
 from .base import MAX_ROWS, SQLAdapter
 
@@ -134,3 +136,61 @@ class MySQL(SQLAdapter):
             if not any(nullable.get(c, True) for c in cols):
                 return cols
         return []
+
+    def structure(self, schema, table):
+        mariadb = "mariadb" in self.query("SELECT VERSION()")[1][0][0].lower()
+        rows = self.query("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_COMMENT, "
+                          "COLUMN_KEY, EXTRA FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s "
+                          "AND TABLE_NAME = %s ORDER BY ORDINAL_POSITION", (schema, table))[1]
+        if not rows:
+            raise Error("notfound", f"table {table!r} not found")
+        columns = []
+        for name, typ, nullable, dflt, comment, key, extra in rows:
+            extra = extra or ""
+            # MariaDB reports defaults as SQL already; MySQL gives the bare value
+            # unless it is an expression.
+            if mariadb:
+                default = None if dflt in (None, "NULL") else dflt
+            elif dflt is None:
+                default = None
+            elif "DEFAULT_GENERATED" in extra.upper():
+                default = dflt if dflt.upper().startswith("CURRENT_TIMESTAMP") else f"({dflt})"
+            else:
+                default = sqlgen.literal(dflt, self.d)
+            kept = re.findall(r"auto_increment|on update \S+", extra, re.I)
+            columns.append({"name": name, "type": typ, "nullable": nullable == "YES", "default": default,
+                            "comment": comment or "", "pk": key == "PRI", "extra": " ".join(kept)})
+        indexes = {}
+        for name, non_unique, column in self.query(
+                "SELECT INDEX_NAME, NON_UNIQUE, COLUMN_NAME FROM information_schema.STATISTICS "
+                "WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s "
+                "ORDER BY INDEX_NAME = 'PRIMARY' DESC, INDEX_NAME, SEQ_IN_INDEX", (schema, table))[1]:
+            ix = indexes.setdefault(name, {"name": name, "unique": not non_unique, "primary": name == "PRIMARY",
+                                           "columns": []})
+            ix["columns"].append(column)
+        fks = {}
+        for name, column, rs, rt, rc, upd, dele in self.query(
+                "SELECT k.CONSTRAINT_NAME, k.COLUMN_NAME, k.REFERENCED_TABLE_SCHEMA, k.REFERENCED_TABLE_NAME, "
+                "k.REFERENCED_COLUMN_NAME, r.UPDATE_RULE, r.DELETE_RULE "
+                "FROM information_schema.KEY_COLUMN_USAGE k JOIN information_schema.REFERENTIAL_CONSTRAINTS r "
+                "ON r.CONSTRAINT_SCHEMA = k.CONSTRAINT_SCHEMA AND r.CONSTRAINT_NAME = k.CONSTRAINT_NAME "
+                "AND r.TABLE_NAME = k.TABLE_NAME WHERE k.TABLE_SCHEMA = %s AND k.TABLE_NAME = %s "
+                "AND k.REFERENCED_TABLE_NAME IS NOT NULL ORDER BY k.CONSTRAINT_NAME, k.ORDINAL_POSITION",
+                (schema, table))[1]:
+            fk = fks.setdefault(name, {"name": name, "columns": [], "ref_schema": rs, "ref_table": rt,
+                                       "ref_columns": [], "on_update": upd, "on_delete": dele})
+            fk["columns"].append(column)
+            fk["ref_columns"].append(rc)
+        create = self.query(f"SHOW CREATE TABLE {self.d.table(schema, table)}")[1][0][1]
+        return {"columns": columns, "indexes": list(indexes.values()), "foreign_keys": list(fks.values()),
+                "ddl": create + ";"}
+
+    def run_ddl(self, statements):
+        # MySQL commits every DDL statement itself; say how far it got.
+        for i, sql in enumerate(statements):
+            try:
+                self.query(sql)
+            except Error as e:
+                done = f"; the {i} statement{'s' if i != 1 else ''} before it were applied" if i else \
+                    "; nothing was changed"
+                raise Error(e.code, e.message + done) from e

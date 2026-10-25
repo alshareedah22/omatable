@@ -1,5 +1,7 @@
 import os
 import sys
+import datetime
+import decimal
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -131,8 +133,34 @@ class RenderTest(unittest.TestCase):
     def test_render(self):
         self.assertEqual(sqlgen.render(PG, 'UPDATE t SET a = %s, b = %s WHERE c = %s AND d = %s',
                                        ["it's", None, 5, b"\x01"]),
-                         "UPDATE t SET a = 'it''s', b = NULL WHERE c = 5 AND d = X'01'")
+                         "UPDATE t SET a = 'it''s', b = NULL WHERE c = 5 AND d = '\\x01'::bytea")
         self.assertEqual(sqlgen.render(LITE, "x = ? AND y = ?", [True, 1.5]), "x = TRUE AND y = 1.5")
+
+
+class LiteralTest(unittest.TestCase):
+    def test_dialect_literals(self):
+        my = sqlgen.dialect("mysql")
+        self.assertEqual(sqlgen.literal("a\\b'c", my), "'a\\\\b''c'")
+        self.assertEqual(sqlgen.literal("a\\b", PG), "'a\\b'")
+        self.assertEqual(sqlgen.literal(b"\xff", my), "X'FF'")
+        self.assertEqual(sqlgen.literal(b"\xff", PG), "'\\xff'::bytea")
+        self.assertEqual(sqlgen.literal({"a": [1]}, PG), "'{\"a\": [1]}'")
+        self.assertEqual(sqlgen.literal(decimal.Decimal("1.50"), PG), "1.50")
+        self.assertEqual(sqlgen.literal(datetime.date(2026, 1, 2), PG), "'2026-01-02'")
+        self.assertEqual(sqlgen.literal(float("nan"), PG), "'NaN'")
+
+
+class FinishTest(unittest.TestCase):
+    def test_percent_in_identifiers(self):
+        sql, params = sqlgen.select(PG, "public", "50%", ["a"], limit=5)
+        self.assertEqual(PG.finish(sql), 'SELECT * FROM "public"."50%%" LIMIT %s OFFSET %s')
+        self.assertEqual(LITE.finish('SELECT "5%" WHERE a = ?'), 'SELECT "5%" WHERE a = ?')
+
+    def test_select_all(self):
+        sql, params = sqlgen.select_all(PG, "s", "t", ["a", "b"], [{"column": "b", "desc": True}],
+                                        [{"column": "a", "op": ">", "value": 3}])
+        self.assertEqual(sql, 'SELECT * FROM "s"."t" WHERE "a" > %s ORDER BY "b" DESC')
+        self.assertEqual(params, [3])
 
 
 if __name__ == "__main__":

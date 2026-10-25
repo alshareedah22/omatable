@@ -163,7 +163,59 @@ class Flow:
         self.assertEqual(self.a.run(["SELECT 4"])["results"][0]["rows"], [[4]])
 
 
+    def test_percent_in_table_name(self):
+        self.a.query(f"CREATE TABLE {self.a.d.quote('pct%')} (id int PRIMARY KEY, v {self.TEXT})")
+        self.a.commit(self.schema, "pct%", {"inserts": [{"values": {"id": 1, "v": "50%"}}]})
+        r = self.a.rows(self.schema, "pct%", filters=[{"column": "v", "op": "contains", "value": "%"}])
+        self.assertEqual(r["rows"], [[1, "50%"]])
+        self.assertEqual(self.a.count(self.schema, "pct%")["count"], 1)
+
+    def test_structure(self):
+        s = self.a.structure(self.schema, "people")
+        self.assertEqual([c["name"] for c in s["columns"]], ["id", "name", "age", "data"])
+        self.assertTrue(s["columns"][0]["pk"])
+        self.assertFalse(s["columns"][1]["nullable"])
+        self.assertTrue(any(i["primary"] and i["columns"] == ["id"] for i in s["indexes"]))
+        self.assertIn("CREATE TABLE", s["ddl"])
+        self.assertIn("people", s["ddl"])
+
+    def test_alter_round_trip(self):
+        changes = {"columns": [{"op": "add", "name": "email", "type": self.TEXT, "default": "'none'"},
+                               {"op": "alter", "name": "age", "new_name": "years"}],
+                   "indexes": [{"op": "add", "name": "by_email", "columns": ["email"], "unique": False}]}
+        preview = self.a.alter_preview(self.schema, "people", changes)["statements"]
+        self.assertEqual(len(preview), 3)
+        self.assertTrue(all(sql.endswith(";") for sql in preview))
+        self.assertEqual(self.a.alter(self.schema, "people", changes), {"statements": 3})
+        s = self.a.structure(self.schema, "people")
+        names = [c["name"] for c in s["columns"]]
+        self.assertEqual(names, ["id", "name", "years", "data", "email"])
+        self.assertIn("none", next(c for c in s["columns"] if c["name"] == "email")["default"])
+        self.assertIn("by_email", [i["name"] for i in s["indexes"]])
+        self.assertIn("years", [c["name"] for c in self.a.rows(self.schema, "people")["columns"]])
+        self.a.alter(self.schema, "people", {"indexes": [{"op": "drop", "name": "by_email"}],
+                                             "columns": [{"op": "drop", "name": "email"}]})
+        self.assertNotIn("email", [c["name"] for c in self.a.structure(self.schema, "people")["columns"]])
+        with self.assertRaises(Error):
+            self.a.alter(self.schema, "people", {})
+
+    def test_foreign_keys_truncate_drop(self):
+        self.a.query("CREATE TABLE orders (id int PRIMARY KEY, person_id int, "
+                     "CONSTRAINT fk_person FOREIGN KEY (person_id) REFERENCES people(id))")
+        fk = self.a.structure(self.schema, "orders")["foreign_keys"][0]
+        self.assertEqual((fk["columns"], fk["ref_table"], fk["ref_columns"]), (["person_id"], "people", ["id"]))
+        self.a.query("INSERT INTO orders (id, person_id) VALUES (1, 1)")
+        self.a.truncate(self.schema, "orders")
+        self.assertEqual(self.a.count(self.schema, "orders")["count"], 0)
+        self.a.drop(self.schema, "orders")
+        self.a.drop(self.schema, "v_people", "view")
+        tree = {s["name"]: s for s in self.a.tree()}[self.schema]
+        self.assertNotIn("orders", tree["tables"])
+        self.assertNotIn("v_people", tree["views"])
+
+
 class SQLiteTest(Flow, unittest.TestCase):
+    TEXT = "TEXT"
     SLOW = "WITH RECURSIVE c(x) AS (SELECT 1 UNION ALL SELECT x + 1 FROM c) SELECT count(*) FROM c"
     engine = "sqlite"
     schema = "main"
@@ -211,6 +263,7 @@ def live_conn(name, database):
 
 @unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-pg running")
 class PostgresTest(Flow, unittest.TestCase):
+    TEXT = "text"
     SLOW = "SELECT pg_sleep(30)"
     engine = "postgresql"
     schema = "zt_flow"
@@ -242,6 +295,21 @@ class PostgresTest(Flow, unittest.TestCase):
         self.assertEqual(self.a.database, "postgres")
         self.assertNotIn("zt_flow", [s["name"] for s in self.a.tree()])
 
+    def test_failed_alter_changes_nothing(self):
+        with self.assertRaises(Error) as e:
+            self.a.alter(self.schema, "people", {"columns": [{"op": "add", "name": "ok", "type": "int"},
+                                                             {"op": "add", "name": "bad", "type": "nosuchtype"}]})
+        self.assertIn("nothing was changed", e.exception.message)
+        self.assertNotIn("ok", [c["name"] for c in self.a.structure(self.schema, "people")["columns"]])
+
+    def test_structure_details(self):
+        self.a.query("COMMENT ON COLUMN people.age IS 'years'")
+        s = self.a.structure(self.schema, "people")
+        age = next(c for c in s["columns"] if c["name"] == "age")
+        self.assertEqual((age["type"], age["comment"]), ("integer", "years"))
+        self.assertIn("nextval", s["columns"][0]["default"])
+        self.assertIn("COMMENT ON COLUMN", s["ddl"])
+
     def test_result_types(self):
         cols = self.a.run(["SELECT id, name FROM people"])["results"][0]["columns"]
         self.assertEqual([c["type"] for c in cols], ["int4", "text"])
@@ -260,6 +328,7 @@ class PostgresTest(Flow, unittest.TestCase):
 
 @unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-my running")
 class MySQLTest(Flow, unittest.TestCase):
+    TEXT = "varchar(40)"
     SLOW = "SELECT SLEEP(30)"
     engine = "mariadb"
     schema = "zt_flow"
@@ -288,6 +357,21 @@ class MySQLTest(Flow, unittest.TestCase):
         names = [s["name"] for s in self.a.tree()]
         self.assertIn("zt_flow", names)
         self.assertNotIn("mysql", names)
+
+    def test_failed_alter_reports_progress(self):
+        with self.assertRaises(Error) as e:
+            self.a.alter(self.schema, "people", {"columns": [{"op": "add", "name": "ok", "type": "int"},
+                                                             {"op": "add", "name": "bad", "type": "nosuchtype"}]})
+        self.assertIn("the 1 statement before it were applied", e.exception.message)
+
+    def test_change_keeps_auto_increment(self):
+        self.a.alter(self.schema, "people", {"columns": [{"op": "alter", "name": "id", "type": "bigint"},
+                                                         {"op": "alter", "name": "name", "comment": "who"}]})
+        s = self.a.structure(self.schema, "people")
+        self.assertEqual(s["columns"][0]["extra"], "auto_increment")
+        self.assertEqual(s["columns"][0]["type"], "bigint(20)")
+        self.assertEqual(s["columns"][1]["comment"], "who")
+        self.assertFalse(s["columns"][1]["nullable"])
 
     def test_use_follows_the_editor(self):
         self.assertEqual(self.a.run(["USE mysql"])["database"], "mysql")

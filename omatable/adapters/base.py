@@ -9,7 +9,7 @@ import contextlib
 import math
 import time
 
-from .. import sqlgen
+from .. import ddl, sqlgen
 from ..protocol import Error
 
 MAX_ROWS = 1000
@@ -58,6 +58,10 @@ class SQLAdapter:
         """Extra select list prefix, hidden column names and raw key SQL (sqlite rowid)."""
         return "", (), {}
 
+    def structure(self, schema, table):
+        """Columns, indexes, foreign keys and the CREATE statement."""
+        raise NotImplementedError
+
     def describe(self, cursor):
         """Type names for the columns of the cursor's result."""
         return [""] * len(cursor.description)
@@ -82,11 +86,19 @@ class SQLAdapter:
                 self.db.close()
             self.db = None
 
+    def execute(self, cur, sql, params=()):
+        # Without parameters drivers take the SQL as written; with them a
+        # literal % must be doubled first.
+        if params:
+            cur.execute(self.d.finish(sql), params)
+        else:
+            cur.execute(sql)
+
     def query(self, sql, params=()):
         with self.guard():
             cur = self.db.cursor()
             try:
-                cur.execute(sql, params)
+                self.execute(cur, sql, params)
                 names = [c[0] for c in cur.description or ()]
                 return names, [list(r) for r in cur.fetchall()] if cur.description else []
             finally:
@@ -157,7 +169,7 @@ class SQLAdapter:
             try:
                 cur.execute("BEGIN")
                 for sql, params, expect_one in stmts:
-                    cur.execute(sql, params)
+                    self.execute(cur, sql, params)
                     n = cur.rowcount
                     if expect_one and n != 1:
                         raise Error("sql", f"{'No row' if n == 0 else f'{n} rows'} matched "
@@ -220,3 +232,48 @@ class SQLAdapter:
                 break
             results.append({"sql": sql, **out, "ms": round((time.monotonic() - start) * 1000)})
         return {"results": results, "database": self.database}
+
+    # structure --------------------------------------------------------------
+    def alter_statements(self, schema, table, changes):
+        return ddl.statements(self.d, schema, table, self.structure(schema, table), changes or {})
+
+    def alter_preview(self, schema, table, changes):
+        return {"statements": [s + ";" for s in self.alter_statements(schema, table, changes)]}
+
+    def run_ddl(self, statements):
+        """All or nothing, for engines with transactional DDL."""
+        cur = self.db.cursor()
+        try:
+            with self.guard():
+                try:
+                    cur.execute("BEGIN")
+                    for sql in statements:
+                        cur.execute(sql)
+                    cur.execute("COMMIT")
+                except BaseException:
+                    with contextlib.suppress(Exception):
+                        cur.execute("ROLLBACK")
+                    raise
+        except Error as e:
+            raise Error(e.code, e.message + "; nothing was changed") from e
+        finally:
+            cur.close()
+
+    def alter(self, schema, table, changes):
+        stmts = self.alter_statements(schema, table, changes)
+        if not stmts:
+            raise Error("invalid", "There are no structure changes")
+        try:
+            self.run_ddl(stmts)
+        finally:
+            self.forget()
+        return {"statements": len(stmts)}
+
+    def drop(self, schema, table, kind="table"):
+        self.query(f"DROP {'VIEW' if kind == 'view' else 'TABLE'} {self.d.table(schema, table)}")
+        self.forget()
+        return {"ok": True}
+
+    def truncate(self, schema, table):
+        self.query(f"TRUNCATE TABLE {self.d.table(schema, table)}")
+        return {"ok": True}

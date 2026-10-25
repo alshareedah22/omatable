@@ -71,3 +71,34 @@ class SQLite(SQLAdapter):
         except Error:  # WITHOUT ROWID
             return "", (), {}
         return "rowid AS __rowid, ", ("__rowid",), {"__rowid": "rowid"}
+
+    def structure(self, schema, table):
+        q = self.d.quote
+        cols = self.load_columns(schema, table)
+        if not cols:
+            raise Error("notfound", f"table {table!r} not found")
+        columns = [{"name": c["name"], "type": c["type"], "nullable": c["nullable"], "default": c["default"],
+                    "comment": "", "pk": bool(c["pk"]), "extra": ""} for c in cols]
+        indexes = []
+        for _, name, unique, origin, _ in self.query(f"PRAGMA {q(schema)}.index_list({q(table)})")[1]:
+            info = self.query(f"PRAGMA {q(schema)}.index_info({q(name)})")[1]
+            indexes.append({"name": name, "unique": bool(unique), "primary": origin == "pk",
+                            "columns": [r[2] for r in sorted(info)]})
+        if any(c["pk"] for c in cols) and not any(i["primary"] for i in indexes):
+            # an INTEGER PRIMARY KEY is the rowid and has no index of its own
+            indexes.insert(0, {"name": "PRIMARY", "unique": True, "primary": True,
+                               "columns": [c["name"] for c in sorted(cols, key=lambda c: c["pk"]) if c["pk"]]})
+        fks = {}
+        for fid, _, ref, frm, to, upd, dele, _ in self.query(f"PRAGMA {q(schema)}.foreign_key_list({q(table)})")[1]:
+            fk = fks.setdefault(fid, {"name": f"fk_{fid}", "columns": [], "ref_schema": schema, "ref_table": ref,
+                                      "ref_columns": [], "on_update": upd, "on_delete": dele})
+            fk["columns"].append(frm)
+            fk["ref_columns"].append(to)
+        sqls = [r[0] + ";" for r in self.query(
+            "SELECT sql FROM sqlite_master WHERE tbl_name = ? AND sql IS NOT NULL "
+            "ORDER BY type = 'table' DESC, name", (table,))[1]]
+        return {"columns": columns, "indexes": indexes, "foreign_keys": list(fks.values()), "ddl": "\n".join(sqls)}
+
+    def truncate(self, schema, table):
+        self.query(f"DELETE FROM {self.d.table(schema, table)}")
+        return {"ok": True}
