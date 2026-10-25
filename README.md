@@ -1,8 +1,8 @@
 # OmaTable
 
-A TablePlus-style database GUI for [Omarchy](https://omarchy.org). Status: early (M2): connections, table
-browsing and editing for PostgreSQL, MySQL/MariaDB and SQLite. The SQL editor, structure editing, export and the
-Redis/MongoDB browsers come next.
+A TablePlus-style database GUI for [Omarchy](https://omarchy.org). Status: early (M3): connections, table
+browsing and editing, and a SQL editor for PostgreSQL, MySQL/MariaDB and SQLite. Structure editing, export and
+the Redis/MongoDB browsers come next.
 
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDB](https://github.com/alshareedah22/omadb) are listed automatically, with their credentials
@@ -23,6 +23,17 @@ Redis/MongoDB browsers come next.
 - Tables without a primary key (or unique not-null key) are read-only, except in SQLite, where rows are edited
   by their rowid.
 
+### SQL editor
+
+- **+ Query** (Ctrl+T) opens a query tab. Ctrl+Enter runs the statement under the cursor, or the selection;
+  Ctrl+Shift+Enter runs everything.
+- Each statement gets its own result tab with its row count and time. A run stops at the first error and
+  keeps the results before it. Results show up to 1,000 rows each; click a header to sort them.
+- **■ Cancel** (Ctrl+.) stops a running query.
+- **History** (Ctrl+H) lists what you ran on this connection, searchable; click an entry to load it.
+  **Save** (Ctrl+S) keeps a query under a name in the **Saved** list.
+- `CREATE`/`DROP`/`ALTER` refresh the sidebar, and MySQL `USE` switches the database.
+
 | Shortcut | Action |
 |---|---|
 | Ctrl+S | Commit staged changes |
@@ -32,6 +43,12 @@ Redis/MongoDB browsers come next.
 | Ctrl+R / F5 | Reload |
 | Ctrl+C | Copy cell |
 | Ctrl+W, Ctrl+Tab | Close / cycle tabs |
+| Ctrl+T | New query tab |
+| Ctrl+Enter | Run statement at cursor (or selection) |
+| Ctrl+Shift+Enter | Run all statements |
+| Ctrl+. | Cancel the running query |
+| Ctrl+S (query tab) | Save the query |
+| Ctrl+H | History and saved queries |
 
 ## Install
 
@@ -50,6 +67,8 @@ version and SHA-256 in `requirements.lock`; anything that does not match is refu
 ## Files
 
 - `~/.config/omatable/connections.json`: saved connections (mode 600)
+- `~/.config/omatable/history.jsonl`, `queries.json`: query history (last 1,000 runs) and saved queries
+  (mode 600, since SQL can contain secrets)
 - `~/.local/share/omatable/venv`: the drivers
 
 ## Development

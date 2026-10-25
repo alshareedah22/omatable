@@ -61,38 +61,38 @@
 
 **Files:** Create `omatable/sqlsplit.py`; Test `tests/test_sqlsplit.py`
 
-- [ ] Write tests: plain split with offsets; `;` inside `'…'`, `"…"`, backticks, comments; `''` and MySQL `\'`; `$$…;…$$` and `$fn$`; nested `/* /* */ */` in PostgreSQL; MySQL `#` comment and `--x` not being a comment in MySQL; comment-only trailing statement dropped; SQLite trigger with `BEGIN … ; … END;` kept whole; `at()` inside, between and after statements; `keyword()` with leading comments and parentheses.
-- [ ] Run, see them fail; implement a single-pass scanner; run, see them pass.
-- [ ] Commit "Add the SQL statement splitter".
+- [x] Write tests: plain split with offsets; `;` inside `'…'`, `"…"`, backticks, comments; `''` and MySQL `\'`; `$$…;…$$` and `$fn$`; nested `/* /* */ */` in PostgreSQL; MySQL `#` comment and `--x` not being a comment in MySQL; comment-only trailing statement dropped; SQLite trigger with `BEGIN … ; … END;` kept whole; `at()` inside, between and after statements; `keyword()` with leading comments and parentheses.
+- [x] Run, see them fail; implement a single-pass scanner; run, see them pass.
+- [x] Commit "Add the SQL statement splitter".
 
 ### Task 2: Run and cancel in the adapters
 
 **Files:** Modify `omatable/adapters/base.py`, `postgres.py`, `mysql.py`, `sqlite.py`; Test `tests/test_adapters.py`
 
-- [ ] Tests (SQLite always): select returns columns/rows; `max_rows` truncates; insert reports `affected`; error stops the run and keeps earlier results; cancel from another thread interrupts a long recursive CTE with `cancelled`; a NaN is cleaned.
-- [ ] Live tests: PostgreSQL `SELECT pg_sleep(30)` cancelled within 5 s and the session still answers `SELECT 1`; column type names (`integer`); MySQL `SELECT SLEEP(30)` cancelled, `USE` updates `database`.
-- [ ] Implement `run`, `cancel`, `describe`, `interrupt`, error mapping (`57014`, `1317`, sqlite `interrupted` → `cancelled`); MySQL connection params factored into `_params()` for the side connection.
-- [ ] Commit "Run statements and cancel them in every SQL adapter".
+- [x] Tests (SQLite always): select returns columns/rows; `max_rows` truncates; insert reports `affected`; error stops the run and keeps earlier results; cancel from another thread interrupts a long recursive CTE with `cancelled`; a NaN is cleaned.
+- [x] Live tests: PostgreSQL `SELECT pg_sleep(30)` cancelled within 5 s and the session still answers `SELECT 1`; column type names (`integer`); MySQL `SELECT SLEEP(30)` cancelled, `USE` updates `database`.
+- [x] Implement `run`, `cancel`, `describe`, `interrupt`, error mapping (`57014`, `1317`, sqlite `interrupted` → `cancelled`); MySQL connection params factored into `_params()` for the side connection.
+- [x] Commit "Run statements and cancel them in every SQL adapter".
 
 ### Task 3: History, saved queries and protocol methods
 
 **Files:** Create `omatable/history.py`; Modify `omatable/__main__.py`, `omatable/session.py`; Test `tests/test_history.py`, `tests/test_session.py`
 
-- [ ] Tests: history add/list newest first, search, per-connection filter, trim to `keep`, mode 600, clear; saved save/rename/delete; `query.run` with cursor runs one statement and returns its range; run all; `ddl` true for `CREATE`; a run lands in history with `ok`/`error`; `query.cancel` from a second thread while `query.run` blocks; `app.palette` reads a fake `colors.toml`.
-- [ ] Implement; `Session.cancel()` calls the adapter directly (not through the worker); DDL runs call `adapter.forget()`.
-- [ ] Commit "Add query.run/cancel, history and saved queries".
+- [x] Tests: history add/list newest first, search, per-connection filter, trim to `keep`, mode 600, clear; saved save/rename/delete; `query.run` with cursor runs one statement and returns its range; run all; `ddl` true for `CREATE`; a run lands in history with `ok`/`error`; `query.cancel` from a second thread while `query.run` blocks; `app.palette` reads a fake `colors.toml`.
+- [x] Implement; `Session.cancel()` calls the adapter directly (not through the worker); DDL runs call `adapter.forget()`.
+- [x] Commit "Add query.run/cancel, history and saved queries".
 
 ### Task 4: Editor, results and query tabs
 
 **Files:** Create `qml/SqlHighlight.js`, `qml/CodeEditor.qml`, `qml/ResultModel.qml`, `qml/ResultTabs.qml`, `qml/QueryTab.qml`; Modify `qml/Workspace.qml`, `qml/DataGrid.qml`
 
-- [ ] `CodeEditor`: a transparent-text `TextEdit` over a rich-text `TextEdit` showing `SqlHighlight.html()` (same font, no wrap, same padding, so glyphs line up), line-number gutter, Tab inserts two spaces, auto-indent on Enter.
-- [ ] `ResultModel` + `DataGrid`: read-only (`editable: false`), menu shows only copy actions, header click sorts in memory.
-- [ ] `QueryTab`: Run (Ctrl+Enter), Run all (Ctrl+Shift+Enter), Cancel (visible while running, with elapsed seconds), Save (Ctrl+S, name popup), drawer (Ctrl+H) with History (search, click loads into editor, Clear) and Saved (click loads, ✕ deletes); errors inline in the result area; the statement that ran is briefly selected.
-- [ ] `Workspace`: query tabs, Ctrl+T, "+ Query" button, reload the tree after DDL, follow MySQL `USE`.
-- [ ] Restart the shell; click test against `zt-pg`, `zt-my` and a SQLite file: run current/all, error, cancel `pg_sleep`, history reload, save/load, sort a result, copy a cell.
-- [ ] Commit "Add query tabs: SQL editor, result tabs, history and saved queries".
+- [x] `CodeEditor`: a transparent-text `TextEdit` over a rich-text `TextEdit` showing `SqlHighlight.html()` (same font, no wrap, same padding, so glyphs line up), line-number gutter, Tab inserts two spaces, auto-indent on Enter.
+- [x] `ResultModel` + `DataGrid`: read-only (`editable: false`), menu shows only copy actions, header click sorts in memory.
+- [x] `QueryTab`: Run (Ctrl+Enter), Run all (Ctrl+Shift+Enter), Cancel (visible while running, with elapsed seconds), Save (Ctrl+S, name popup), drawer (Ctrl+H) with History (search, click loads into editor, Clear) and Saved (click loads, ✕ deletes); errors inline in the result area (monospace, so carets line up); results clear while a run is in progress.
+- [x] `Workspace`: query tabs, Ctrl+T, "+ Query" button, reload the tree after DDL, follow MySQL `USE`.
+- [x] Restart the shell; click test against `zt-pg`, `zt-my` and a SQLite file: run current/all, error, cancel `pg_sleep`, history reload, save/load, sort a result, copy a cell.
+- [x] Commit "Add query tabs: SQL editor, result tabs, history and saved queries".
 
 ### Task 5: Docs and merge
 
-- [ ] README: query tab usage and shortcuts. Tick this plan. Full test run (venv + live). Merge to `main`.
+- [x] README: query tab usage and shortcuts. Tick this plan. Full test run (venv + live). Merge to `main`.
