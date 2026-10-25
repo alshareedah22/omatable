@@ -32,6 +32,11 @@ redis.call('LREM', KEYS[1], 1, ARGV[3])
 return 1
 """
 TOMBSTONE = b"\x00omatable-deleted\x00"
+WRITE_FLAGS = {"write", "admin", "may_replicate"}
+READ_ADMIN = {"config|get", "client|list", "client|info", "slowlog|get", "slowlog|len", "latency|latest",
+              "latency|history", "latency|doctor", "acl|whoami", "acl|list", "acl|users", "acl|cat", "info",
+              "lastsave", "dbsize", "memory|stats", "memory|doctor", "module|list", "cluster|info", "cluster|nodes"}
+SCRIPTS = {"eval", "evalsha", "eval_ro", "evalsha_ro", "fcall", "fcall_ro", "script", "function"}
 
 
 def wire(data):
@@ -85,6 +90,7 @@ class Redis:
         self.database = str(conn.get("database") or "0")
         self.client = None
         self.product = "Redis"
+        self._flags = {}
 
     def guard(self):
         return _Guard(self)
@@ -368,13 +374,46 @@ class Redis:
         finally:
             pool.release(conn)
 
-    def command(self, text):
+    def _info(self, name):
+        """(flags, has subcommands) from COMMAND INFO, cached; None if the server does not know it."""
+        if name not in self._flags:
+            try:
+                info = self._raw_command(["COMMAND", "INFO", name])
+                entry = info[0] if info else None
+            except Exception:  # noqa: BLE001 - unknown means ask
+                entry = None
+            self._flags[name] = None if not entry else (
+                {str(wire(f)).lower() for f in entry[2]}, len(entry) > 9 and bool(entry[9]))
+        return self._flags[name]
+
+    def writes(self, args):
+        """Whether the command may change data, from the server's own COMMAND INFO flags."""
+        name = str(args[0]).lower()
+        if name in SCRIPTS:
+            return True
+        info = self._info(name)
+        if info and info[1] and len(args) > 1:  # container: CONFIG SET, CLIENT KILL, …
+            name = f"{name}|{str(args[1]).lower()}"
+            info = self._info(name)
+        if info is None:
+            return True
+        flags = info[0]
+        if "write" in flags or "may_replicate" in flags:
+            return True
+        return "admin" in flags and name not in READ_ADMIN
+
+    @staticmethod
+    def parse(text):
         try:
             args = shlex.split(str(text or ""))
         except ValueError as e:
             raise Error("invalid", f"cannot read the command: {e}") from None
         if not args:
             raise Error("invalid", "type a command")
+        return args
+
+    def command(self, text):
+        args = self.parse(text)
         name = args[0].upper()
         if name in REFUSED:
             raise Error("invalid", f"{name} is not available in the console")

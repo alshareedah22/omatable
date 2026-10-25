@@ -188,3 +188,20 @@ def from_utf16(text, pos):
 
 def to_utf16(text, pos):
     return len(text[:pos].encode("utf-16-le")) // 2
+
+
+def words(sql, engine):
+    """The SQL's bare words in upper case, skipping strings, quoted names and comments."""
+    out, i, n = [], 0, len(sql)
+    while i < n:
+        skip = _comment(sql, i, engine) or _quoted(sql, i, engine)
+        if skip:
+            i += skip
+            continue
+        m = WORD.match(sql, i)
+        if m and (i == 0 or not _ident(sql[i - 1])):
+            out.append(m.group(0).upper())
+            i = m.end()
+        else:
+            i += 1
+    return out

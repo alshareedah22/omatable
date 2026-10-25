@@ -33,7 +33,7 @@ class SessionTest(unittest.TestCase):
         self.store = Store(os.path.join(self.tmp.name, "cfg"), Keyring(False))
         self.server = build(self.store)
         self.m = self.server.methods
-        self.conn = self.store.save({"name": "Notes", "engine": "sqlite", "path": self.path, "tag": "production"})
+        self.conn = self.store.save({"name": "Notes", "engine": "sqlite", "path": self.path, "tag": "local"})
 
     def tearDown(self):
         self.server.sessions.close_all()
@@ -43,7 +43,7 @@ class SessionTest(unittest.TestCase):
     def test_open_browse_commit_close(self):
         info = self.m["session.open"](id=self.conn["id"])
         self.assertEqual(info["engine"], "sqlite")
-        self.assertEqual(info["tag"], "production")
+        self.assertEqual(info["tag"], "local")
         self.assertEqual(info["databases"], ["main"])
         sid = info["session"]
         tree = self.m["schema.tree"](session=sid)
@@ -164,6 +164,47 @@ class SessionTest(unittest.TestCase):
             self.m["conn.test"](conn={"name": "", "engine": "sqlite"})
         self.assertEqual(e.exception.code, "invalid")
 
+    def test_safe_mode(self):
+        prod = self.store.save({"name": "Prod", "engine": "sqlite", "path": self.path, "tag": "production"})
+        sid = self.m["session.open"](id=prod["id"])["session"]
+        # reads run straight away
+        self.assertEqual(self.m["query.run"](session=sid, text="SELECT count(*) FROM notes")["results"][0]["rows"], [[3]])
+        changes = {"updates": [{"key": {"id": 1}, "values": {"body": "uno"}}]}
+        calls = [
+            ("table.commit", {"schema": "main", "table": "notes", "changes": changes}, "UPDATE"),
+            ("query.run", {"text": "SELECT 1; DELETE FROM notes WHERE id = 3"}, "DELETE FROM notes WHERE id = 3;"),
+            ("struct.apply", {"schema": "main", "table": "notes",
+                              "changes": {"columns": [{"op": "add", "name": "n", "type": "INTEGER"}]}}, "ADD COLUMN"),
+            ("table.truncate", {"schema": "main", "table": "notes"}, None),
+        ]
+        for method, params, detail in calls:
+            with self.assertRaises(Error) as e:
+                self.m[method](session=sid, **params)
+            self.assertEqual(e.exception.code, "confirm", method)
+            if detail:
+                self.assertIn(detail, e.exception.detail)
+        # nothing ran
+        self.assertEqual(self.m["query.run"](session=sid, text="SELECT body FROM notes ORDER BY id")["results"][0]["rows"],
+                         [["one"], ["two"], ["three"]])
+        self.assertEqual(self.m["table.commit"](session=sid, schema="main", table="notes", changes=changes, confirmed=True),
+                         {"affected": 1})
+        out = self.m["query.run"](session=sid, text="DELETE FROM notes WHERE id = 3", confirmed=True)
+        self.assertEqual(out["results"][0]["affected"], 1)
+
+    def test_confirm_error_carries_detail_over_the_wire(self):
+        import io
+        from omatable.protocol import Server
+        out = io.StringIO()
+        server = Server(out)
+
+        @server.method("x")
+        def x():
+            raise Error("confirm", "Sure?", "DROP TABLE t;")
+
+        server.handle(json.dumps({"id": 1, "method": "x"}))
+        server.close()
+        self.assertEqual(json.loads(out.getvalue())["error"], {"code": "confirm", "message": "Sure?", "detail": "DROP TABLE t;"})
+
     def test_wrong_kind_of_session(self):
         sid = self.m["session.open"](id=self.conn["id"])["session"]
         for method, params in (("redis.get", {"key": "k"}), ("mongo.find", {"collection": "c"})):
@@ -219,6 +260,53 @@ class KeyValueSessionTest(unittest.TestCase):
         self.assertEqual(hist[0]["sql"], "HGET hello en")
         self.assertEqual(self.m["redis.del"](session=sid, keys=["hello"])["deleted"], 1)
         self.m["query.history_clear"](conn="omadb:zt-vk")
+
+    def production(self, name, **extra):
+        from omatable import omadb
+        src = omadb.server(name)
+        conn = self.store.save({"name": "prod " + name, "engine": src["engine"], "host": "127.0.0.1", "port": src["port"],
+                                "user": src["user"], "password": src["password"], "tag": "production", **extra})
+        return self.m["session.open"](id=conn["id"])["session"]
+
+    def confirm_needed(self, method, **params):
+        with self.assertRaises(Error) as e:
+            self.m[method](**params)
+        self.assertEqual(e.exception.code, "confirm", (method, params))
+        return e.exception
+
+    def test_redis_safe_mode(self):
+        sid = self.production("zt-vk", database="9")
+        self.m["redis.cmd"](session=sid, text="FLUSHDB", confirmed=True)
+        for text in ("GET a", "SCAN 0", "INFO memory", "TTL a", "CONFIG GET maxmemory", "SELECT 9"):
+            self.m["redis.cmd"](session=sid, text=text)
+        for text in ("SET a 1", "DEL a", "FLUSHALL", "CONFIG SET maxmemory 0", "EVAL 'return 1' 0", "EXPIRE a 5"):
+            self.assertEqual(self.confirm_needed("redis.cmd", session=sid, text=text).detail, text)
+        self.confirm_needed("redis.create", session=sid, key="k", type="string", value="v")
+        self.m["redis.create"](session=sid, key="k", type="string", value="v", confirmed=True)
+        self.confirm_needed("redis.edit", session=sid, key="k", type="string", action="set", value="w")
+        self.confirm_needed("redis.del", session=sid, keys=["k"])
+        self.confirm_needed("redis.rename", session=sid, key="k", new="k2")
+        self.confirm_needed("redis.ttl", session=sid, key="k", ttl=5)
+        self.assertEqual(self.m["redis.get"](session=sid, key="k")["value"], "v")
+        self.m["redis.cmd"](session=sid, text="FLUSHDB", confirmed=True)
+
+    def test_mongo_safe_mode(self):
+        sid = self.production("zt-mg", database="zt_safe")
+        try:
+            self.m["mongo.create_collection"](session=sid, name="c", confirmed=True)
+            self.m["mongo.find"](session=sid, collection="c")
+            self.m["mongo.aggregate"](session=sid, collection="c", pipeline="[{$match: {}}]")
+            self.m["mongo.run"](session=sid, text="{dbStats: 1}")
+            self.confirm_needed("mongo.insert", session=sid, collection="c", text="{a: 1}")
+            self.confirm_needed("mongo.aggregate", session=sid, collection="c", pipeline="[{$out: 'copy'}]")
+            self.confirm_needed("mongo.run", session=sid, text="{drop: 'c'}")
+            self.confirm_needed("mongo.drop_collection", session=sid, name="c")
+            self.confirm_needed("mongo.create_index", session=sid, collection="c", keys="{a: 1}")
+            self.assertIn("c", self.m["schema.tree"](session=sid)["schemas"][0]["tables"])
+        finally:
+            s = self.server.sessions.get(sid)
+            s.run(s.adapter.client.drop_database, "zt_safe")
+        self.m["query.history_clear"](conn=None)
 
     def test_mongo_methods(self):
         info = self.m["session.open"](id="omadb:zt-mg")

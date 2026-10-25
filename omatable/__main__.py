@@ -6,7 +6,7 @@ import signal
 import sys
 import tomllib
 
-from . import __version__, omadb, sqlsplit, transfer
+from . import __version__, omadb, safety, sqlsplit, transfer
 from .history import History, Saved
 from .protocol import Error, Server
 from .session import Sessions
@@ -44,6 +44,11 @@ def build(store, server=None, sessions=None):
     server.sessions = sessions
     history = History(store.dir)
     saved = Saved(store.dir)
+
+    def ask(s, confirmed, question, detail=None):
+        """Safe mode: production connections confirm writes. The window asks and resends with confirmed."""
+        if s.conn.get("tag") == "production" and not confirmed:
+            raise Error("confirm", question, detail)
 
     @server.method("app.version")
     def version():
@@ -129,8 +134,11 @@ def build(store, server=None, sessions=None):
         return s.run(s.adapter.preview, schema, table, changes)
 
     @server.method("table.commit")
-    def table_commit(session, schema, table, changes):
+    def table_commit(session, schema, table, changes, confirmed=False):
         s = sessions.get(session)
+        if not confirmed and s.conn.get("tag") == "production":
+            stmts = s.run(s.adapter.preview, schema, table, changes)["statements"]
+            ask(s, False, f"Save {len(stmts)} change{'s' if len(stmts) != 1 else ''} to {table}?", "\n".join(stmts))
         return s.run(s.adapter.commit, schema, table, changes)
 
     @server.method("struct.get")
@@ -144,18 +152,23 @@ def build(store, server=None, sessions=None):
         return s.run(s.adapter.alter_preview, schema, table, changes)
 
     @server.method("struct.apply")
-    def struct_apply(session, schema, table, changes):
+    def struct_apply(session, schema, table, changes, confirmed=False):
         s = sessions.get(session)
+        if not confirmed and s.conn.get("tag") == "production":
+            stmts = s.run(s.adapter.alter_preview, schema, table, changes)["statements"]
+            ask(s, False, f"Change the structure of {table}?", "\n".join(stmts))
         return s.run(s.adapter.alter, schema, table, changes)
 
     @server.method("table.drop")
-    def table_drop(session, schema, table, kind="table"):
+    def table_drop(session, schema, table, kind="table", confirmed=False):
         s = sessions.get(session)
+        ask(s, confirmed, f"Drop the {kind} {table}?")
         return s.run(s.adapter.drop, schema, table, kind)
 
     @server.method("table.truncate")
-    def table_truncate(session, schema, table):
+    def table_truncate(session, schema, table, confirmed=False):
         s = sessions.get(session)
+        ask(s, confirmed, f"Delete every row in {table}?")
         return s.run(s.adapter.truncate, schema, table)
 
     @server.method("export.run")
@@ -168,12 +181,13 @@ def build(store, server=None, sessions=None):
         return transfer.preview_csv(path, delimiter or None)
 
     @server.method("import.run")
-    def import_run(session, schema, table, path, mapping, delimiter=",", header=True, empty_null=True):
+    def import_run(session, schema, table, path, mapping, delimiter=",", header=True, empty_null=True, confirmed=False):
         s = sessions.get(session)
+        ask(s, confirmed, f"Import {os.path.basename(str(path))} into {table}?")
         return s.run(transfer.import_csv, s.adapter, schema, table, path, mapping, delimiter, header, empty_null)
 
     @server.method("query.run")
-    def query_run(session, text, cursor=None):
+    def query_run(session, text, cursor=None, confirmed=False):
         s = sessions.get(session)
         engine = s.conn.get("engine")
         text = str(text or "")
@@ -184,6 +198,11 @@ def build(store, server=None, sessions=None):
             stmts = [one] if one else []
         if not stmts:
             raise Error("invalid", "There is no SQL to run")
+        if not confirmed and s.conn.get("tag") == "production":
+            writes = safety.sql_writes([sql for _, _, sql in stmts], engine)
+            if writes:
+                n = len(writes)
+                ask(s, False, f"Run {n} statement{'s' if n != 1 else ''} that can change data?", ";\n".join(writes) + ";")
         out = s.run(s.adapter.run, [sql for _, _, sql in stmts])
         ddl = any(sqlsplit.keyword(sql) in DDL for _, _, sql in stmts)
         if ddl:
@@ -230,6 +249,11 @@ def build(store, server=None, sessions=None):
             raise Error("invalid", "this is not a " + ("Redis" if engine == "redis" else "MongoDB") + " connection")
         return s
 
+    def label(key):
+        if isinstance(key, dict) and key.get("$t") == "bytes":
+            return "‹binary key›"
+        return str(key)
+
     def remember(s, text, ms, error=None):
         history.add({"conn": s.conn.get("id"), "name": s.conn.get("name"), "engine": s.conn.get("engine"),
                      "database": s.adapter.database, "sql": str(text).strip(), "ok": error is None,
@@ -251,33 +275,42 @@ def build(store, server=None, sessions=None):
         return s.run(s.adapter.get, key)
 
     @server.method("redis.create")
-    def redis_create(session, key, type, value, ttl=None):  # noqa: A002
+    def redis_create(session, key, type, value, ttl=None, confirmed=False):  # noqa: A002
         s = kind(session, "redis")
+        ask(s, confirmed, f"Create the key {label(key)}?")
         return s.run(s.adapter.create, key, type, value, ttl)
 
     @server.method("redis.edit")
-    def redis_edit(session, key, type, action, item=None, value=None, score=None, old=None):  # noqa: A002
+    def redis_edit(session, key, type, action, item=None, value=None, score=None, old=None, confirmed=False):  # noqa: A002
         s = kind(session, "redis")
+        ask(s, confirmed, f"Change the key {label(key)}?")
         return s.run(s.adapter.edit, key, type, action, item, value, score, old)
 
     @server.method("redis.del")
-    def redis_del(session, keys):
+    def redis_del(session, keys, confirmed=False):
         s = kind(session, "redis")
+        ask(s, confirmed, f"Delete {len(keys)} key{'s' if len(keys) != 1 else ''}?", "\n".join(label(k) for k in keys))
         return s.run(s.adapter.delete, keys)
 
     @server.method("redis.rename")
-    def redis_rename(session, key, new):
+    def redis_rename(session, key, new, confirmed=False):
         s = kind(session, "redis")
+        ask(s, confirmed, f"Rename {label(key)} to {label(new)}?")
         return s.run(s.adapter.rename, key, new)
 
     @server.method("redis.ttl")
-    def redis_ttl(session, key, ttl=None):
+    def redis_ttl(session, key, ttl=None, confirmed=False):
         s = kind(session, "redis")
+        ask(s, confirmed, f"Change the expiry of {label(key)}?")
         return s.run(s.adapter.expire, key, ttl)
 
     @server.method("redis.cmd")
-    def redis_cmd(session, text):
+    def redis_cmd(session, text, confirmed=False):
         s = kind(session, "redis")
+        if not confirmed and s.conn.get("tag") == "production":
+            args = s.adapter.parse(text)
+            if args[0].upper() != "SELECT" and s.run(s.adapter.writes, args):
+                ask(s, False, "Run a command that can change data?", str(text).strip())
         try:
             out = s.run(s.adapter.command, text)
         except Error as e:
@@ -293,8 +326,13 @@ def build(store, server=None, sessions=None):
         return s.run(s.adapter.find, collection, filter, sort, projection, skip, limit)
 
     @server.method("mongo.aggregate")
-    def mongo_aggregate(session, collection, pipeline, limit=100):
+    def mongo_aggregate(session, collection, pipeline, limit=100, confirmed=False):
         s = kind(session, "mongodb")
+        if not confirmed and s.conn.get("tag") == "production" and str(pipeline or "").strip():
+            from . import mongojs  # needs the drivers' bson
+            stages = mongojs.parse(pipeline, "pipeline")
+            if isinstance(stages, list) and safety.pipeline_writes(stages):
+                ask(s, False, f"Run a pipeline that writes ($out/$merge) from {collection}?", pipeline)
         return s.run(s.adapter.aggregate, collection, pipeline, limit)
 
     @server.method("mongo.count")
@@ -303,18 +341,21 @@ def build(store, server=None, sessions=None):
         return s.run(s.adapter.count, collection, filter)
 
     @server.method("mongo.insert")
-    def mongo_insert(session, collection, text):
+    def mongo_insert(session, collection, text, confirmed=False):
         s = kind(session, "mongodb")
+        ask(s, confirmed, f"Insert into {collection}?", text)
         return s.run(s.adapter.insert, collection, text)
 
     @server.method("mongo.update")
-    def mongo_update(session, collection, id, text):  # noqa: A002
+    def mongo_update(session, collection, id, text, confirmed=False):  # noqa: A002
         s = kind(session, "mongodb")
+        ask(s, confirmed, f"Replace a document in {collection}?", text)
         return s.run(s.adapter.update, collection, id, text)
 
     @server.method("mongo.delete")
-    def mongo_delete(session, collection, ids):
+    def mongo_delete(session, collection, ids, confirmed=False):
         s = kind(session, "mongodb")
+        ask(s, confirmed, f"Delete {len(ids)} document{'s' if len(ids) != 1 else ''} from {collection}?")
         return s.run(s.adapter.delete, collection, ids)
 
     @server.method("mongo.indexes")
@@ -323,28 +364,35 @@ def build(store, server=None, sessions=None):
         return {"indexes": s.run(s.adapter.indexes, collection)}
 
     @server.method("mongo.create_index")
-    def mongo_create_index(session, collection, keys, unique=False, name=""):
+    def mongo_create_index(session, collection, keys, unique=False, name="", confirmed=False):
         s = kind(session, "mongodb")
+        ask(s, confirmed, f"Create an index on {collection}?", keys)
         return s.run(s.adapter.create_index, collection, keys, unique, name)
 
     @server.method("mongo.drop_index")
-    def mongo_drop_index(session, collection, name):
+    def mongo_drop_index(session, collection, name, confirmed=False):
         s = kind(session, "mongodb")
+        ask(s, confirmed, f"Drop the index {name} on {collection}?")
         return s.run(s.adapter.drop_index, collection, name)
 
     @server.method("mongo.create_collection")
-    def mongo_create_collection(session, name):
+    def mongo_create_collection(session, name, confirmed=False):
         s = kind(session, "mongodb")
+        ask(s, confirmed, f"Create the collection {name}?")
         return s.run(s.adapter.create_collection, name)
 
     @server.method("mongo.drop_collection")
-    def mongo_drop_collection(session, name):
+    def mongo_drop_collection(session, name, confirmed=False):
         s = kind(session, "mongodb")
+        ask(s, confirmed, f"Drop {name} and everything in it?")
         return s.run(s.adapter.drop_collection, name)
 
     @server.method("mongo.run")
-    def mongo_run(session, text):
+    def mongo_run(session, text, confirmed=False):
         s = kind(session, "mongodb")
+        from . import mongojs
+        if not confirmed and s.conn.get("tag") == "production" and safety.mongo_writes(mongojs.parse(text, "command")):
+            ask(s, False, "Run a command that can change data?", str(text).strip())
         try:
             out = s.run(s.adapter.command, text)
         except Error as e:

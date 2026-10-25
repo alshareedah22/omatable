@@ -21,10 +21,11 @@ from concurrent.futures import ThreadPoolExecutor
 class Error(Exception):
     """An error the window shows to the user: a stable code plus a message."""
 
-    def __init__(self, code, message):
+    def __init__(self, code, message, detail=None):
         super().__init__(message)
         self.code = code
         self.message = message
+        self.detail = detail
 
 
 def encode(value):
@@ -64,8 +65,11 @@ class Server:
     def event(self, name, **fields):
         self.send({"event": name, **fields})
 
-    def reply_error(self, rid, code, message):
-        self.send({"id": rid, "error": {"code": code, "message": message}})
+    def reply_error(self, rid, code, message, detail=None):
+        error = {"code": code, "message": message}
+        if detail:
+            error["detail"] = detail
+        self.send({"id": rid, "error": error})
 
     def handle(self, line):
         try:
@@ -90,7 +94,7 @@ class Server:
         try:
             result = fn(**params)
         except Error as e:
-            self.reply_error(rid, e.code, e.message)
+            self.reply_error(rid, e.code, e.message, e.detail)
         except TypeError as e:
             self.reply_error(rid, "invalid", str(e))
         except Exception as e:  # noqa: BLE001 - every failure must reach the window
