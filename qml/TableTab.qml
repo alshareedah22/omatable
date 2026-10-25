@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.Commons
 import qs.Ui as Ui
+import "Values.js" as Values
 
 // One table: filter bar, grid and status bar. Edits are staged here
 // (edited cells, inserted rows, deleted rows) until Ctrl+S commits them in
@@ -93,19 +94,8 @@ Item {
   }
 
   // ---- values ----
-  function display(v) {
-    if (v === null || v === undefined) return "NULL"
-    if (typeof v === "object") {
-      if (v.$t === "bytes") return "‹binary " + Math.floor(String(v.v).length * 3 / 4) + " bytes›"
-      return JSON.stringify(v)
-    }
-    return String(v).replace(/\n/g, "↵")
-  }
-
-  function editText(v) {
-    if (v === null || v === undefined) return ""
-    return typeof v === "object" ? JSON.stringify(v) : String(v)
-  }
+  function display(v) { return Values.display(v) }
+  function editText(v) { return Values.editText(v) }
 
   function cellValue(r, c) {
     if (r >= rows.length) {

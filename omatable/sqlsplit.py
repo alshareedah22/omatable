@@ -96,6 +96,13 @@ def split(text, engine):
             start = lead = None
             depth, routine = 0, None
             i += 1
+            # A comment on the same line after the ";" belongs to neither statement.
+            while i < n and text[i] in " \t":
+                i += 1
+            if i < n and text[i] != "\n":
+                skip = _comment(text, i, engine)
+                if skip and "\n" not in text[i:i + skip]:
+                    i += skip
             continue
         ch = text[i]
         if ch.isspace():

@@ -304,10 +304,11 @@ FocusScope {
     Column {
       width: parent.width
       Repeater {
-        model: [
-          { label: "Edit cell", act: "edit" }, { label: "Set NULL", act: "null" },
-          { label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" },
-          { label: "Insert row", act: "insert" }, { label: "Delete / restore row", act: "delete" }]
+        model: grid.tab && grid.tab.readOnly
+          ? [{ label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" }]
+          : [{ label: "Edit cell", act: "edit" }, { label: "Set NULL", act: "null" },
+             { label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" },
+             { label: "Insert row", act: "insert" }, { label: "Delete / restore row", act: "delete" }]
         delegate: Ui.Button {
           required property var modelData
           width: menu.width - 8

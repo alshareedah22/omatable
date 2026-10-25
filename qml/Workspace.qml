@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import qs.Commons
 import qs.Ui as Ui
 
-// An open session: title strip, schema sidebar and one tab per table.
+// An open session: title strip, schema sidebar and one tab per table or query.
 Item {
   id: ws
 
@@ -13,11 +13,18 @@ Item {
   property bool treeLoading: false
   property int current: -1
   property string toast: ""
+  property var palette: ({})
+  property int queryCount: 0
   signal closeRequested()
 
   readonly property bool dirty: {
-    for (let i = 0; i < tabStack.count; i++) { const t = tabStack.itemAt(i); if (t && t.dirty) return true }
+    for (let i = 0; i < tabStack.count; i++) { const t = page(i); if (t && t.dirty) return true }
     return false
+  }
+
+  function page(i) {
+    const loader = tabStack.itemAt(i)
+    return loader ? loader.item : null
   }
 
   function loadTree() {
@@ -32,19 +39,32 @@ Item {
   function openTable(schema, table) {
     for (let i = 0; i < tabModel.count; i++) {
       const t = tabModel.get(i)
-      if (t.schema === schema && t.table === table) { current = i; return }
+      if (t.kind === "table" && t.schema === schema && t.table === table) { current = i; return }
     }
-    tabModel.append({ schema: schema, table: table })
+    tabModel.append({ kind: "table", schema: schema, table: table, title: table })
     current = tabModel.count - 1
   }
 
+  function openQuery() {
+    queryCount++
+    tabModel.append({ kind: "query", schema: "", table: "", title: "Query " + queryCount })
+    current = tabModel.count - 1
+  }
+
+  function followDatabase(db) {
+    if (!info || db === info.database) return
+    info = Object.assign({}, info, { database: db })
+    loadTree()
+  }
+
   function closeTab(i) {
-    const t = tabStack.itemAt(i)
+    const t = page(i)
     if (t && t.dirty) {
       current = i
-      toast = "Commit (Ctrl+S) or discard (Ctrl+Shift+Delete) the changes in " + tabModel.get(i).table + " first"
+      toast = "Commit (Ctrl+S) or discard (Ctrl+Shift+Delete) the changes in " + tabModel.get(i).title + " first"
       return
     }
+    if (t && t.running) t.cancel()
     tabModel.remove(i)
     current = Math.min(current >= i ? current - 1 : current, tabModel.count - 1)
     if (current < 0 && tabModel.count) current = 0
@@ -55,14 +75,19 @@ Item {
     helper.request("session.use", { session: info.session, database: db }, function(r, e) {
       if (e) { toast = e.message; dbBox.value = info.database; return }
       info = Object.assign({}, info, { database: r.database })
-      tabModel.clear()
-      current = -1
+      // query tabs keep their text; table tabs belonged to the old database
+      for (let i = tabModel.count - 1; i >= 0; i--) if (tabModel.get(i).kind === "table") tabModel.remove(i)
+      current = tabModel.count ? 0 : -1
       loadTree()
     })
   }
 
-  Component.onCompleted: loadTree()
+  Component.onCompleted: {
+    loadTree()
+    helper.request("app.palette", {}, function(r, e) { if (!e) palette = r })
+  }
 
+  Shortcut { sequence: "Ctrl+T"; enabled: ws.visible; onActivated: ws.openQuery() }
   Shortcut { sequence: "Ctrl+W"; enabled: ws.visible && ws.current >= 0; onActivated: ws.closeTab(ws.current) }
   Shortcut { sequence: "Ctrl+Tab"; enabled: ws.visible && tabModel.count > 1; onActivated: ws.current = (ws.current + 1) % tabModel.count }
   Shortcut { sequence: "Ctrl+Shift+Tab"; enabled: ws.visible && tabModel.count > 1; onActivated: ws.current = (ws.current - 1 + tabModel.count) % tabModel.count }
@@ -110,6 +135,7 @@ Item {
           font.pixelSize: Style.font.bodySmall
         }
         Item { Layout.fillWidth: true }
+        Ui.Button { bordered: true; text: "+ Query"; tooltipText: "New SQL query tab (Ctrl+T)"; onClicked: ws.openQuery() }
         Text {
           visible: dbBox.visible
           text: "Database"
@@ -164,9 +190,9 @@ Item {
               model: tabModel
               delegate: Rectangle {
                 required property int index
-                required property string schema
-                required property string table
-                readonly property var page: tabStack.itemAt(index)
+                required property string kind
+                required property string title
+                readonly property var page: { tabStack.count; return ws.page(index) }
                 implicitWidth: tabLabel.implicitWidth + closeBtn.implicitWidth + 24
                 implicitHeight: Math.round(Style.font.body * 2.4)
                 color: index === ws.current ? Color.background : Qt.lighter(Color.background, 1.1)
@@ -175,7 +201,7 @@ Item {
                   id: tabLabel
                   x: 12
                   anchors.verticalCenter: parent.verticalCenter
-                  text: (page && page.dirty ? "● " : "") + table
+                  text: (page && page.dirty ? "● " : "") + (kind === "query" ? "\uf1c0  " : "") + title
                   color: index === ws.current ? Color.foreground : Color.muted
                   font.family: Style.font.family
                   font.pixelSize: Style.font.body
@@ -208,15 +234,36 @@ Item {
           Repeater {
             id: tabStack
             model: tabModel
-            delegate: TableTab {
+            delegate: Loader {
+              id: tabLoader
               required property int index
               required property var model
-              schema: model.schema
-              table: model.table
-              helper: ws.helper
-              sid: ws.info.session
-              active: ws.visible && index === ws.current
-              onNotify: function(text) { ws.toast = text }
+              sourceComponent: model.kind === "query" ? queryTab : tableTab
+              Component {
+                id: tableTab
+                TableTab {
+                  schema: tabLoader.model.schema
+                  table: tabLoader.model.table
+                  helper: ws.helper
+                  sid: ws.info.session
+                  active: ws.visible && tabLoader.index === ws.current
+                  onNotify: function(text) { ws.toast = text }
+                }
+              }
+              Component {
+                id: queryTab
+                QueryTab {
+                  helper: ws.helper
+                  sid: ws.info.session
+                  engine: ws.info.engine
+                  connId: ws.info.id
+                  palette: ws.palette
+                  active: ws.visible && tabLoader.index === ws.current
+                  onNotify: function(text) { ws.toast = text }
+                  onDdlRan: ws.loadTree()
+                  onDatabaseReported: function(db) { ws.followDatabase(db) }
+                }
+              }
             }
           }
         }
@@ -227,7 +274,7 @@ Item {
           visible: tabModel.count === 0
           horizontalAlignment: Text.AlignHCenter
           verticalAlignment: Text.AlignVCenter
-          text: "Pick a table on the left"
+          text: "Pick a table on the left, or press Ctrl+T for a SQL query"
           color: Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.body

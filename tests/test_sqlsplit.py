@@ -19,7 +19,7 @@ class SplitTest(unittest.TestCase):
 
     def test_semicolons_inside_quotes_and_comments(self):
         text = "SELECT ';', \"a;b\" FROM t; -- x; y\nSELECT /* ; */ 2"
-        self.assertEqual(sqls(text), ["SELECT ';', \"a;b\" FROM t", "-- x; y\nSELECT /* ; */ 2"])
+        self.assertEqual(sqls(text), ["SELECT ';', \"a;b\" FROM t", "SELECT /* ; */ 2"])
 
     def test_doubled_quote_and_mysql_backslash(self):
         self.assertEqual(sqls("SELECT 'it''s;'; SELECT 2"), ["SELECT 'it''s;'", "SELECT 2"])
@@ -46,6 +46,10 @@ class SplitTest(unittest.TestCase):
         self.assertEqual(sqls("SELECT 1 # a; b\n; SELECT 2", "mysql"), ["SELECT 1 # a; b", "SELECT 2"])
         self.assertEqual(sqls("SELECT 5--1; SELECT 2", "mysql"), ["SELECT 5--1", "SELECT 2"])
         self.assertEqual(sqls("SELECT 1 -- a; b\n; SELECT 2", "mysql"), ["SELECT 1 -- a; b", "SELECT 2"])
+
+    def test_trailing_comment_stays_out_of_the_next_statement(self):
+        self.assertEqual(sqls("SELECT 1; -- first\n\nSELECT 2; /* two */"), ["SELECT 1", "SELECT 2"])
+        self.assertEqual(sqls("SELECT 1; /* a\nb */ SELECT 2"), ["SELECT 1", "/* a\nb */ SELECT 2"])
 
     def test_comment_only_statements_dropped(self):
         self.assertEqual(sqls("SELECT 1; -- done\n/* end */"), ["SELECT 1"])

@@ -133,6 +133,10 @@ class Flow:
         self.assertEqual(r[1]["affected"], 1)
         self.assertGreaterEqual(r[1]["ms"], 0)
 
+    def test_run_passes_percent_signs_through(self):
+        r = self.a.run(["SELECT 10 % 3, '50%' AS p"])["results"][0]
+        self.assertEqual(r["rows"], [[1, "50%"]])
+
     def test_run_truncates(self):
         r = self.a.run(["SELECT * FROM people"], max_rows=2)["results"][0]
         self.assertEqual(len(r["rows"]), 2)
