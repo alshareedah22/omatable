@@ -135,7 +135,7 @@ Item {
     const label = docsModel.rows[r][0]
     confirm.ask({ title: "Delete this document?", text: "_id " + label + " in " + collection + ". This cannot be undone.",
                   confirm: "Delete", danger: true }, function(dlg) {
-      helper.request("mongo.delete", { session: sid, collection: collection, ids: [id] }, function(res, e) {
+      helper.request("mongo.delete", { session: sid, collection: collection, ids: [id], confirmed: true }, function(res, e) {
         if (e) { dlg.fail(e.message); return }
         dlg.done()
         toast = res.deleted ? "Deleted" : "It was already gone"
@@ -166,7 +166,7 @@ Item {
   function dropIndex(name) {
     confirm.ask({ title: "Drop index " + name + "?", text: "Queries that use it get slower; unique rules it enforces stop applying.",
                   confirm: "Drop index", danger: true }, function(dlg) {
-      helper.request("mongo.drop_index", { session: sid, collection: collection, name: name }, function(r, e) {
+      helper.request("mongo.drop_index", { session: sid, collection: collection, name: name, confirmed: true }, function(r, e) {
         if (e) { dlg.fail(e.message); return }
         dlg.done()
         loadIndexes()
@@ -178,7 +178,7 @@ Item {
     confirm.ask({ title: "Drop " + (view ? "view " : "collection ") + name + "?",
                   text: view ? "The view definition is deleted; its source data stays." : "Every document and index in " + name + " is deleted. This cannot be undone.",
                   confirm: view ? "Drop view" : "Drop collection", danger: true }, function(dlg) {
-      helper.request("mongo.drop_collection", { session: sid, name: name }, function(r, e) {
+      helper.request("mongo.drop_collection", { session: sid, name: name, confirmed: true }, function(r, e) {
         if (e) { dlg.fail(e.message); return }
         dlg.done()
         if (collection === name) { collection = ""; docsModel.result = null }

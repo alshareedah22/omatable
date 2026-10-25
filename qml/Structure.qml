@@ -143,7 +143,7 @@ Item {
                     text: engine === "mysql" || engine === "mariadb"
                       ? "MySQL applies each statement on its own; if one fails, the ones before it stay applied." : "",
                     detail: r.statements.join("\n"), confirm: "Apply" }, function(dlg) {
-        helper.request("struct.apply", { session: sid, schema: schema, table: table, changes: changes() }, function(r2, e2) {
+        helper.request("struct.apply", { session: sid, schema: schema, table: table, changes: changes(), confirmed: true }, function(r2, e2) {
           if (e2) { dlg.fail(e2.message); reload(); return }
           dlg.done()
           notify("Structure of " + table + " updated")

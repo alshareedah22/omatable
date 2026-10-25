@@ -53,6 +53,11 @@ Item {
   Helper {
     id: helperProc
     program: root.ctl
+    confirmer: function(err, yes, no) {
+      safeConfirm.ask({ title: "Production · " + (root.session ? root.session.name : ""), text: err.message,
+                        detail: err.detail || "", confirm: "Run on production", danger: true },
+                      function(dlg) { dlg.done(); yes() }, no)
+    }
     onStatusChanged: if (status !== "ready") root.session = null
   }
 
@@ -133,15 +138,13 @@ Item {
       readonly property string engine: root.session ? root.session.engine : ""
       sourceComponent: !engine ? null : engine === "redis" || engine === "valkey" ? redisBrowser : engine === "mongodb" ? mongoBrowser : sqlWorkspace
     }
+    Confirm { id: safeConfirm }
     Component {
       id: sqlWorkspace
       Workspace {
         helper: helperProc
         info: root.session
-        onCloseRequested: {
-          if (dirty) { toast = "Commit or discard your changes first"; return }
-          root.disconnect()
-        }
+        onCloseRequested: whenClean(function() { root.disconnect() })
       }
     }
     Component {
@@ -149,10 +152,7 @@ Item {
       RedisBrowser {
         helper: helperProc
         info: root.session
-        onCloseRequested: {
-          if (dirty) { toast = "Save or revert the value first"; return }
-          root.disconnect()
-        }
+        onCloseRequested: whenClean(function() { root.disconnect() })
       }
     }
     Component {

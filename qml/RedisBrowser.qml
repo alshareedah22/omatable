@@ -58,13 +58,24 @@ Item {
     helper.request("redis.keyspace", { session: info.session }, function(r, e) { if (!e) keyspace = r })
   }
 
+  // Run proceed() once the open value has no unsaved edits, after asking.
+  function whenClean(proceed) {
+    if (!value.dirty) { proceed(); return }
+    confirm.ask({ title: "Discard your edits to " + value.keyLabel(selected) + "?", text: "The value has not been saved.",
+                  confirm: "Discard", danger: true }, function(dlg) {
+      dlg.done()
+      value.stringDirty = false
+      proceed()
+    })
+  }
+
   function select(k) {
-    if (value.dirty && !same(k, selected)) { toast = "Save (Ctrl+S) or revert the value of " + value.keyLabel(selected) + " first"; return }
-    selected = k
+    if (same(k, selected)) return
+    whenClean(function() { selected = k })
   }
 
   function switchDatabase(db) {
-    if (value.dirty) { toast = "Save or revert the value first"; titleBar.resetDatabase(); return }
+    if (value.dirty) { titleBar.resetDatabase(); whenClean(function() { switchDatabase(db) }); return }
     helper.request("session.use", { session: info.session, database: db }, function(r, e) {
       if (e) { toast = e.message; titleBar.resetDatabase(); return }
       followDatabase(r.database)
@@ -397,5 +408,6 @@ Item {
     }
   }
 
+  Confirm { id: confirm }
   Toast { message: rb.toast; onExpired: rb.toast = "" }
 }

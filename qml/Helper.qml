@@ -14,6 +14,9 @@ Item {
   property string lastStderr: ""
   property int nextId: 1
   property var callbacks: ({})
+  // Safe mode: confirmer(error, yes, no) asks the user when a production
+  // connection answers "confirm"; yes() resends the request with confirmed.
+  property var confirmer: null
 
   signal message(var msg)
 
@@ -34,7 +37,7 @@ Item {
       return
     }
     const id = nextId++
-    callbacks[id] = callback || null
+    callbacks[id] = { cb: callback || null, method: method, params: params || {} }
     proc.write(JSON.stringify({ id: id, method: method, params: params || {} }) + "\n")
   }
 
@@ -48,8 +51,15 @@ Item {
       helper.message(msg)
       return
     }
-    const cb = callbacks[msg.id]
+    const pending = callbacks[msg.id]
     delete callbacks[msg.id]
+    if (!pending) return
+    const cb = pending.cb
+    if (msg.error && msg.error.code === "confirm" && confirmer) {
+      confirmer(msg.error, function() { request(pending.method, Object.assign({}, pending.params, { confirmed: true }), cb) },
+                function() { if (cb) cb(null, { code: "cancelled", message: "Cancelled; nothing was changed" }) })
+      return
+    }
     if (cb) cb(msg.result === undefined ? null : msg.result, msg.error || null)
   }
 
@@ -64,7 +74,7 @@ Item {
       if (exitCode !== 0 && !helper.fatalText) helper.fatalText = helper.lastStderr || ("Helper exited with code " + exitCode)
       const pending = helper.callbacks
       helper.callbacks = ({})
-      for (const id in pending) if (pending[id]) pending[id](null, { code: "stopped", message: "The helper stopped" })
+      for (const id in pending) if (pending[id] && pending[id].cb) pending[id].cb(null, { code: "stopped", message: "The helper stopped" })
     }
   }
 }

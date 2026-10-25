@@ -147,11 +147,11 @@ Item {
     const label = t === "zset" ? Values.display(row.b) : Values.display(row.a)
     confirm.ask({ title: "Remove " + (t === "list" ? "item " + row.a : label) + "?", text: "From " + keyLabel(key) + ". This cannot be undone.",
                   confirm: "Remove", danger: true }, function(dlg) {
-      const p = t === "hash" ? { action: "delete", item: row.a }
-        : t === "list" ? { action: "delete", item: row.index, old: entry.value[row.index] }
-        : t === "set" ? { action: "delete", item: row.a }
-        : t === "zset" ? { action: "delete", item: row.b }
-        : { action: "delete", item: row.a }
+      const p = t === "hash" ? { action: "delete", item: row.a, confirmed: true }
+        : t === "list" ? { action: "delete", item: row.index, old: entry.value[row.index], confirmed: true }
+        : t === "set" ? { action: "delete", item: row.a, confirmed: true }
+        : t === "zset" ? { action: "delete", item: row.b, confirmed: true }
+        : { action: "delete", item: row.a, confirmed: true }
       edit(p, function(err) { if (err) dlg.fail(err); else dlg.done() })
     })
   }
@@ -159,7 +159,7 @@ Item {
   function deleteKey() {
     confirm.ask({ title: "Delete " + keyLabel(key) + "?", text: "The key and its whole value are deleted. This cannot be undone.",
                   confirm: "Delete key", danger: true }, function(dlg) {
-      helper.request("redis.del", { session: sid, keys: [key] }, function(r, e) {
+      helper.request("redis.del", { session: sid, keys: [key], confirmed: true }, function(r, e) {
         if (e) { dlg.fail(e.message); return }
         dlg.done()
         const k = key

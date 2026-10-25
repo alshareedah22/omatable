@@ -16,10 +16,13 @@ Popup {
   property bool busy: false
   property string error: ""
   property var onYes: null
+  property var onNo: null
+  property bool answered: false
 
   // opts: { title, text, detail, confirm, danger }; yes(dialog) runs on confirm
   // and closes the dialog itself (dlg.done()) or reports dlg.fail(message).
-  function ask(opts, yes) {
+  // no() runs when the dialog closes without a yes.
+  function ask(opts, yes, no) {
     title = opts.title || ""
     text = opts.text || ""
     detail = opts.detail || ""
@@ -28,9 +31,12 @@ Popup {
     busy = false
     error = ""
     onYes = yes
+    onNo = no || null
+    answered = false
     open()
   }
-  function done() { busy = false; close() }
+  function done() { busy = false; answered = true; close() }
+  onClosed: if (!answered && onNo) { const f = onNo; onNo = null; f() }
   function fail(message) { busy = false; error = message }
 
   parent: Overlay.overlay

@@ -69,7 +69,7 @@ Item {
                     text: drop ? "This deletes the " + kind + (kind === "table" ? " and all its rows" : "") + ". It cannot be undone."
                                : "This deletes every row in " + name + ". It cannot be undone.",
                     confirm: drop ? "Drop " + kind : "Truncate", danger: true }, function(dlg) {
-        const params = { session: info.session, schema: schema, table: name }
+        const params = { session: info.session, schema: schema, table: name, confirmed: true }
         if (drop) params.kind = kind
         helper.request(drop ? "table.drop" : "table.truncate", params, function(r, e) {
           if (e) { dlg.fail(e.message); return }
@@ -95,11 +95,29 @@ Item {
     loadTree()
   }
 
+  // Run proceed() once nothing is staged, after asking to discard what is.
+  function whenClean(proceed) {
+    const names = []
+    for (let i = 0; i < tabStack.count; i++) { const t = page(i); if (t && t.dirty) names.push(tabModel.get(i).title) }
+    if (!names.length) { proceed(); return }
+    confirm.ask({ title: "Discard unsaved changes?", text: "Staged changes in " + names.join(", ") + " have not been saved.",
+                  confirm: "Discard", danger: true }, function(dlg) {
+      dlg.done()
+      for (let i = 0; i < tabStack.count; i++) { const t = page(i); if (t && t.dirty) t.discardAll() }
+      proceed()
+    })
+  }
+
   function closeTab(i) {
     const t = page(i)
     if (t && t.dirty) {
       current = i
-      toast = "Commit (Ctrl+S) or discard (Ctrl+Shift+Delete) the changes in " + tabModel.get(i).title + " first"
+      confirm.ask({ title: "Discard changes to " + tabModel.get(i).title + "?", text: "The staged changes have not been saved.",
+                    confirm: "Discard and close", danger: true }, function(dlg) {
+        dlg.done()
+        t.discardAll()
+        closeTab(tabIndexOf(t))
+      })
       return
     }
     if (t && t.running) t.cancel()
@@ -108,8 +126,17 @@ Item {
     if (current < 0 && tabModel.count) current = 0
   }
 
+  function tabIndexOf(p) {
+    for (let i = 0; i < tabStack.count; i++) if (page(i) === p) return i
+    return -1
+  }
+
   function switchDatabase(db) {
-    if (dirty) { toast = "Commit or discard your changes before switching databases"; titleBar.resetDatabase(); return }
+    if (dirty) {
+      titleBar.resetDatabase()
+      whenClean(function() { switchDatabase(db) })
+      return
+    }
     helper.request("session.use", { session: info.session, database: db }, function(r, e) {
       if (e) { toast = e.message; titleBar.resetDatabase(); return }
       info = Object.assign({}, info, { database: r.database })

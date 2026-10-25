@@ -215,6 +215,12 @@ Item {
     error = ""
   }
 
+  // Data edits and staged structure changes.
+  function discardAll() {
+    discard()
+    if (structureLoader.item) structureLoader.item.clear()
+  }
+
   function preview() {
     helper.request("table.preview", { session: sid, schema: schema, table: table, changes: changes() }, function(r, e) {
       if (e) { error = e.message; return }
