@@ -6,7 +6,7 @@ import signal
 import sys
 import tomllib
 
-from . import __version__, omadb, sqlsplit
+from . import __version__, omadb, sqlsplit, transfer
 from .history import History, Saved
 from .protocol import Error, Server
 from .session import Sessions
@@ -48,6 +48,12 @@ def build(store, server=None, sessions=None):
     @server.method("app.version")
     def version():
         return {"version": __version__}
+
+    @server.method("app.paths")
+    def app_paths():
+        home = os.path.expanduser("~")
+        downloads = os.path.join(home, "Downloads")
+        return {"home": home, "downloads": downloads if os.path.isdir(downloads) else home}
 
     @server.method("app.palette")
     def app_palette():
@@ -126,6 +132,45 @@ def build(store, server=None, sessions=None):
     def table_commit(session, schema, table, changes):
         s = sessions.get(session)
         return s.run(s.adapter.commit, schema, table, changes)
+
+    @server.method("struct.get")
+    def struct_get(session, schema, table):
+        s = sessions.get(session)
+        return s.run(s.adapter.structure, schema, table)
+
+    @server.method("struct.preview")
+    def struct_preview(session, schema, table, changes):
+        s = sessions.get(session)
+        return s.run(s.adapter.alter_preview, schema, table, changes)
+
+    @server.method("struct.apply")
+    def struct_apply(session, schema, table, changes):
+        s = sessions.get(session)
+        return s.run(s.adapter.alter, schema, table, changes)
+
+    @server.method("table.drop")
+    def table_drop(session, schema, table, kind="table"):
+        s = sessions.get(session)
+        return s.run(s.adapter.drop, schema, table, kind)
+
+    @server.method("table.truncate")
+    def table_truncate(session, schema, table):
+        s = sessions.get(session)
+        return s.run(s.adapter.truncate, schema, table)
+
+    @server.method("export.run")
+    def export_run(session, target, format, path, overwrite=False, table_name=None):  # noqa: A002
+        s = sessions.get(session)
+        return s.run(transfer.export, s.adapter, target, format, path, overwrite, table_name)
+
+    @server.method("import.preview")
+    def import_preview(path, delimiter=None):
+        return transfer.preview_csv(path, delimiter or None)
+
+    @server.method("import.run")
+    def import_run(session, schema, table, path, mapping, delimiter=",", header=True, empty_null=True):
+        s = sessions.get(session)
+        return s.run(transfer.import_csv, s.adapter, schema, table, path, mapping, delimiter, header, empty_null)
 
     @server.method("query.run")
     def query_run(session, text, cursor=None):

@@ -115,6 +115,32 @@ class SessionTest(unittest.TestCase):
         self.m["query.delete_saved"](id=q["id"])
         self.assertEqual(self.m["query.saved"]()["items"], [])
 
+    def test_structure_methods(self):
+        sid = self.m["session.open"](id=self.conn["id"])["session"]
+        st = self.m["struct.get"](session=sid, schema="main", table="notes")
+        self.assertEqual([c["name"] for c in st["columns"]], ["id", "body"])
+        changes = {"columns": [{"op": "add", "name": "tag", "type": "TEXT"}]}
+        self.assertEqual(self.m["struct.preview"](session=sid, schema="main", table="notes", changes=changes),
+                         {"statements": ['ALTER TABLE "main"."notes" ADD COLUMN "tag" TEXT;']})
+        self.m["struct.apply"](session=sid, schema="main", table="notes", changes=changes)
+        cols = self.m["table.rows"](session=sid, schema="main", table="notes")["columns"]
+        self.assertEqual([c["name"] for c in cols], ["id", "body", "tag"])
+
+    def test_export_import_drop_truncate(self):
+        sid = self.m["session.open"](id=self.conn["id"])["session"]
+        path = os.path.join(self.tmp.name, "notes.csv")
+        r = self.m["export.run"](session=sid, target={"schema": "main", "table": "notes"}, format="csv", path=path)
+        self.assertEqual(r["rows"], 3)
+        p = self.m["import.preview"](path=path)
+        self.assertEqual((p["header"], p["count"]), (["id", "body"], 3))
+        self.m["table.truncate"](session=sid, schema="main", table="notes")
+        self.assertEqual(self.m["table.count"](session=sid, schema="main", table="notes")["count"], 0)
+        r = self.m["import.run"](session=sid, schema="main", table="notes", path=path, mapping=["id", "body"])
+        self.assertEqual(r, {"inserted": 3})
+        self.m["table.drop"](session=sid, schema="main", table="notes")
+        self.assertEqual(self.m["schema.tree"](session=sid)["schemas"][0]["tables"], [])
+        self.assertIn("home", self.m["app.paths"]())
+
     def test_palette(self):
         path = os.path.join(self.tmp.name, "colors.toml")
         with open(path, "w") as f:
