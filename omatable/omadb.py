@@ -1,4 +1,4 @@
-"""Servers run by OmaDB (blackcode.omadb), read live from `dbctl state`."""
+"""Servers run by OmaDBngin (blackcode.omadbngin), read live from `dbctl state`."""
 
 import json
 import os
@@ -10,10 +10,14 @@ from .store import ENGINE_COLORS
 DEFAULT_DATABASE = {"postgresql": "postgres", "redis": "0", "valkey": "0", "mongodb": "admin"}
 
 
+# OmaDBngin was called OmaDB (blackcode.omadb) before; an old install still works.
+PLUGIN_DIRS = ("~/.config/omarchy/plugins/blackcode.omadbngin", "~/.config/omarchy/plugins/blackcode.omadb")
+
+
 def dbctl_path():
-    path = os.environ.get("OMATABLE_DBCTL") or os.path.expanduser(
-        "~/.config/omarchy/plugins/blackcode.omadb/dbctl")
-    return path if os.access(path, os.X_OK) else None
+    paths = [os.environ["OMATABLE_DBCTL"]] if os.environ.get("OMATABLE_DBCTL") else [
+        os.path.expanduser(d + "/dbctl") for d in PLUGIN_DIRS]
+    return next((p for p in paths if os.access(p, os.X_OK)), None)
 
 
 def _state():
@@ -49,4 +53,4 @@ def server(name):
     for s in _state():
         if s["name"] == name:
             return _entry(s, True)
-    raise Error("notfound", f"OmaDB server {name!r} not found")
+    raise Error("notfound", f"OmaDBngin server {name!r} not found")

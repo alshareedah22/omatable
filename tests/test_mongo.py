@@ -1,4 +1,4 @@
-"""The MongoDB adapter against the OmaDB server zt-mg (user dev).
+"""The MongoDB adapter against the OmaDBngin server zt-mg (user dev).
 
 Runs only with OMATABLE_TEST_DB=1. Uses the database zt_omatable and drops it.
 """

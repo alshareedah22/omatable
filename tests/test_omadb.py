@@ -32,6 +32,23 @@ class OmaDBTest(unittest.TestCase):
         os.environ.pop("OMATABLE_DBCTL", None)
         self.tmp.cleanup()
 
+    def test_finds_dbctl_under_the_new_or_old_plugin_name(self):
+        os.environ.pop("OMATABLE_DBCTL")
+        home = os.path.join(self.tmp.name, "home")
+        old_home = os.environ.get("HOME")
+        os.environ["HOME"] = home
+        try:
+            self.assertIsNone(omadb.dbctl_path())
+            paths = {}
+            for name in ("blackcode.omadb", "blackcode.omadbngin"):
+                d = os.path.join(home, ".config/omarchy/plugins", name)
+                os.makedirs(d)
+                paths[name] = os.path.join(d, "dbctl")
+                os.symlink(self.ctl, paths[name])
+                self.assertEqual(omadb.dbctl_path(), paths["blackcode.omadbngin" if "blackcode.omadbngin" in paths else name])
+        finally:
+            os.environ["HOME"] = old_home
+
     def test_servers_public(self):
         servers = omadb.servers()
         self.assertEqual([s["id"] for s in servers], ["omadb:app", "omadb:cache", "omadb:shop"])

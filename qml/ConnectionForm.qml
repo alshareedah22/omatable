@@ -77,7 +77,7 @@ Flickable {
         user: sshUser.text, auth: sshAuthBox.value, key_path: sshKey.text } : null
     }
     if (!isNew && !fromOmadb) c.id = conn.id
-    // OmaDB servers saved as a connection carry their password along.
+    // OmaDBngin servers saved as a connection carry their password along.
     if (passField.dirty) c.password = passField.text
     else if (fromOmadb) c.omadb = conn.name
     if (sshPass.dirty) c.ssh_password = sshPass.text
@@ -119,7 +119,7 @@ Flickable {
     spacing: 12
 
     Text {
-      text: form.fromOmadb ? "OmaDB server · " + form.conn.name : form.isNew ? "New connection" : "Edit connection"
+      text: form.fromOmadb ? "OmaDBngin server · " + form.conn.name : form.isNew ? "New connection" : "Edit connection"
       color: Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body * 1.4

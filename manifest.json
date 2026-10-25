@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "BlackCode",
   "license": "MIT",
-  "description": "OmaTable: a TablePlus-style database GUI for Omarchy. Browse, edit and query PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB, directly or through SSH, with your OmaDB servers listed automatically",
+  "description": "OmaTable: a TablePlus-style database GUI for Omarchy. Browse, edit and query PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB, directly or through SSH, with your OmaDBngin servers listed automatically",
   "kinds": [
     "bar-widget",
     "panel"

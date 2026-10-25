@@ -1,4 +1,4 @@
-"""The Redis/Valkey adapter against the OmaDB servers zt-vk and zt-rd.
+"""The Redis/Valkey adapter against the OmaDBngin servers zt-vk and zt-rd.
 
 Runs only with OMATABLE_TEST_DB=1. Uses database 9 and empties it.
 """

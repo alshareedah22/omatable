@@ -1,6 +1,6 @@
 """Adapters against real databases.
 
-SQLite always runs. PostgreSQL and MySQL need the OmaDB servers zt-pg and
+SQLite always runs. PostgreSQL and MySQL need the OmaDBngin servers zt-pg and
 zt-my and run only with OMATABLE_TEST_DB=1.
 """
 

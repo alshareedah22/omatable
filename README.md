@@ -7,7 +7,7 @@ Redis/Valkey and a document browser for MongoDB.
 ![OmaTable browsing a MongoDB collection](preview.png)
 
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
-- Servers from [OmaDB](https://github.com/alshareedah22/omadb) are listed automatically, with their credentials
+- Servers from [OmaDBngin](https://github.com/alshareedah22/omadbngin) are listed automatically, with their credentials
 - Passwords are kept in your keyring (Secret Service), never in plain files when a keyring is available
 - SSH tunnels with agent, key or password login
 - Safe mode: connections tagged **production** ask before anything that changes data
@@ -96,7 +96,7 @@ Hiding the window ends the session, so commit before you hide it.
 - **Indexes** lists, creates (`{email: 1}`, unique or not) and drops indexes.
 - **Console** runs database commands such as `{dbStats: 1}` or `{count: 'orders'}`.
 - Views are read-only. Finds and aggregations stop after 60 seconds.
-- Users sign in against the `admin` database (where OmaDB and most installs create them); `mongodb+srv://`
+- Users sign in against the `admin` database (where OmaDBngin and most installs create them); `mongodb+srv://`
   URLs are not supported yet.
 
 | Shortcut | Action |
@@ -130,7 +130,7 @@ version and SHA-256 in `requirements.lock`; anything that does not match is refu
 
 Omarchy with Python 3 (for the helper and its venv), `wl-copy` for copying, `ssh` for tunnels, and a Secret
 Service keyring (GNOME Keyring or KeePassXC) to keep passwords out of plain files. The drivers (psycopg, PyMySQL,
-redis-py, pymongo) come from PyPI on first launch, pinned by hash. [OmaDB](https://github.com/alshareedah22/omadb)
+redis-py, pymongo) come from PyPI on first launch, pinned by hash. [OmaDBngin](https://github.com/alshareedah22/omadbngin)
 is optional.
 
 ## Remove
@@ -139,7 +139,7 @@ is optional.
     rm -rf ~/.config/omatable ~/.local/share/omatable   # saved connections, history and the drivers
 
 Saved passwords live in your keyring as "OmaTable … password" items; delete a connection in the app first, or
-clear them all with `secret-tool clear app omatable`. OmaTable never changes your databases' files or OmaDB's servers.
+clear them all with `secret-tool clear app omatable`. OmaTable never changes your databases' files or OmaDBngin's servers.
 
 ## Files
 
@@ -154,7 +154,7 @@ clear them all with `secret-tool clear app omatable`. OmaTable never changes you
     OMATABLE_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -t . -v # plus driver install
     tools/update-requirements-lock                                              # bump drivers
 
-Database tests need the OmaDB servers `zt-pg` (PostgreSQL 17), `zt-my` (MariaDB), `zt-vk` (Valkey 9),
+Database tests need the OmaDBngin servers `zt-pg` (PostgreSQL 17), `zt-my` (MariaDB), `zt-vk` (Valkey 9),
 `zt-rd` (Redis 8) and `zt-mg` (MongoDB 8, user `dev`), and the drivers' venv:
 
     OMATABLE_TEST_DB=1 ~/.local/share/omatable/venv/bin/python -m unittest discover -s tests -t . -v

@@ -41,7 +41,7 @@ Item {
     const out = []
     const omadb = omadbServers.filter(matches)
     if (omadb.length) {
-      out.push({ header: "OmaDB" })
+      out.push({ header: "OmaDBngin" })
       omadb.forEach(function(c) { out.push({ conn: c }) })
     }
     tagOrder.forEach(function(tag) {
