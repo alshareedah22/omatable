@@ -1,22 +1,57 @@
 """Entry point: `python -m omatable` serves the protocol on stdin/stdout."""
 
+import os
+import re
 import signal
 import sys
+import tomllib
 
-from . import __version__, omadb
-from .protocol import Server
+from . import __version__, omadb, sqlsplit
+from .history import History, Saved
+from .protocol import Error, Server
 from .session import Sessions
 from .store import Store
+
+DDL = ("CREATE", "DROP", "ALTER", "RENAME")
+# Editor colour role -> colors.toml keys to try, in order.
+PALETTE = {"keyword": ("magenta", "color5"), "string": ("green", "color2"), "number": ("yellow", "color3"),
+           "comment": ("dark_foreground", "color8"), "identifier": ("cyan", "color6")}
+HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def palette():
+    path = os.environ.get("OMATABLE_THEME_COLORS") or os.path.join(
+        os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"),
+        "omarchy", "current", "theme", "colors.toml")
+    try:
+        with open(path, "rb") as f:
+            colors = tomllib.load(f)
+    except (OSError, tomllib.TOMLDecodeError):
+        return {}
+    out = {}
+    for role, keys in PALETTE.items():
+        for key in keys:
+            value = colors.get(key)
+            if isinstance(value, str) and HEX.match(value):
+                out[role] = value
+                break
+    return out
 
 
 def build(store, server=None, sessions=None):
     server = server or Server()
     sessions = sessions or Sessions(store)
     server.sessions = sessions
+    history = History(store.dir)
+    saved = Saved(store.dir)
 
     @server.method("app.version")
     def version():
         return {"version": __version__}
+
+    @server.method("app.palette")
+    def app_palette():
+        return palette()
 
     @server.method("conn.list")
     def conn_list():
@@ -91,6 +126,58 @@ def build(store, server=None, sessions=None):
     def table_commit(session, schema, table, changes):
         s = sessions.get(session)
         return s.run(s.adapter.commit, schema, table, changes)
+
+    @server.method("query.run")
+    def query_run(session, text, cursor=None):
+        s = sessions.get(session)
+        engine = s.conn.get("engine")
+        text = str(text or "")
+        if cursor is None:
+            stmts = sqlsplit.split(text, engine)
+        else:
+            one = sqlsplit.at(text, sqlsplit.from_utf16(text, int(cursor)), engine)
+            stmts = [one] if one else []
+        if not stmts:
+            raise Error("invalid", "There is no SQL to run")
+        out = s.run(s.adapter.run, [sql for _, _, sql in stmts])
+        ddl = any(sqlsplit.keyword(sql) in DDL for _, _, sql in stmts)
+        if ddl:
+            s.run(s.adapter.forget)
+        results = out["results"]
+        err = results[-1].get("error") if results else None
+        start, end = stmts[0][0], stmts[-1][1]
+        history.add({"conn": s.conn.get("id"), "name": s.conn.get("name"), "engine": engine,
+                     "database": out["database"], "sql": text[start:end].strip(), "ok": err is None,
+                     "error": err["message"] if err else None, "ms": sum(r["ms"] for r in results),
+                     "statements": len(stmts)})
+        return {**out, "ddl": ddl, "range": [sqlsplit.to_utf16(text, start), sqlsplit.to_utf16(text, end)]}
+
+    @server.method("query.cancel")
+    def query_cancel(session):
+        sessions.get(session).cancel()
+        return {"ok": True}
+
+    @server.method("query.history")
+    def query_history(conn=None, search="", limit=200):
+        return {"items": history.list(conn, search, limit)}
+
+    @server.method("query.history_clear")
+    def query_history_clear(conn=None):
+        history.clear(conn)
+        return {"ok": True}
+
+    @server.method("query.save")
+    def query_save(name, sql, id=None):  # noqa: A002
+        return saved.save(name, sql, id)
+
+    @server.method("query.saved")
+    def query_saved():
+        return {"items": saved.list()}
+
+    @server.method("query.delete_saved")
+    def query_delete_saved(id):  # noqa: A002
+        saved.delete(id)
+        return {"ok": True}
 
     return server
 

@@ -27,6 +27,10 @@ class Session:
             raise Error("tunnel", "the SSH tunnel closed: " + (" ".join(self.tunnel.stderr) or "ssh exited"))
         return self.worker.submit(fn, *args, **kwargs).result()
 
+    def cancel(self):
+        # Not through the worker: it is busy running the statement to stop.
+        self.adapter.cancel()
+
     def info(self):
         a, c = self.adapter, self.conn
         return {"session": self.id, "id": c.get("id"), "name": c.get("name"), "engine": c.get("engine"),

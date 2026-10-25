@@ -167,3 +167,17 @@ def keyword(sql):
         m = WORD.match(sql, i)
         return m.group(0).upper() if m else ""
     return ""
+
+
+def from_utf16(text, pos):
+    """A QML (UTF-16) offset as a Python string index."""
+    units = 0
+    for i, ch in enumerate(text):
+        if units >= pos:
+            return i
+        units += 2 if ord(ch) > 0xFFFF else 1
+    return len(text)
+
+
+def to_utf16(text, pos):
+    return len(text[:pos].encode("utf-16-le")) // 2
