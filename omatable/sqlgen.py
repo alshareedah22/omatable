@@ -15,8 +15,9 @@ COMPARE = ("=", "<>", "<", ">", "<=", ">=")
 
 
 class Dialect:
-    def __init__(self, name, quote_char, mark, ilike=False, escape="'\\'"):
+    def __init__(self, name, quote_char, mark, ilike=False, escape="'\\'", default_values="DEFAULT VALUES"):
         self.name = name
+        self.default_values = default_values
         self.quote_char = quote_char
         self.mark = mark
         self.ilike = ilike
@@ -39,7 +40,7 @@ class Dialect:
 
 DIALECTS = {
     "postgresql": Dialect("postgresql", '"', "%s", ilike=True),
-    "mysql": Dialect("mysql", "`", "%s", escape="'\\\\'"),
+    "mysql": Dialect("mysql", "`", "%s", escape="'\\\\'", default_values="() VALUES ()"),
     "sqlite": Dialect("sqlite", '"', "?"),
 }
 
@@ -121,13 +122,14 @@ def count(d, schema, table, columns, filters=(), match="and"):
 
 
 def _key_where(d, key, row_key, raw_keys):
+    # raw_keys maps a result column to the SQL that selects it (sqlite: __rowid -> rowid)
     if not key:
         raise Error("readonly", "this table has no primary key, so its rows cannot be edited")
     if not isinstance(row_key, dict) or set(row_key) != set(key):
         raise Error("invalid", "every change needs the row's full key")
     parts, params = [], []
     for name in key:
-        col = name if name in raw_keys else d.quote(name)
+        col = raw_keys.get(name) or d.quote(name)
         value = decode(row_key[name])
         if value is None:
             parts.append(f"{col} IS NULL")
@@ -137,13 +139,14 @@ def _key_where(d, key, row_key, raw_keys):
     return " WHERE " + " AND ".join(parts), params
 
 
-def changes(d, schema, table, columns, key, changes, raw_keys=()):
+def changes(d, schema, table, columns, key, changes, raw_keys=None):
     """Statements for one commit: deletes, then updates, then inserts.
 
     Each item is (sql, params, expect_one); expect_one statements must touch
     exactly one row or the commit is rolled back.
     """
     target = d.table(schema, table)
+    raw_keys = raw_keys or {}
     out = []
     for item in changes.get("deletes") or ():
         cond, params = _key_where(d, key, item.get("key"), raw_keys)
@@ -159,7 +162,7 @@ def changes(d, schema, table, columns, key, changes, raw_keys=()):
     for item in changes.get("inserts") or ():
         values = item.get("values") or {}
         if not values:
-            out.append((f"INSERT INTO {target} DEFAULT VALUES", [], False))
+            out.append((f"INSERT INTO {target} {d.default_values}", [], False))
             continue
         cols = ", ".join(d.quote(_column(columns, c)) for c in values)
         marks = ", ".join([d.mark] * len(values))

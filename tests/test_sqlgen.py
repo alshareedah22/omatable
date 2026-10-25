@@ -108,9 +108,13 @@ class ChangesTest(unittest.TestCase):
                                   [b"\x00\x01", 1], True)])
 
     def test_rowid_key(self):
-        stmts = sqlgen.changes(LITE, "main", "t", COLS, ["rowid"], {"deletes": [{"key": {"rowid": 4}}]},
-                               raw_keys=("rowid",))
+        stmts = sqlgen.changes(LITE, "main", "t", COLS, ["__rowid"], {"deletes": [{"key": {"__rowid": 4}}]},
+                               raw_keys={"__rowid": "rowid"})
         self.assertEqual(stmts, [('DELETE FROM "main"."t" WHERE rowid = ?', [4], True)])
+
+    def test_mysql_default_insert(self):
+        self.assertEqual(sqlgen.changes(MY, "db", "t", COLS, ["id"], {"inserts": [{"values": {}}]}),
+                         [("INSERT INTO `db`.`t` () VALUES ()", [], False)])
 
     def test_rejects(self):
         with self.assertRaises(Error):
