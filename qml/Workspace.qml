@@ -109,9 +109,9 @@ Item {
   }
 
   function switchDatabase(db) {
-    if (dirty) { toast = "Commit or discard your changes before switching databases"; dbBox.value = info.database; return }
+    if (dirty) { toast = "Commit or discard your changes before switching databases"; titleBar.resetDatabase(); return }
     helper.request("session.use", { session: info.session, database: db }, function(r, e) {
-      if (e) { toast = e.message; dbBox.value = info.database; return }
+      if (e) { toast = e.message; titleBar.resetDatabase(); return }
       info = Object.assign({}, info, { database: r.database })
       // query tabs keep their text; table tabs belonged to the old database
       for (let i = tabModel.count - 1; i >= 0; i--) if (tabModel.get(i).kind === "table") tabModel.remove(i)
@@ -139,60 +139,16 @@ Item {
     anchors.fill: parent
     spacing: 0
 
-    // ---- title strip ----
-    Rectangle {
+    TitleBar {
+      id: titleBar
       Layout.fillWidth: true
-      implicitHeight: titleRow.implicitHeight + 12
-      color: Qt.lighter(Color.background, 1.12)
-      Rectangle { width: parent.width; height: 3; color: ws.info ? ws.info.color : "transparent" }
-      RowLayout {
-        id: titleRow
-        x: 10
-        width: parent.width - 20
-        anchors.verticalCenter: parent.verticalCenter
-        spacing: 10
-        Ui.Button { text: "‹ Connections"; tooltipText: "Close this connection"; onClicked: ws.closeRequested() }
-        Text {
-          text: ws.info ? ws.info.name : ""
-          color: Color.foreground
-          font.family: Style.font.family
-          font.pixelSize: Style.font.body
-          font.bold: true
-        }
-        Rectangle {
-          visible: ws.info && ws.info.tag === "production"
-          implicitWidth: prodText.implicitWidth + 12
-          implicitHeight: prodText.implicitHeight + 4
-          radius: 3
-          color: "#c94040"
-          Text { id: prodText; anchors.centerIn: parent; text: "PRODUCTION"; color: "white"; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
-        }
-        Text {
-          text: ws.info ? ws.info.version + (ws.info.ssh ? "  ·   SSH" : "") : ""
-          color: Color.muted
-          font.family: Style.font.family
-          font.pixelSize: Style.font.bodySmall
-        }
-        Item { Layout.fillWidth: true }
-        Ui.Button { bordered: true; text: "+ Query"; tooltipText: "New SQL query tab (Ctrl+T)"; onClicked: ws.openQuery() }
-        Text {
-          visible: dbBox.visible
-          text: "Database"
-          color: Color.muted
-          font.family: Style.font.family
-          font.pixelSize: Style.font.bodySmall
-        }
-        Ui.Dropdown {
-          id: dbBox
-          visible: ws.info && ws.info.databases && (ws.info.databases.length > 1 || ws.info.engine === "mysql" || ws.info.engine === "mariadb")
-          Layout.preferredWidth: 220
-          showLabel: false
-          options: !ws.info ? [] : (ws.info.engine === "mysql" || ws.info.engine === "mariadb")
-            ? [{ value: "", label: "All databases" }].concat(ws.info.databases) : ws.info.databases
-          value: ws.info ? ws.info.database : ""
-          onChanged: function(v) { if (v !== ws.info.database) ws.switchDatabase(v) }
-        }
-      }
+      info: ws.info
+      readonly property bool mysql: ws.info && (ws.info.engine === "mysql" || ws.info.engine === "mariadb")
+      showDatabases: ws.info && ws.info.databases && (ws.info.databases.length > 1 || mysql)
+      databaseOptions: !ws.info ? [] : mysql ? [{ value: "", label: "All databases" }].concat(ws.info.databases) : ws.info.databases
+      onCloseRequested: ws.closeRequested()
+      onDatabaseChosen: function(db) { ws.switchDatabase(db) }
+      Ui.Button { bordered: true; text: "+ Query"; tooltipText: "New SQL query tab (Ctrl+T)"; onClicked: ws.openQuery() }
     }
 
     RowLayout {

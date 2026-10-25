@@ -263,7 +263,7 @@ FocusScope {
       y: 16
       x: 16
       visible: grid.tab && grid.tab.rowCount === 0 && !grid.tab.loading
-      text: grid.tab && grid.tab.error ? "" : "No rows"
+      text: grid.tab && grid.tab.error ? "" : (grid.tab && grid.tab.emptyText) || "No rows"
       color: Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.body
@@ -304,7 +304,8 @@ FocusScope {
     Column {
       width: parent.width
       Repeater {
-        model: grid.tab && grid.tab.readOnly
+        model: grid.tab && grid.tab.menuItems ? grid.tab.menuItems
+          : grid.tab && grid.tab.readOnly
           ? [{ label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" },
              { label: "Copy row as JSON", act: "copyjson" }]
           : [{ label: "Edit cell", act: "edit" }, { label: "Set NULL", act: "null" },
@@ -327,6 +328,7 @@ FocusScope {
             else if (modelData.act === "copyinsert") t.copyInsert()
             else if (modelData.act === "insert") t.addRow()
             else if (modelData.act === "delete") t.toggleDelete(t.selRow)
+            else if (t.menuAction) t.menuAction(modelData.act)
           }
         }
       }

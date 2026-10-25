@@ -192,6 +192,8 @@ class Flow:
         self.assertEqual(self.a.command("RPUSH l a b")["reply"], 2)
         self.assertEqual(self.a.command("LRANGE l 0 -1")["reply"], ["a", "b"])
         self.assertIsNone(self.a.command("GET nothing")["reply"])
+        self.a.command("ZADD z 120 m")
+        self.assertIn(self.a.command("ZSCORE z m")["reply"], ({"$t": "double", "v": "120.0"}, "120"))
         with self.assertRaises(Error) as cm:
             self.a.command("HGET greeting x")
         self.assertIn("WRONGTYPE", cm.exception.message)

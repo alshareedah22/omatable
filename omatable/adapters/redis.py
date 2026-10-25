@@ -62,8 +62,8 @@ def reply(value):
         return [reply(v) for v in value]
     if isinstance(value, dict):
         return [reply(x) for kv in value.items() for x in kv]
-    if isinstance(value, float):
-        return value if value == value and abs(value) != float("inf") else str(value)
+    if isinstance(value, float):  # RESP3 doubles; JSON would make 120.0 look like an integer
+        return {"$t": "double", "v": repr(value) if value == value and abs(value) != float("inf") else str(value)}
     return wire(value)
 
 
@@ -227,7 +227,7 @@ class Redis:
                 value = [wire(m) for m in sorted(members)]
             elif kind == "zset":
                 size = r.zcard(k)
-                value = [[wire(m), reply(s)] for m, s in r.zrange(k, 0, limit - 1, withscores=True)]
+                value = [[wire(m), s if s == s and abs(s) != float("inf") else str(s)] for m, s in r.zrange(k, 0, limit - 1, withscores=True)]
             elif kind == "stream":
                 size = r.xlen(k)
                 value = [{"id": wire(i), "fields": [[wire(f), wire(v)] for f, v in fields.items()]}

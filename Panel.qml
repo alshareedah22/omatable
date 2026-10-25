@@ -130,13 +130,37 @@ Item {
       anchors.fill: parent
       active: root.session !== null
       visible: active && helperProc.status === "ready"
-      sourceComponent: Workspace {
+      readonly property string engine: root.session ? root.session.engine : ""
+      sourceComponent: !engine ? null : engine === "redis" || engine === "valkey" ? redisBrowser : engine === "mongodb" ? mongoBrowser : sqlWorkspace
+    }
+    Component {
+      id: sqlWorkspace
+      Workspace {
         helper: helperProc
         info: root.session
         onCloseRequested: {
           if (dirty) { toast = "Commit or discard your changes first"; return }
           root.disconnect()
         }
+      }
+    }
+    Component {
+      id: redisBrowser
+      RedisBrowser {
+        helper: helperProc
+        info: root.session
+        onCloseRequested: {
+          if (dirty) { toast = "Save or revert the value first"; return }
+          root.disconnect()
+        }
+      }
+    }
+    Component {
+      id: mongoBrowser
+      MongoBrowser {
+        helper: helperProc
+        info: root.session
+        onCloseRequested: root.disconnect()
       }
     }
   }
