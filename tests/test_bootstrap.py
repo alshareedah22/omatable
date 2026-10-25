@@ -7,6 +7,7 @@ import tempfile
 import unittest
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+VERSION = re.search(r'__version__ = "([^"]+)"', open(os.path.join(ROOT, "omatable", "__init__.py")).read()).group(1)
 CTL = os.path.join(ROOT, "tablectl")
 NET = os.environ.get("OMATABLE_TEST_NET") == "1"
 
@@ -41,7 +42,7 @@ class BootstrapTest(unittest.TestCase):
         code, msgs, err = run(env, json.dumps({"id": 1, "method": "app.version"}) + "\n")
         self.assertEqual(code, 0, err)
         self.assertIn("progress", [m.get("event") for m in msgs])
-        self.assertEqual(msgs[-1], {"id": 1, "result": {"version": "0.1.0"}})
+        self.assertEqual(msgs[-1], {"id": 1, "result": {"version": VERSION}})
         py = os.path.join(data, "venv", "bin", "python")
         imports = "import psycopg, pymysql, redis, pymongo; print('ok')"
         self.assertEqual(subprocess.run([py, "-c", imports], capture_output=True, text=True).stdout.strip(), "ok")

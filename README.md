@@ -1,14 +1,16 @@
 # OmaTable
 
-A TablePlus-style database GUI for [Omarchy](https://omarchy.org). Status: early (M5): connections, table
-browsing and editing, a SQL editor, structure editing, export and CSV import for PostgreSQL, MySQL/MariaDB and
-SQLite, plus key browsers for Redis/Valkey and a document browser for MongoDB. Safe mode for production
-connections comes next.
+A TablePlus-style database GUI for [Omarchy](https://omarchy.org): connections, table browsing and editing, a
+SQL editor, structure editing, export and CSV import for PostgreSQL, MySQL/MariaDB and SQLite, a key browser for
+Redis/Valkey and a document browser for MongoDB.
+
+![OmaTable browsing a MongoDB collection](preview.png)
 
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDB](https://github.com/alshareedah22/omadb) are listed automatically, with their credentials
 - Passwords are kept in your keyring (Secret Service), never in plain files when a keyring is available
 - SSH tunnels with agent, key or password login
+- Safe mode: connections tagged **production** ask before anything that changes data
 
 ## Using it
 
@@ -23,6 +25,18 @@ connections comes next.
   or a row no longer matches, nothing is saved and your edits stay on screen.
 - Tables without a primary key (or unique not-null key) are read-only, except in SQLite, where rows are edited
   by their rowid.
+
+### Safe mode
+
+Tag a connection **production** (in its form) and OmaTable asks before it changes anything there: committing
+edits, statements other than `SELECT`/`SHOW`/`EXPLAIN`/plain `WITH` queries, structure changes, imports,
+truncate and drop, Redis commands the server marks as writes (`SET`, `DEL`, `FLUSHALL`, `CONFIG SET`, `EVAL`,
+…), and MongoDB inserts, edits, deletes, index changes, `$out`/`$merge` pipelines and commands that are not
+read-only. The prompt shows the exact SQL or command; Cancel leaves everything as it was. Reads never ask. The
+check runs in the helper, so no button can skip it, and it leans towards asking when unsure.
+
+Closing a tab, switching databases or leaving a connection with staged changes asks whether to discard them.
+Hiding the window ends the session, so commit before you hide it.
 
 ### SQL editor
 
@@ -116,6 +130,21 @@ Then add the **OmaTable** bar widget, or open the window with:
 
 The first launch installs the database drivers into `~/.local/share/omatable/venv`. Every wheel is pinned by
 version and SHA-256 in `requirements.lock`; anything that does not match is refused.
+
+## Requirements
+
+Omarchy with Python 3 (for the helper and its venv), `wl-copy` for copying, `ssh` for tunnels, and a Secret
+Service keyring (GNOME Keyring or KeePassXC) to keep passwords out of plain files. The drivers (psycopg, PyMySQL,
+redis-py, pymongo) come from PyPI on first launch, pinned by hash. [OmaDB](https://github.com/alshareedah22/omadb)
+is optional.
+
+## Remove
+
+    omarchy plugin remove blackcode.omatable
+    rm -rf ~/.config/omatable ~/.local/share/omatable   # saved connections, history and the drivers
+
+Saved passwords live in your keyring as "OmaTable … password" items; delete a connection in the app first, or
+clear them all with `secret-tool clear app omatable`. OmaTable never changes your databases' files or OmaDB's servers.
 
 ## Files
 
