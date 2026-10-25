@@ -1328,6 +1328,7 @@ import qs.Commons
 // Bar icon: click opens or closes the OmaTable window (the panel half of this plugin).
 BarWidget {
   id: root
+  moduleName: "blackcode.omatable"
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
@@ -1336,8 +1337,8 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: ""
-    tooltip: "OmaTable"
-    onClicked: Quickshell.execDetached(["omarchy-shell", "shell", "toggle", "blackcode.omatable", "{}"])
+    tooltipText: "OmaTable"
+    onPressed: function() { Quickshell.execDetached(["omarchy-shell", "shell", "toggle", "blackcode.omatable", "{}"]) }
   }
 }
 ```

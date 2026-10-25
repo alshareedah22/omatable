@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "blackcode.omatable",
+  "name": "OmaTable",
+  "version": "0.1.0",
+  "author": "BlackCode",
+  "license": "MIT",
+  "description": "OmaTable: a TablePlus-style database GUI for Omarchy. Browse, edit and query PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB, directly or through SSH, with your OmaDB servers listed automatically",
+  "kinds": [
+    "bar-widget",
+    "panel"
+  ],
+  "entryPoints": {
+    "barWidget": "Bar.qml",
+    "panel": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "OmaTable",
+    "description": "Open the OmaTable database client",
+    "category": "Development",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {},
+    "schema": []
+  }
+}
