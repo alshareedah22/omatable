@@ -5,8 +5,10 @@ password from a FIFO in a private 700 directory. The password never appears
 in argv or the environment, and the FIFO is written exactly once.
 """
 
+import ctypes
 import os
 import shutil
+import signal
 import socket
 import subprocess
 import tempfile
@@ -16,6 +18,18 @@ import time
 from .protocol import Error
 
 ASKPASS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "askpass")
+PR_SET_PDEATHSIG = 1
+
+try:  # looked up before any fork: preexec_fn must not import or allocate much
+    _prctl = ctypes.CDLL(None, use_errno=True).prctl
+except (OSError, AttributeError):
+    _prctl = None
+
+
+def _die_with_parent():
+    """ssh runs in its own session, so make the kernel stop it if tablectl dies."""
+    if _prctl is not None:
+        _prctl(PR_SET_PDEATHSIG, signal.SIGTERM)
 
 
 def free_port():
@@ -82,7 +96,8 @@ class Tunnel:
             threading.Thread(target=self._feed, args=(fifo,), daemon=True).start()
         try:
             self.proc = subprocess.Popen(self.command(port), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
-                                         stderr=subprocess.PIPE, text=True, env=env, start_new_session=True)
+                                         stderr=subprocess.PIPE, text=True, env=env, start_new_session=True,
+                                         preexec_fn=_die_with_parent)
         except OSError as e:
             self._cleanup()
             raise Error("tunnel", f"cannot run ssh: {e}") from e
