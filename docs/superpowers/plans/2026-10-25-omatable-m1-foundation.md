@@ -46,7 +46,7 @@
 | `tests/test_protocol.py`, `tests/test_store.py`, `tests/test_omadb.py`, `tests/test_bootstrap.py` | unittest suites |
 | `README.md`, `LICENSE`, `.gitignore` | docs |
 
-Run all unit tests with: `cd ~/.config/omarchy/plugins/blackcode.omatable && python3 -m unittest discover -s tests -v`
+Run all unit tests with: `cd ~/.config/omarchy/plugins/blackcode.omatable && /usr/bin/python3 -m unittest discover -s tests -v`
 
 ---
 
@@ -143,7 +143,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python3 -m unittest tests.test_protocol -v`
+Run: `/usr/bin/python3 -m unittest tests.test_protocol -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'omatable'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -271,7 +271,7 @@ Note: a `TypeError` raised *inside* a handler is also reported as `invalid`; han
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python3 -m unittest tests.test_protocol -v`
+Run: `/usr/bin/python3 -m unittest tests.test_protocol -v`
 Expected: 8 tests, OK
 
 - [ ] **Step 5: Commit**
@@ -474,7 +474,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python3 -m unittest tests.test_store -v`
+Run: `/usr/bin/python3 -m unittest tests.test_store -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'omatable.store'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -738,7 +738,7 @@ class Store:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python3 -m unittest tests.test_store -v`
+Run: `/usr/bin/python3 -m unittest tests.test_store -v`
 Expected: all StoreTest tests OK; RealKeyringTest runs (Secret Service is active on this machine) and passes.
 
 - [ ] **Step 5: Commit**
@@ -833,7 +833,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python3 -m unittest tests.test_omadb -v`
+Run: `/usr/bin/python3 -m unittest tests.test_omadb -v`
 Expected: FAIL with `ImportError: cannot import name 'omadb'`
 
 - [ ] **Step 3: Write minimal implementation**
@@ -896,7 +896,7 @@ def server(name):
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python3 -m unittest tests.test_omadb -v`
+Run: `/usr/bin/python3 -m unittest tests.test_omadb -v`
 Expected: 4 tests, OK
 
 - [ ] **Step 5: Commit**
@@ -965,7 +965,7 @@ class EndToEndTest(unittest.TestCase):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `python3 -m unittest tests.test_protocol.EndToEndTest -v`
+Run: `/usr/bin/python3 -m unittest tests.test_protocol.EndToEndTest -v`
 Expected: FAIL (`No module named omatable.__main__`; first line is not a ready event)
 
 - [ ] **Step 3: Write minimal implementation**
@@ -1018,7 +1018,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `python3 -m unittest discover -s tests -v`
+Run: `/usr/bin/python3 -m unittest discover -s tests -v`
 Expected: all tests OK
 
 - [ ] **Step 5: Commit**
@@ -1044,7 +1044,7 @@ git commit -m "Serve connection methods over stdio"
 
 `tools/update-requirements-lock`:
 ```python
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """Regenerate requirements.lock: the newest release of every driver, pinned to
 the sha256 of each wheel pip may pick on Linux x86_64 for CPython 3.13-3.15.
 
@@ -1164,14 +1164,14 @@ if __name__ == "__main__":
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `OMATABLE_TEST_NET=1 python3 -m unittest tests.test_bootstrap -v`
+Run: `OMATABLE_TEST_NET=1 /usr/bin/python3 -m unittest tests.test_bootstrap -v`
 Expected: LockTest passes; BootstrapTest FAILS with `FileNotFoundError` for `tablectl`.
 
 - [ ] **Step 4: Write the bootstrap**
 
 `tablectl`:
 ```python
-#!/usr/bin/env python3
+#!/usr/bin/python3
 """OmaTable helper launcher.
 
 Makes sure the database drivers in requirements.lock are installed, exactly
@@ -1261,7 +1261,7 @@ Run: `chmod +x tablectl`
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `OMATABLE_TEST_NET=1 python3 -m unittest discover -s tests -v`
+Run: `OMATABLE_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -v`
 Expected: all tests OK (bootstrap tests take ~30 s for the download).
 
 Note on the rename: a venv's `bin/python` is a symlink to the system interpreter and `sys.prefix` is derived from its location, so renaming `venv.new` to `venv` is safe; only the console-script shebangs in `bin/` keep the old path, and they are never used.
@@ -1853,7 +1853,7 @@ and add to `tests/test_omadb.py`:
 ```
 Make `tests` importable: create an empty `tests/__init__.py`.
 
-Run: `python3 -m unittest discover -s tests -v` (from the plugin root, with `-t .` if discovery complains: `python3 -m unittest discover -s tests -t . -v`)
+Run: `/usr/bin/python3 -m unittest discover -s tests -v` (from the plugin root, with `-t .` if discovery complains: `/usr/bin/python3 -m unittest discover -s tests -t . -v`)
 Expected: all OK.
 
 - [ ] **Step 3: Write the welcome view**
@@ -2190,8 +2190,8 @@ version and SHA-256 in `requirements.lock`; anything that does not match is refu
 
 ## Development
 
-    python3 -m unittest discover -s tests -t . -v           # unit tests
-    OMATABLE_TEST_NET=1 python3 -m unittest discover -s tests -t . -v   # plus driver install
+    /usr/bin/python3 -m unittest discover -s tests -t . -v           # unit tests
+    OMATABLE_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -t . -v   # plus driver install
     tools/update-requirements-lock                          # bump drivers
 
 ## License
@@ -2201,7 +2201,7 @@ MIT
 
 - [ ] **Step 2: Run the whole suite**
 
-Run: `OMATABLE_TEST_NET=1 python3 -m unittest discover -s tests -t . -v`
+Run: `OMATABLE_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -t . -v`
 Expected: all OK.
 
 - [ ] **Step 3: Commit**

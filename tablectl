@@ -1,0 +1,84 @@
+#!/usr/bin/python3
+"""OmaTable helper launcher.
+
+Makes sure the database drivers in requirements.lock are installed, exactly
+and verified, in ~/.local/share/omatable/venv, then runs the helper server
+(`python -m omatable`) from that venv. Only the standard library is used here.
+
+The venv is rebuilt when the system Python's minor version or the lock
+changes; a failed install leaves nothing behind.
+"""
+
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import venv
+
+HERE = os.path.dirname(os.path.realpath(__file__))
+DATA = os.environ.get("OMATABLE_DATA") or os.path.join(
+    os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "omatable")
+VENV = os.path.join(DATA, "venv")
+LOCK = os.environ.get("OMATABLE_LOCK") or os.path.join(HERE, "requirements.lock")
+
+
+def emit(obj):
+    sys.stdout.write(json.dumps(obj) + "\n")
+    sys.stdout.flush()
+
+
+def stamp():
+    with open(LOCK, "rb") as f:
+        digest = hashlib.sha256(f.read()).hexdigest()
+    return f"{sys.version_info.major}.{sys.version_info.minor} {digest}"
+
+
+def fatal(message):
+    emit({"event": "fatal", "code": "drivers", "message": message})
+    sys.exit(1)
+
+
+def ensure_venv():
+    python = os.path.join(VENV, "bin", "python")
+    want = stamp()
+    try:
+        with open(os.path.join(VENV, ".omatable-stamp")) as f:
+            if f.read().strip() == want and os.path.exists(python):
+                return python
+    except OSError:
+        pass
+    os.makedirs(DATA, mode=0o700, exist_ok=True)
+    tmp = VENV + ".new"
+    shutil.rmtree(tmp, ignore_errors=True)
+    emit({"event": "progress", "text": "Preparing database drivers…", "pct": 10})
+    try:
+        venv.create(tmp, with_pip=True, clear=True)
+    except Exception as e:  # noqa: BLE001
+        shutil.rmtree(tmp, ignore_errors=True)
+        fatal(f"could not create {tmp}: {e}")
+    emit({"event": "progress", "text": "Installing database drivers…", "pct": 40})
+    pip = [os.path.join(tmp, "bin", "python"), "-m", "pip", "install", "--disable-pip-version-check",
+           "--no-input", "--require-hashes", "--no-deps", "--only-binary", ":all:", "-r", LOCK]
+    r = subprocess.run(pip, capture_output=True, text=True)
+    if r.returncode != 0:
+        shutil.rmtree(tmp, ignore_errors=True)
+        lines = [l for l in (r.stderr or r.stdout).splitlines() if l.strip()]
+        fatal("installing drivers failed: " + " ".join(lines[-3:]))
+    with open(os.path.join(tmp, ".omatable-stamp"), "w") as f:
+        f.write(want + "\n")
+    shutil.rmtree(VENV, ignore_errors=True)
+    os.rename(tmp, VENV)
+    emit({"event": "progress", "text": "Drivers ready", "pct": 100})
+    return python
+
+
+def main():
+    python = ensure_venv()
+    env = dict(os.environ, PYTHONPATH=HERE)
+    os.execve(python, [python, "-m", "omatable"], env)
+
+
+if __name__ == "__main__":
+    main()
