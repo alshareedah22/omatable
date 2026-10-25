@@ -236,6 +236,10 @@ class MySQLTest(Flow, unittest.TestCase):
         self.assertTrue(self.a.version().startswith("MariaDB 11.8"))
         self.a.use("mysql")
         self.assertEqual([s["name"] for s in self.a.tree()], ["mysql"])
+        self.a.use("")
+        names = [s["name"] for s in self.a.tree()]
+        self.assertIn("zt_flow", names)
+        self.assertNotIn("mysql", names)
 
     def test_auth_and_network_errors(self):
         with self.assertRaises(Error) as e:

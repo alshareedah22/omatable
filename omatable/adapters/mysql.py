@@ -47,8 +47,11 @@ class MySQL(SQLAdapter):
         return [r[0] for r in self.query("SHOW DATABASES")[1]]
 
     def use(self, database):
-        with self.guard():
-            self.db.select_db(database)
+        # "" means every database: queries are schema-qualified, so the
+        # connection can keep whichever default it has.
+        if database:
+            with self.guard():
+                self.db.select_db(database)
         self.database = database
         self.forget()
 

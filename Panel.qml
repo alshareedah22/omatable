@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import Quickshell
 import qs.Commons
+import qs.Ui as Ui
 import "qml"
 
 // The OmaTable window. The shell loads this as a panel; summon/hide call
@@ -14,6 +15,23 @@ Item {
   readonly property bool opened: window.visible
   property bool closingFromHost: false
   property var shell: null
+  property var session: null       // session.open result while a connection is open
+  property string connecting: ""
+
+  function connectTo(conn) {
+    if (connecting) return
+    connecting = conn.name
+    helperProc.request("session.open", { id: conn.id }, function(r, e) {
+      connecting = ""
+      if (e) { welcome.toast = conn.name + ": " + e.message; return }
+      session = r
+    })
+  }
+
+  function disconnect() {
+    if (session) helperProc.request("session.close", { session: session.session }, null)
+    session = null
+  }
 
   function open(payloadJson) {
     closingFromHost = false
@@ -35,12 +53,13 @@ Item {
   Helper {
     id: helperProc
     program: root.ctl
+    onStatusChanged: if (status !== "ready") root.session = null
   }
 
   FloatingWindow {
     id: window
     title: "OmaTable"
-    color: Color.background
+    color: Qt.rgba(Color.background.r, Color.background.g, Color.background.b, 1)
     implicitWidth: 1100
     implicitHeight: 700
     minimumSize: Qt.size(760, 480)
@@ -76,19 +95,49 @@ Item {
         wrapMode: Text.Wrap
         horizontalAlignment: Text.AlignHCenter
       }
-      Button {
+      Ui.Button {
         anchors.horizontalCenter: parent.horizontalCenter
         visible: helperProc.status === "stopped"
+        bordered: true
         text: "Retry"
         onClicked: helperProc.start()
       }
     }
-  
+
     Welcome {
+      id: welcome
       anchors.fill: parent
-      visible: helperProc.status === "ready"
+      visible: helperProc.status === "ready" && !root.session
       helper: helperProc
-      onConnectRequested: function(conn) { toast = "Connecting arrives in the next milestone: " + conn.name }
+      onConnectRequested: function(conn) { root.connectTo(conn) }
+    }
+
+    Rectangle {
+      visible: root.connecting !== ""
+      anchors.fill: parent
+      color: Qt.rgba(0, 0, 0, 0.45)
+      MouseArea { anchors.fill: parent }
+      Text {
+        anchors.centerIn: parent
+        text: "Connecting to " + root.connecting + "…"
+        color: Color.foreground
+        font.family: Style.font.family
+        font.pixelSize: Style.font.body * 1.2
+      }
+    }
+
+    Loader {
+      anchors.fill: parent
+      active: root.session !== null
+      visible: active && helperProc.status === "ready"
+      sourceComponent: Workspace {
+        helper: helperProc
+        info: root.session
+        onCloseRequested: {
+          if (dirty) { toast = "Commit or discard your changes first"; return }
+          root.disconnect()
+        }
+      }
     }
   }
 }

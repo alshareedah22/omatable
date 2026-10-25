@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Ui as Ui
 
 // TablePlus-style start screen: connections on the left, the form on the right.
 Item {
@@ -96,7 +97,7 @@ Item {
             onTextChanged: welcome.search = text
             Keys.onDownPressed: list.forceActiveFocus()
           }
-          Button { text: "+"; onClicked: welcome.select(null) }
+          Ui.Button { bordered: true; text: "+"; tooltipText: "New connection"; onClicked: welcome.select(null) }
         }
 
         ListView {
@@ -106,6 +107,22 @@ Item {
           clip: true
           model: welcome.rows
           keyNavigationEnabled: true
+          Keys.onReturnPressed: {
+            const r = welcome.rows[currentIndex]
+            if (r && r.conn) welcome.connectRequested(r.conn)
+          }
+
+          Text {
+            y: 8
+            width: list.width
+            visible: welcome.rows.length === 0
+            text: welcome.search ? "No matches" : "No connections yet. Press + to add one."
+            color: Color.muted
+            wrapMode: Text.Wrap
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
+          }
+
           delegate: Item {
             required property var modelData
             required property int index
@@ -190,15 +207,6 @@ Item {
           }
         }
 
-        Text {
-          Layout.fillWidth: true
-          visible: welcome.rows.length === 0
-          text: welcome.search ? "No matches" : "No connections yet. Press + to add one."
-          color: Color.muted
-          wrapMode: Text.Wrap
-          font.family: Style.font.family
-          font.pixelSize: Style.font.body
-        }
       }
     }
 
@@ -227,6 +235,7 @@ Item {
         onCancelled: { visible = false; welcome.selectedId = "" }
         onDeleted: function(id) { visible = false; welcome.selectedId = ""; welcome.reload() }
         onDuplicated: function(c) { welcome.reload(); welcome.select(c) }
+        onConnectRequested: function(c) { welcome.connectRequested(c) }
       }
     }
   }

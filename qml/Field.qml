@@ -14,6 +14,7 @@ Item {
   // Equal implicit widths so a RowLayout splits the row evenly between fields.
   implicitWidth: 200
   implicitHeight: column.implicitHeight
+  opacity: enabled ? 1 : 0.5
 
   function setText(value) { input.text = value; dirty = false }
   function focusInput() { input.forceActiveFocus() }

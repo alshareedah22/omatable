@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Ui as Ui
 
 // Create or edit one connection. Passwords are only sent when typed, so an
 // untouched field keeps the saved one.
@@ -17,6 +18,7 @@ Flickable {
   signal cancelled()
   signal deleted(string id)
   signal duplicated(var conn)
+  signal connectRequested(var conn)
 
   readonly property var engines: [
     { id: "postgresql", title: "PostgreSQL", port: 5432 }, { id: "mysql", title: "MySQL", port: 3306 },
@@ -25,9 +27,11 @@ Flickable {
     { id: "mongodb", title: "MongoDB", port: 27017 }]
   readonly property var tags: ["local", "development", "staging", "production"]
   readonly property var sshAuths: ["agent", "key", "password"]
-  readonly property string engine: engines[engineBox.currentIndex].id
+  readonly property string engine: engineBox.value
   readonly property bool isNew: !conn || !conn.id
   readonly property bool fromOmadb: !!conn && conn.source === "omadb"
+  property string testText: ""
+  property bool testOk: false
 
   contentHeight: body.implicitHeight + 32
   clip: true
@@ -37,35 +41,40 @@ Flickable {
     errorText = ""
     const v = c || {}
     nameField.setText(v.name || "")
-    engineBox.currentIndex = Math.max(0, engines.findIndex(function(e) { return e.id === (v.engine || "postgresql") }))
+    testText = ""
+    engineBox.value = v.engine || "postgresql"
     hostField.setText(v.host || "127.0.0.1")
-    portField.setText(v.port ? String(v.port) : String(engines[engineBox.currentIndex].port))
+    portField.setText(v.port ? String(v.port) : String(engineInfo(engineBox.value).port))
     userField.setText(v.user || "")
     passField.setText("")
     passField.placeholder = v.has_password ? "Saved (leave empty to keep)" : ""
     dbField.setText(v.database || "")
     pathField.setText(v.path || "")
-    tagBox.currentIndex = Math.max(0, tags.indexOf(v.tag || "local"))
+    tagBox.value = v.tag || "local"
     colorField.setText(v.color || "")
     const ssh = v.ssh || {}
     sshSwitch.checked = !!ssh.enabled
     sshHost.setText(ssh.host || "")
     sshPort.setText(String(ssh.port || 22))
     sshUser.setText(ssh.user || "")
-    sshAuthBox.currentIndex = Math.max(0, sshAuths.indexOf(ssh.auth || "agent"))
+    sshAuthBox.value = ssh.auth || "agent"
     sshKey.setText(ssh.key_path || "")
     sshPass.setText("")
     sshPass.placeholder = v.has_ssh_password ? "Saved (leave empty to keep)" : ""
     nameField.focusInput()
   }
 
+  function engineInfo(id) {
+    return engines.find(function(e) { return e.id === id }) || engines[0]
+  }
+
   function collect() {
     const c = {
       name: nameField.text, engine: engine, host: hostField.text, port: parseInt(portField.text) || 0,
       user: userField.text, database: dbField.text, path: pathField.text,
-      tag: tags[tagBox.currentIndex], color: colorField.text || null,
+      tag: tagBox.value, color: colorField.text || null,
       ssh: sshSwitch.checked ? { enabled: true, host: sshHost.text, port: parseInt(sshPort.text) || 22,
-        user: sshUser.text, auth: sshAuths[sshAuthBox.currentIndex], key_path: sshKey.text } : null
+        user: sshUser.text, auth: sshAuthBox.value, key_path: sshKey.text } : null
     }
     if (!isNew && !fromOmadb) c.id = conn.id
     // OmaDB servers saved as a connection carry their password along.
@@ -73,6 +82,21 @@ Flickable {
     else if (fromOmadb) c.omadb = conn.name
     if (sshPass.dirty) c.ssh_password = sshPass.text
     return c
+  }
+
+  function test() {
+    if (busy) return
+    busy = true
+    testText = "Testing…"
+    testOk = false
+    const c = collect()
+    if (!isNew) c.id = conn.id
+    delete c.omadb
+    helper.request("conn.test", { conn: c }, function(result, error) {
+      busy = false
+      testOk = !error
+      testText = error ? error.message : "Connected to " + result.version + " in " + result.ms + " ms"
+    })
   }
 
   function save() {
@@ -111,19 +135,22 @@ Flickable {
         spacing: 4
         Layout.fillWidth: true
         Text { text: "Engine"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
-        ComboBox {
+        Ui.Dropdown {
           id: engineBox
           width: parent.width
+          showLabel: false
           enabled: !form.fromOmadb
-          model: form.engines.map(function(e) { return e.title })
-          onActivated: portField.setText(String(form.engines[currentIndex].port))
+          opacity: enabled ? 1 : 0.5
+          value: "postgresql"
+          options: form.engines.map(function(e) { return { value: e.id, label: e.title } })
+          onChanged: function(v) { portField.setText(String(form.engineInfo(v).port)) }
         }
       }
       Column {
         spacing: 4
         Layout.preferredWidth: 160
         Text { text: "Tag"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
-        ComboBox { id: tagBox; width: parent.width; model: form.tags }
+        Ui.Dropdown { id: tagBox; width: parent.width; showLabel: false; value: "local"; options: form.tags }
       }
       Field { id: colorField; label: "Color"; Layout.preferredWidth: 110; placeholder: "#rrggbb" }
     }
@@ -164,11 +191,13 @@ Flickable {
     }
 
     // ---- SSH tunnel ----
-    RowLayout {
+    Ui.Toggle {
+      id: sshSwitch
       Layout.fillWidth: true
       visible: form.engine !== "sqlite"
-      Switch { id: sshSwitch }
-      Text { text: "Connect over SSH"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body }
+      label: "Connect over SSH"
+      description: "Tunnel through a jump host with ssh -L"
+      onClicked: checked = !checked
     }
 
     GridLayout {
@@ -184,10 +213,10 @@ Flickable {
         spacing: 4
         Layout.preferredWidth: 110
         Text { text: "Auth"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
-        ComboBox { id: sshAuthBox; width: parent.width; model: form.sshAuths }
+        Ui.Dropdown { id: sshAuthBox; width: parent.width; showLabel: false; value: "agent"; options: form.sshAuths }
       }
-      Field { id: sshKey; label: "Key file"; Layout.fillWidth: true; Layout.columnSpan: 2; visible: sshAuthBox.currentIndex === 1; placeholder: "~/.ssh/id_ed25519" }
-      Field { id: sshPass; label: "SSH password"; Layout.fillWidth: true; Layout.columnSpan: 2; visible: sshAuthBox.currentIndex === 2; secret: true }
+      Field { id: sshKey; label: "Key file"; Layout.fillWidth: true; Layout.columnSpan: 2; visible: sshAuthBox.value === "key"; placeholder: "~/.ssh/id_ed25519" }
+      Field { id: sshPass; label: "SSH password"; Layout.fillWidth: true; Layout.columnSpan: 2; visible: sshAuthBox.value === "password"; secret: true }
     }
 
     Text {
@@ -200,21 +229,42 @@ Flickable {
       font.pixelSize: Style.font.body
     }
 
+    Text {
+      Layout.fillWidth: true
+      visible: form.testText !== ""
+      text: form.testText
+      color: form.testOk ? Color.accent : form.busy ? Color.muted : Color.urgent
+      wrapMode: Text.Wrap
+      font.family: Style.font.family
+      font.pixelSize: Style.font.body
+    }
+
     RowLayout {
       Layout.fillWidth: true
       spacing: 8
-      Button { text: form.fromOmadb ? "Save as connection" : "Save"; enabled: !form.busy; onClicked: form.save() }
-      Button { text: "Cancel"; onClicked: form.cancelled() }
+      Ui.Button { bordered: true; text: form.fromOmadb ? "Save as connection" : "Save"; enabled: !form.busy; onClicked: form.save() }
+      Ui.Button { bordered: true; text: "Test"; enabled: !form.busy && form.engine !== "redis" && form.engine !== "valkey" && form.engine !== "mongodb"; onClicked: form.test() }
+      Ui.Button {
+        bordered: true
+        text: "Connect"
+        visible: !form.isNew
+        enabled: !form.busy
+        onClicked: form.connectRequested(form.conn)
+      }
+      Ui.Button { text: "Cancel"; onClicked: form.cancelled() }
       Item { Layout.fillWidth: true }
-      Button {
+      Ui.Button {
+        bordered: true
         text: "Duplicate"
         visible: !form.isNew && !form.fromOmadb
         onClicked: form.helper.request("conn.duplicate", { id: form.conn.id }, function(r, e) {
           if (e) form.errorText = e.message; else form.duplicated(r)
         })
       }
-      Button {
+      Ui.Button {
         id: deleteButton
+        bordered: true
+        foreground: armed ? Color.urgent : Color.foreground
         property bool armed: false
         text: armed ? "Click again to delete" : "Delete"
         visible: !form.isNew && !form.fromOmadb
