@@ -96,6 +96,13 @@ class MySQL(SQLAdapter):
         self.database = database
         self.forget()
 
+    def drop_database(self, name):
+        out = super().drop_database(name)
+        if name == self.database:
+            self.database = ""
+            self.forget()
+        return out
+
     def tree(self):
         self.forget()
         if self.database:

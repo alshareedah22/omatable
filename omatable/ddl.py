@@ -172,3 +172,32 @@ def statements(d, schema, table, current, changes):
         elif ix.get("op") != "drop":
             raise Error("invalid", f"unknown index change {ix.get('op')!r}")
     return out
+
+
+def create_table(d, schema, table, columns):
+    """One CREATE TABLE statement; a primary key over the columns marked pk."""
+    table = check_name(table, "table")
+    if not columns:
+        raise Error("invalid", "a table needs at least one column")
+    q = d.quote
+    seen, lines, pk = set(), [], []
+    for c in columns:
+        col = {"name": check_name(c.get("name"), "column"), "type": check_fragment(c.get("type"), "the type"),
+               "nullable": bool(c.get("nullable", True)) and not c.get("pk"),
+               "default": check_fragment(c["default"], "the default") if c.get("default") not in (None, "") else None}
+        if col["name"] in seen:
+            raise Error("invalid", f"there are two columns named {col['name']!r}")
+        seen.add(col["name"])
+        if c.get("pk"):
+            pk.append(q(col["name"]))
+        lines.append(f"  {q(col['name'])} {_mysql_def(d, col) if d.name == 'mysql' else _plain_def(col)}")
+    if pk:
+        lines.append(f"  PRIMARY KEY ({', '.join(pk)})")
+    return f"CREATE TABLE {d.table(schema, table)} (\n" + ",\n".join(lines) + "\n)"
+
+
+def database(d, op, name):
+    """CREATE or DROP DATABASE for the engines that have more than one."""
+    if d.name == "sqlite":
+        raise Error("unsupported", "a SQLite database is one file; add a connection for a new file instead")
+    return f"{op} DATABASE {d.quote(check_name(name, 'database'))}"

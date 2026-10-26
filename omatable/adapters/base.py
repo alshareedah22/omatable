@@ -274,6 +274,22 @@ class SQLAdapter:
         self.forget()
         return {"ok": True}
 
+    def create_table_preview(self, schema, table, columns):
+        return {"statements": [ddl.create_table(self.d, schema, table, columns)]}
+
+    def create_table(self, schema, table, columns):
+        self.query(ddl.create_table(self.d, schema, table, columns))
+        self.forget()
+        return {"ok": True}
+
+    def create_database(self, name):
+        self.query(ddl.database(self.d, "CREATE", name))
+        return {"ok": True}
+
+    def drop_database(self, name):
+        self.query(ddl.database(self.d, "DROP", name))
+        return {"ok": True}
+
     def truncate(self, schema, table):
         self.query(f"TRUNCATE TABLE {self.d.table(schema, table)}")
         return {"ok": True}

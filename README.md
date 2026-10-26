@@ -30,7 +30,7 @@ Redis/Valkey and a document browser for MongoDB.
 
 Tag a connection **production** (in its form) and OmaTable asks before it changes anything there: committing
 edits, statements other than `SELECT`/`SHOW`/`EXPLAIN`/plain `WITH` queries, structure changes, imports,
-truncate and drop, Redis commands the server marks as writes (`SET`, `DEL`, `FLUSHALL`, `CONFIG SET`, `EVAL`,
+new tables and databases, truncate and drop, Redis commands the server marks as writes (`SET`, `DEL`, `FLUSHALL`, `CONFIG SET`, `EVAL`,
 …), and MongoDB inserts, edits, deletes, index changes, `$out`/`$merge` pipelines and commands that are not
 read-only. The prompt shows the exact SQL or command; Cancel leaves everything as it was. Reads never ask. The
 check runs in the helper, so no button can skip it, and it leans towards asking when unsure.
@@ -51,6 +51,12 @@ Hiding the window ends the session, so commit before you hide it.
 
 ### Structure, export and import
 
+- **New table…** (the **+** above the table list, or right-click a schema) takes a name and a list of columns:
+  type (type it or pick a common one), NULL rule, default (as SQL) and which columns form the primary key. The
+  `CREATE TABLE` statement is shown as you type; the new table opens in Structure.
+- **Databases…** (the same **+**, PostgreSQL and MySQL/MariaDB) lists the server's databases: create one, open
+  one, or drop one after a confirmation. PostgreSQL cannot drop the database you are connected to, so open
+  another one first. A SQLite database is one file: add a connection for a new file instead.
 - **Structure** (the switch under a table, or right-click → Structure) lists columns, indexes, foreign keys and
   the table's DDL. Rename columns, change type, NULL rule, default (as SQL, e.g. `0`, `'none'`, `now()`) or
   comment, add and drop columns and indexes, drop foreign keys. Changes are staged; Ctrl+S shows the SQL and

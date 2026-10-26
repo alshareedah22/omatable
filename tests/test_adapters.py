@@ -214,6 +214,16 @@ class Flow:
         self.assertNotIn("orders", tree["tables"])
         self.assertNotIn("v_people", tree["views"])
 
+    def test_create_table(self):
+        cols = [{"name": "id", "type": "int", "pk": True}, {"name": "label", "type": self.TEXT, "nullable": False}]
+        sql = self.a.create_table_preview(self.schema, "fresh", cols)["statements"][0]
+        self.assertTrue(sql.startswith("CREATE TABLE"))
+        self.a.create_table(self.schema, "fresh", cols)
+        self.assertIn("fresh", {s["name"]: s for s in self.a.tree()}[self.schema]["tables"])
+        self.assertEqual(self.a.key(self.schema, "fresh"), ["id"])
+        self.assertFalse(self.a.columns(self.schema, "fresh")[1]["nullable"])
+        with self.assertRaises(Error):
+            self.a.create_table(self.schema, "fresh", cols)
 
     def test_export_import_round_trip(self):
         tmp = tempfile.TemporaryDirectory()
@@ -327,6 +337,19 @@ class PostgresTest(Flow, unittest.TestCase):
         self.assertEqual(self.a.database, "postgres")
         self.assertNotIn("zt_flow", [s["name"] for s in self.a.tree()])
 
+    def test_create_drop_database(self):
+        self.a.query("DROP DATABASE IF EXISTS zt_fresh")
+        self.a.create_database("zt_fresh")
+        self.assertIn("zt_fresh", self.a.databases())
+        with self.assertRaises(Error) as e:
+            self.a.create_database("zt_fresh")
+        self.assertEqual(e.exception.code, "sql")
+        with self.assertRaises(Error) as e:
+            self.a.drop_database("zt_omatable")
+        self.assertEqual(e.exception.code, "invalid")
+        self.a.drop_database("zt_fresh")
+        self.assertNotIn("zt_fresh", self.a.databases())
+
     def test_failed_alter_changes_nothing(self):
         with self.assertRaises(Error) as e:
             self.a.alter(self.schema, "people", {"columns": [{"op": "add", "name": "ok", "type": "int"},
@@ -390,6 +413,16 @@ class MySQLTest(Flow, unittest.TestCase):
         names = [s["name"] for s in self.a.tree()]
         self.assertIn("zt_flow", names)
         self.assertNotIn("mysql", names)
+
+    def test_create_drop_database(self):
+        self.a.query("DROP DATABASE IF EXISTS zt_fresh")
+        self.a.create_database("zt_fresh")
+        self.assertIn("zt_fresh", self.a.databases())
+        self.a.drop_database("zt_fresh")
+        self.assertNotIn("zt_fresh", self.a.databases())
+        self.a.drop_database("zt_flow")      # the current one: back to every database
+        self.assertEqual(self.a.database, "")
+        self.a.create_database("zt_flow")    # for tearDown
 
     def test_failed_alter_reports_progress(self):
         with self.assertRaises(Error) as e:

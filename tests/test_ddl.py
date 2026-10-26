@@ -117,5 +117,33 @@ class SQLiteDDLTest(unittest.TestCase):
             self.assertEqual(e.exception.code, "unsupported")
 
 
+class CreateTest(unittest.TestCase):
+    COLS = [{"name": "id", "type": "int", "pk": True}, {"name": "name", "type": "varchar(40)", "nullable": False},
+            {"name": "note", "type": "text", "default": "''"}, {"name": "x", "type": "int", "default": ""}]
+
+    def test_create_table(self):
+        self.assertEqual(ddl.create_table(PG, "s", "t", self.COLS),
+                         'CREATE TABLE "s"."t" (\n  "id" int NOT NULL,\n  "name" varchar(40) NOT NULL,\n'
+                         '  "note" text DEFAULT \'\',\n  "x" int,\n  PRIMARY KEY ("id")\n)')
+        self.assertEqual(ddl.create_table(MY, "s", "t", self.COLS[:2]),
+                         "CREATE TABLE `s`.`t` (\n  `id` int NOT NULL,\n  `name` varchar(40) NOT NULL,\n  PRIMARY KEY (`id`)\n)")
+        self.assertNotIn("PRIMARY", ddl.create_table(LITE, "main", "t", self.COLS[1:2]))
+
+    def test_create_table_rejections(self):
+        for table, cols in (("", self.COLS), ("t", []), ("t", [{"name": "a", "type": "int; DROP TABLE x"}]),
+                            ("t", [{"name": "a", "type": "int"}, {"name": "a", "type": "text"}]),
+                            ("t", [{"name": "", "type": "int"}]), ("t", [{"name": "a", "type": ""}])):
+            with self.assertRaises(Error):
+                ddl.create_table(PG, "s", table, cols)
+
+    def test_database(self):
+        self.assertEqual(ddl.database(PG, "CREATE", 'sh"op'), 'CREATE DATABASE "sh""op"')
+        self.assertEqual(ddl.database(MY, "DROP", "shop"), "DROP DATABASE `shop`")
+        with self.assertRaises(Error):
+            ddl.database(LITE, "CREATE", "x")
+        with self.assertRaises(Error):
+            ddl.database(PG, "CREATE", "")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -15,7 +15,8 @@ Rectangle {
   signal closeRequested()
   signal databaseChosen(string database)
 
-  function resetDatabase() { dbBox.value = info ? info.database : "" }
+  // The dropdown sets its own value when picked; put the binding back.
+  function resetDatabase() { dbBox.value = Qt.binding(function() { return bar.info ? bar.info.database : "" }) }
 
   implicitHeight: titleRow.implicitHeight + 12
   color: Qt.lighter(Color.background, 1.12)

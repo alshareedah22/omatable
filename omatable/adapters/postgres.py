@@ -81,6 +81,11 @@ class Postgres(SQLAdapter):
     def use(self, database):
         self.connect(database)
 
+    def drop_database(self, name):
+        if name == self.database:
+            raise Error("invalid", f"You are connected to {name}; switch to another database to drop it")
+        return super().drop_database(name)
+
     def tree(self):
         self.forget()
         hide = HIDDEN_SCHEMAS.format("n.nspname")

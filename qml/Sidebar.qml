@@ -14,9 +14,12 @@ Rectangle {
   property string selected: ""     // "schema.table"
   property var collapsed: ({})
   property bool loading: false
+  property bool hasDatabases: false
   signal openRequested(string schema, string table, string kind)
   signal actionRequested(string action, string schema, string name, string kind)
   signal refreshRequested()
+  signal newTableRequested(string schema)
+  signal databasesRequested()
 
   color: Qt.lighter(Color.background, 1.05)
 
@@ -75,6 +78,18 @@ Rectangle {
           if (first) side.openRequested(first.schema, first.name, first.kind)
         }
       }
+      Ui.Button {
+        id: addBtn
+        text: "+"
+        tooltipText: side.hasDatabases ? "New table or database" : "New table"
+        onClicked: {
+          const p = addBtn.mapToItem(side, 0, addBtn.height)
+          menu.item = { kind: "add", name: "", schema: "" }
+          menu.x = Math.min(p.x, side.width - menu.width - 4)
+          menu.y = p.y
+          menu.open()
+        }
+      }
       Ui.Button { text: "\uf021"; tooltipText: "Reload the schema"; onClicked: side.refreshRequested() }
     }
 
@@ -115,7 +130,7 @@ Rectangle {
           acceptedButtons: Qt.LeftButton | Qt.RightButton
           onClicked: function(mouse) {
             const d = modelData
-            if (d.kind === "schema") side.toggle(d.id, !!side.collapsed[d.id])
+            if (d.kind === "schema" && mouse.button !== Qt.RightButton) side.toggle(d.id, !!side.collapsed[d.id])
             else if (d.kind === "group") side.toggle(d.id, d.shut)
             else if (mouse.button === Qt.RightButton) {
               side.selected = d.id
@@ -156,6 +171,9 @@ Rectangle {
       : item.kind === "views" ? [
           { act: "open", label: "Open" }, { act: "export", label: "Export…" },
           { act: "drop", label: "Drop view…", danger: true }, { act: "copy", label: "Copy name" }]
+      : item.kind === "add" ? [{ act: "newtable", label: "New table…" }].concat(
+          side.hasDatabases ? [{ act: "databases", label: "Databases…" }] : [])
+      : item.kind === "schema" ? [{ act: "newtable", label: "New table…" }, { act: "copy", label: "Copy name" }]
       : [{ act: "copy", label: "Copy name" }]
     padding: 4
     width: 180
@@ -174,6 +192,8 @@ Rectangle {
             const d = menu.item
             menu.close()
             if (modelData.act === "copy") Quickshell.execDetached(["wl-copy", "--", d.name])
+            else if (modelData.act === "newtable") side.newTableRequested(d.schema)
+            else if (modelData.act === "databases") side.databasesRequested()
             else side.actionRequested(modelData.act, d.schema, d.name, d.kind === "views" ? "view" : "table")
           }
         }

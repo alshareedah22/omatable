@@ -165,6 +165,33 @@ def build(store, server=None, sessions=None):
         ask(s, confirmed, f"Drop the {kind} {table}?")
         return s.run(s.adapter.drop, schema, table, kind)
 
+    @server.method("table.create_preview")
+    def table_create_preview(session, schema, table, columns):
+        s = sessions.get(session)
+        return s.run(s.adapter.create_table_preview, schema, table, columns)
+
+    @server.method("table.create")
+    def table_create(session, schema, table, columns, confirmed=False):
+        s = sessions.get(session)
+        if not confirmed and s.conn.get("tag") == "production":
+            stmts = s.run(s.adapter.create_table_preview, schema, table, columns)["statements"]
+            ask(s, False, f"Create the table {table}?", "\n".join(stmts))
+        return s.run(s.adapter.create_table, schema, table, columns)
+
+    @server.method("db.create")
+    def db_create(session, name, confirmed=False):
+        s = sessions.get(session)
+        ask(s, confirmed, f"Create the database {name}?")
+        s.run(s.adapter.create_database, name)
+        return {"databases": s.run(s.adapter.databases), "database": s.adapter.database}
+
+    @server.method("db.drop")
+    def db_drop(session, name, confirmed=False):
+        s = sessions.get(session)
+        ask(s, confirmed, f"Drop the database {name}?")
+        s.run(s.adapter.drop_database, name)
+        return {"databases": s.run(s.adapter.databases), "database": s.adapter.database}
+
     @server.method("table.truncate")
     def table_truncate(session, schema, table, confirmed=False):
         s = sessions.get(session)

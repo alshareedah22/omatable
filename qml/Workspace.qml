@@ -140,6 +140,7 @@ Item {
     helper.request("session.use", { session: info.session, database: db }, function(r, e) {
       if (e) { toast = e.message; titleBar.resetDatabase(); return }
       info = Object.assign({}, info, { database: r.database })
+      titleBar.resetDatabase()
       // query tabs keep their text; table tabs belonged to the old database
       for (let i = tabModel.count - 1; i >= 0; i--) if (tabModel.get(i).kind === "table") tabModel.remove(i)
       current = tabModel.count ? 0 : -1
@@ -191,6 +192,9 @@ Item {
         onOpenRequested: function(schema, table) { ws.openTable(schema, table) }
         onActionRequested: function(act, schema, name, kind) { ws.tableAction(act, schema, name, kind) }
         onRefreshRequested: ws.loadTree()
+        hasDatabases: ws.info && ws.info.engine !== "sqlite"
+        onNewTableRequested: function(schema) { newTable.show(ws.tree.map(function(s) { return s.name }), schema || ws.info.database) }
+        onDatabasesRequested: databasesDialog.show(ws.info.databases || [], ws.info.database)
       }
       Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
 
@@ -310,6 +314,31 @@ Item {
   }
 
   Confirm { id: confirm }
+  NewTableDialog {
+    id: newTable
+    helper: ws.helper
+    sid: ws.info ? ws.info.session : ""
+    engine: ws.info ? ws.info.engine : ""
+    onCreated: function(schema, table) { ws.toast = "Created " + table; ws.loadTree(); ws.openTable(schema, table, "structure") }
+  }
+  DatabasesDialog {
+    id: databasesDialog
+    helper: ws.helper
+    sid: ws.info ? ws.info.session : ""
+    engine: ws.info ? ws.info.engine : ""
+    onNotify: function(text) { ws.toast = text }
+    onChanged: function(list, db) {
+      const moved = db !== ws.info.database
+      ws.info = Object.assign({}, ws.info, { databases: list, database: db })
+      titleBar.resetDatabase()
+      if (moved) {
+        for (let i = tabModel.count - 1; i >= 0; i--) if (tabModel.get(i).kind === "table") tabModel.remove(i)
+        ws.current = tabModel.count ? 0 : -1
+      }
+      ws.loadTree()
+    }
+    onOpenRequested: function(db) { ws.switchDatabase(db) }
+  }
   ExportDialog {
     id: exportDialog
     helper: ws.helper
