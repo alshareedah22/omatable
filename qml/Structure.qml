@@ -516,19 +516,23 @@ Item {
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
         }
-        RowLayout {
+        GridLayout {
           Layout.fillWidth: true
           Layout.margins: 8
           visible: !st.sqlite
-          spacing: 6
-          Cell { id: fkName; Layout.preferredWidth: 130; placeholderText: "name (optional)" }
-          Cell { id: fkCols; Layout.fillWidth: true; placeholderText: "column(s), e.g. " + (st.columns.length > 1 ? st.columns[1].name : "id") }
+          columns: 5
+          columnSpacing: 6
+          rowSpacing: 6
+          Cell { id: fkName; Layout.preferredWidth: 150; placeholderText: "name (optional)" }
+          Cell { id: fkCols; Layout.fillWidth: true; Layout.minimumWidth: 100; placeholderText: "column(s), e.g. " + (st.columns.length > 1 ? st.columns[1].name : "id") }
           Text { text: "→"; color: Color.muted; font.pixelSize: Style.font.body }
-          Cell { id: fkRef; Layout.fillWidth: true; placeholderText: "references table" }
-          Cell { id: fkRefCols; Layout.preferredWidth: 90; placeholderText: "id" }
-          Ui.Dropdown { id: fkDel; Layout.preferredWidth: 150; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "delete: " + a } }) }
-          Ui.Dropdown { id: fkUpd; Layout.preferredWidth: 150; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "update: " + a } }) }
+          Cell { id: fkRef; Layout.fillWidth: true; Layout.minimumWidth: 100; placeholderText: "references table" }
+          Cell { id: fkRefCols; Layout.preferredWidth: 110; placeholderText: "id" }
+          Ui.Dropdown { id: fkDel; Layout.columnSpan: 2; Layout.fillWidth: true; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "on delete: " + a } }) }
+          Item { implicitWidth: 1 }
+          Ui.Dropdown { id: fkUpd; Layout.fillWidth: true; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "on update: " + a } }) }
           Ui.Button {
+            Layout.fillWidth: true
             bordered: true
             text: "+ Foreign key"
             onClicked: if (st.addForeignKey(fkName.text, fkCols.text, fkRef.text, fkRefCols.text || "id", fkDel.value, fkUpd.value)) {

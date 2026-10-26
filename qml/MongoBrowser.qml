@@ -745,7 +745,7 @@ Item {
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Field { id: newCollName; Layout.fillWidth: true; label: "New collection in " + (mb.info ? mb.info.database : ""); Keys.onReturnPressed: newColl.create() }
+      Field { id: newCollName; Layout.fillWidth: true; label: "New collection in " + (mb.info ? mb.info.database : ""); Keys.onReturnPressed: newColl.create(); Keys.onEnterPressed: newColl.create() }
       Text { Layout.fillWidth: true; visible: newColl.err !== ""; text: newColl.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
@@ -814,8 +814,8 @@ Item {
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Field { id: newDbName; Layout.fillWidth: true; label: "New database"; Keys.onReturnPressed: newDb.create() }
-      Field { id: newDbColl; Layout.fillWidth: true; label: "Its first collection (MongoDB keeps a database once it holds one)"; placeholder: "items"; Keys.onReturnPressed: newDb.create() }
+      Field { id: newDbName; Layout.fillWidth: true; label: "New database"; Keys.onReturnPressed: newDb.create(); Keys.onEnterPressed: newDb.create() }
+      Field { id: newDbColl; Layout.fillWidth: true; label: "Its first collection (MongoDB keeps a database once it holds one)"; placeholder: "items"; Keys.onReturnPressed: newDb.create(); Keys.onEnterPressed: newDb.create() }
       Text { Layout.fillWidth: true; visible: newDb.err !== ""; text: newDb.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
