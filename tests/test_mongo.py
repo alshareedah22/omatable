@@ -138,6 +138,13 @@ class MongoTest(unittest.TestCase):
         with self.assertRaises(Error):
             self.a.command("{notACommand: 1}")
 
+    def test_processes(self):
+        ops = self.a.processes()
+        self.assertIsInstance(ops, list)
+        self.assertFalse(any("currentOp" in o["query"] for o in ops))
+        with self.assertRaises(Error):
+            self.a.kill("not-an-op")
+
     def test_create_drop_database(self):
         target = DB + "_new"
         self.a.client.drop_database(target)

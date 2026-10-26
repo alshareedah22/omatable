@@ -759,6 +759,7 @@ Item {
   Confirm { id: confirm }
   FilePicker { id: picker; helper: mb.helper }
   Busy { id: busy }
+  ProcessesDialog { id: processes; helper: mb.helper; sid: mb.sid; engine: "mongodb"; onNotify: function(m) { mb.toast = m } }
 
   Popup {
     id: dbMenu
@@ -770,6 +771,7 @@ Item {
       Repeater {
         model: mb.info ? [{ act: "new", label: "New database…" }, { act: "backup", label: "Back up " + mb.info.database + "…" },
                           { act: "restore", label: "Restore into " + mb.info.database + "…" },
+                          { act: "processes", label: "Running operations…" },
                           { act: "drop", label: "Drop " + mb.info.database + "…", danger: true }] : []
         delegate: Ui.Button {
           required property var modelData
@@ -783,6 +785,7 @@ Item {
             if (modelData.act === "new") { newDb.err = ""; newDbName.setText(""); newDbColl.setText(""); newDb.open() }
             else if (modelData.act === "backup") mb.backup(false, "")
             else if (modelData.act === "restore") mb.restore()
+            else if (modelData.act === "processes") processes.show()
             else mb.dropDatabase()
           }
         }

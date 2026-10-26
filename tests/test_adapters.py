@@ -225,6 +225,23 @@ class Flow:
         self.assertEqual((fk["name"], fk["columns"], fk["ref_table"], fk["on_delete"]), ("fk_p", ["person_id"], "people", "CASCADE"))
         self.a.drop(self.schema, "orders2")
 
+    def test_explain(self):
+        out = self.a.explain("SELECT * FROM people WHERE id = 1")
+        self.assertTrue(out["nodes"][0]["label"])
+        self.assertTrue(out["raw"])
+        if self.engine == "sqlite":
+            with self.assertRaises(Error):
+                self.a.explain("SELECT 1", True)
+            return
+        out = self.a.explain("SELECT count(*) FROM people", True)
+
+        def walk(n):
+            yield n
+            for c in n["children"]:
+                yield from walk(c)
+        nodes = [n for root in out["nodes"] for n in walk(root)]
+        self.assertTrue(any(n["actual_rows"] is not None or n["time_ms"] is not None for n in nodes))
+
     def test_catalog(self):
         tables = {(t["schema"], t["name"]): t for t in self.a.catalog()["tables"]}
         people = tables[(self.schema, "people")]

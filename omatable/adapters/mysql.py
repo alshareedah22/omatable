@@ -2,7 +2,7 @@
 
 import re
 
-from .. import sqlgen, sqlsplit
+from .. import explain, sqlgen, sqlsplit
 from ..protocol import Error
 from .base import MAX_ROWS, SQLAdapter
 
@@ -123,6 +123,35 @@ class MySQL(SQLAdapter):
             if schema in schemas:
                 schemas[schema]["functions"].append(name)
         return list(schemas.values())
+
+    def explain(self, sql, analyze=False):
+        if self.version().startswith("MariaDB"):
+            raw = self.query(f"{'ANALYZE' if analyze else 'EXPLAIN'} FORMAT=JSON {sql}")[1][0][0]
+            out = explain.mysql_json(raw)
+        else:
+            raw = self.query(f"EXPLAIN {'ANALYZE' if analyze else 'FORMAT=TREE'} {sql}")[1][0][0]
+            out = explain.mysql_tree(raw)
+        out["raw"] = raw
+        return out
+
+    def processes(self):
+        rows = self.query("SELECT ID, USER, DB, HOST, COMMAND, TIME, STATE, INFO FROM information_schema.PROCESSLIST "
+                          "WHERE ID <> CONNECTION_ID() ORDER BY COMMAND = 'Sleep', TIME DESC")[1]
+        return [{"id": pid, "user": user, "database": db or "", "client": host or "", "app": "", "state": command or "",
+                 "seconds": time or 0, "wait": state or "", "query": info or ""}
+                for pid, user, db, host, command, time, state, info in rows]
+
+    def kill(self, pid, hard=False):
+        self.query(f"KILL {'' if hard else 'QUERY '}%s", (int(pid),))
+        return {"ok": True}
+
+    def users(self):
+        rows = self.query("SELECT User, Host FROM mysql.user ORDER BY User, Host")[1]
+        return [{"name": user, "host": host} for user, host in rows]
+
+    def user_grants(self, spec):
+        from .. import admin
+        return [r[0] for r in self.query(f"SHOW GRANTS FOR {admin.account(self.d, spec)}")[1]]
 
     def catalog_rows(self):
         if self.database:

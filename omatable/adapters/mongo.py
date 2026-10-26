@@ -113,6 +113,27 @@ class Mongo:
 
     SYSTEM = ("admin", "config", "local")
 
+    def processes(self):
+        with self.guard():
+            ops = self.client.admin.command({"currentOp": 1, "active": True}).get("inprog", [])
+        out = []
+        for op in ops:
+            cmd = op.get("command") or {}
+            if "currentOp" in cmd or "opid" not in op:
+                continue
+            users = op.get("effectiveUsers") or []
+            out.append({"id": op["opid"], "user": ", ".join(u.get("user", "") for u in users),
+                        "database": str(op.get("ns", "")).split(".", 1)[0], "client": op.get("client", ""),
+                        "app": op.get("appName", ""), "state": op.get("op", ""), "seconds": op.get("secs_running", 0),
+                        "wait": "waiting for lock" if op.get("waitingForLock") else "",
+                        "query": mongojs.dumps(cmd)[:4000] if cmd else op.get("desc", "")})
+        return out
+
+    def kill(self, pid, hard=False):
+        with self.guard():
+            self.client.admin.command({"killOp": 1, "op": pid})
+        return {"ok": True}
+
     def create_database(self, name, collection=""):
         """MongoDB makes a database when something is stored in it: create its first collection."""
         previous = self.database

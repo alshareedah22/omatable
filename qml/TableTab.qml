@@ -142,6 +142,8 @@ Item {
     revision++
   }
 
+  function openEditor(r, c) { cellEditor.edit(r, c) }
+
   function select(r, vi) {
     selRow = r
     selCol = vi
@@ -351,6 +353,7 @@ Item {
       }
     }
 
+    CellEditor { id: cellEditor; tab: tab }
     DataGrid {
       id: grid
       Layout.fillWidth: true

@@ -163,5 +163,25 @@ class FinishTest(unittest.TestCase):
         self.assertEqual(params, [3])
 
 
+
+class DefaultValueTest(unittest.TestCase):
+    D = {"$t": "default"}
+
+    def test_update_and_insert(self):
+        pg = sqlgen.dialect("postgresql")
+        out = sqlgen.changes(pg, "s", "t", ["id", "a", "b"], ["id"], {
+            "updates": [{"key": {"id": 1}, "values": {"a": self.D, "b": 2}}],
+            "inserts": [{"values": {"a": self.D, "b": 3}}, {"values": {"a": self.D}}]})
+        self.assertEqual(out[0][:2], ('UPDATE "s"."t" SET "a" = DEFAULT, "b" = %s WHERE "id" = %s', [2, 1]))
+        self.assertEqual(out[1][:2], ('INSERT INTO "s"."t" ("b") VALUES (%s)', [3]))
+        self.assertEqual(out[2][0], 'INSERT INTO "s"."t" DEFAULT VALUES')
+
+    def test_sqlite_update_refused(self):
+        lite = sqlgen.dialect("sqlite")
+        with self.assertRaises(Error):
+            sqlgen.changes(lite, "main", "t", ["id", "a"], ["id"], {"updates": [{"key": {"id": 1}, "values": {"a": self.D}}]})
+        out = sqlgen.changes(lite, "main", "t", ["id", "a"], ["id"], {"inserts": [{"values": {"a": self.D}}]})
+        self.assertEqual(out[0][0], 'INSERT INTO "main"."t" DEFAULT VALUES')
+
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,7 @@ import QtQuick.Controls
 import qs.Commons
 import "SqlHighlight.js" as Hl
 import "Complete.js" as Cmp
+import "Format.js" as Fmt
 
 // SQL editor: a plain, transparent TextEdit for typing over a rich-text copy
 // that shows the colours. Both use the same font, padding and no wrapping,
@@ -52,6 +53,18 @@ FocusScope {
   }
 
   function select(a, b) { input.select(a, b) }
+  // Format the selection, or everything; remove + insert keep the undo stack.
+  function format() {
+    const a = input.selectionStart, b = input.selectionEnd
+    const whole = a === b
+    const src = whole ? input.text : input.text.substring(a, b)
+    const out = Fmt.format(src)
+    if (out === src) return
+    const from = whole ? 0 : a
+    input.remove(from, whole ? input.length : b)
+    input.insert(from, out)
+    if (!whole) input.select(from, from + out.length)
+  }
   function focusEditor() { input.forceActiveFocus() }
   function replaceAll(t) {
     // remove + insert keep the undo stack, unlike assigning text
@@ -183,6 +196,7 @@ FocusScope {
           if ((enter && !ctrl) || (event.key === Qt.Key_Tab && !ctrl)) { ed.accept(ed.pick); event.accepted = true; return }
         }
         if (ctrl && event.key === Qt.Key_Space) { ed.complete(); event.accepted = true; return }
+        if (ctrl && (event.modifiers & Qt.ShiftModifier) && event.key === Qt.Key_F) { ed.format(); event.accepted = true; return }
         if (!ctrl && (/^[A-Za-z0-9_$.]$/.test(event.text) || (c && event.key === Qt.Key_Backspace))) ed.typing = true
         else if (c && event.text !== "") ed.closeCompletion()
         if (ctrl && enter) {

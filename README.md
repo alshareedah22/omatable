@@ -15,10 +15,13 @@ Redis/Valkey and a document browser for MongoDB.
 ## Using it
 
 - Double-click a connection (or select it and press **Connect**). **Test** tries the form as typed.
+- Each open connection gets a tab along the top; **+** (Ctrl+Shift+N) goes back to the list to open another,
+  Ctrl+PgUp/PgDown switch between them, ✕ or a middle-click closes one (asking first if it has unsaved edits).
 - Pick a table in the sidebar; each table opens in a tab. Switch databases from the title bar.
 - Click a column header to sort (Shift+click adds a column), **+ Filter** (Ctrl+F) to filter.
 - Double-click, Enter or just start typing to edit a cell; Tab moves to the next one. Right-click for
-  Set NULL, copy and row actions.
+  Set NULL, Set DEFAULT, copy and row actions. **Open in editor…** (Shift+Enter) edits long text or JSON in
+  a large editor (JSON columns are formatted while you edit and saved compact).
 - Ctrl+I inserts a row, Delete marks the selected row for deletion.
 - Edits are staged: changed cells turn yellow, new rows green, deleted rows red. **Preview SQL** shows the
   statements, Ctrl+S commits them in one transaction, Ctrl+Shift+Delete discards them. If any statement fails
@@ -26,11 +29,24 @@ Redis/Valkey and a document browser for MongoDB.
 - Tables without a primary key (or unique not-null key) are read-only, except in SQLite, where rows are edited
   by their rowid.
 
+### Server
+
+**Server ▾** in the title bar (PostgreSQL and MySQL/MariaDB):
+
+- **Running queries…** lists the other connections and what they run, refreshing every 2 seconds (idle ones
+  hidden unless you ask). **Stop** cancels a query and keeps its connection; **Kill** closes the connection.
+  MongoDB has the same list under **Database ▾ → Running operations…** (with Stop).
+- **Users and privileges…** lists users (PostgreSQL roles, MySQL `user@host` accounts) with their privileges.
+  Create and drop users, change passwords, switch PostgreSQL role attributes (login, create databases, create
+  roles, superuser), and grant or revoke privileges on the whole server, a database, a schema, all tables in a
+  schema (optionally also tables created later) or one table. Every change shows its SQL first, with the
+  password masked; passwords never go into the query history.
+
 ### Safe mode
 
 Tag a connection **production** (in its form) and OmaTable asks before it changes anything there: committing
 edits, statements other than `SELECT`/`SHOW`/`EXPLAIN`/plain `WITH` queries, structure changes, imports,
-new tables and databases, truncate and drop, Redis commands the server marks as writes (`SET`, `DEL`, `FLUSHALL`, `CONFIG SET`, `EVAL`,
+new tables and databases, truncate and drop, killing other connections' queries, user and privilege changes, Redis commands the server marks as writes (`SET`, `DEL`, `FLUSHALL`, `CONFIG SET`, `EVAL`,
 …), and MongoDB inserts, edits, deletes, index changes, `$out`/`$merge` pipelines and commands that are not
 read-only. The prompt shows the exact SQL or command; Cancel leaves everything as it was. Reads never ask. The
 check runs in the helper, so no button can skip it, and it leans towards asking when unsure.
@@ -48,6 +64,11 @@ Hiding the window ends the session, so commit before you hide it.
 - **History** (Ctrl+H) lists what you ran on this connection, searchable; click an entry to load it.
   **Save** (Ctrl+S) keeps a query under a name in the **Saved** list.
 - `CREATE`/`DROP`/`ALTER` refresh the sidebar, and MySQL `USE` switches the database.
+- **Format** (Ctrl+Shift+F) tidies the SQL, or the selection: keywords upper-case, one clause per line, lists
+  and AND/OR conditions one per line, subqueries indented. Strings, quoted names and comments stay as written.
+- **Explain** (Ctrl+E) shows the plan of the statement at the cursor as a tree with each step's cost and rows.
+  **Analyze** runs it (only for queries that read; PostgreSQL rolls it back) and adds real rows and time; the
+  slowest steps and row estimates off by 10× or more are marked red. **Raw** shows the server's own output.
 - **Autocomplete** suggests as you type: tables after `FROM`/`JOIN`/`UPDATE`/`INTO`, the columns of a table or
   alias after `name.`, and otherwise the columns of the tables the statement uses, then tables and keywords.
   Up/Down pick, Tab or Enter insert, Esc closes, Ctrl+Space asks for suggestions. Names that need quotes get them.
@@ -57,7 +78,7 @@ Hiding the window ends the session, so commit before you hide it.
 
 ### Structure, export and import
 
-- **Back up database…** (the **+** above the table list) writes the current database to a file: plain SQL from
+- **Back up database…** (**Server ▾** in the title bar) writes the current database to a file: plain SQL from
   `pg_dump` or `mysqldump`/`mariadb-dump` (with routines and triggers), or a copy of a SQLite file.
   **Restore from file…** runs a backup against the current database (`psql` in one transaction, so a failure
   changes nothing; `pg_restore` for custom-format dumps; `mysql`/`mariadb`). The tools come from PATH or from
@@ -66,7 +87,7 @@ Hiding the window ends the session, so commit before you hide it.
 - **New table…** (the **+** above the table list, or right-click a schema) takes a name and a list of columns:
   type (type it or pick a common one), NULL rule, default (as SQL) and which columns form the primary key. The
   `CREATE TABLE` statement is shown as you type; the new table opens in Structure.
-- **Databases…** (the same **+**, PostgreSQL and MySQL/MariaDB) lists the server's databases: create one, open
+- **Databases…** (**Server ▾**, PostgreSQL and MySQL/MariaDB) lists the server's databases: create one, open
   one, or drop one after a confirmation. PostgreSQL cannot drop the database you are connected to, so open
   another one first. A SQLite database is one file: add a connection for a new file instead.
 - **Structure** (the switch under a table, or right-click → Structure) lists columns, indexes, foreign keys and

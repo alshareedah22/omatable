@@ -48,6 +48,14 @@ FocusScope {
     if (initial === undefined) editor.selectAll()
   }
 
+  function openEditor(r, vi) {
+    if (!tab || vi < 0 || vi >= vis.length || r < 0 || r >= tab.rowCount || !tab.canEdit(r)) return
+    const v = tab.cellValue(r, vis[vi])
+    if (v !== null && typeof v === "object" && v.$t === "bytes") { tab.notify("Binary values cannot be edited here"); return }
+    tab.select(r, vi)
+    tab.openEditor(r, vis[vi])
+  }
+
   function finishEdit(save) {
     if (!editor.visible) return
     editor.visible = false
@@ -69,6 +77,7 @@ FocusScope {
     else if (event.key === Qt.Key_PageUp) nr = Math.max(0, r - Math.floor(list.height / rowHeight))
     else if (event.key === Qt.Key_Home && ctrl) nr = 0
     else if (event.key === Qt.Key_End && ctrl) nr = tab.rowCount - 1
+    else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && (event.modifiers & Qt.ShiftModifier) && tab.openEditor) { openEditor(r, vi); event.accepted = true; return }
     else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_F2) { beginEdit(r, vi); event.accepted = true; return }
     else if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) { if (r >= 0) tab.toggleDelete(r); event.accepted = true; return }
     else if (ctrl && event.key === Qt.Key_C) { tab.copyCell(); event.accepted = true; return }
@@ -308,10 +317,10 @@ FocusScope {
           : grid.tab && grid.tab.readOnly
           ? [{ label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" },
              { label: "Copy row as JSON", act: "copyjson" }]
-          : [{ label: "Edit cell", act: "edit" }, { label: "Set NULL", act: "null" },
+          : [{ label: "Edit cell", act: "edit" }].concat(grid.tab && grid.tab.openEditor ? [{ label: "Open in editor…", act: "bigedit" }, { label: "Set DEFAULT", act: "default" }] : []).concat([{ label: "Set NULL", act: "null" },
              { label: "Copy value", act: "copy" }, { label: "Copy row as TSV", act: "copyrow" },
              { label: "Copy row as JSON", act: "copyjson" }, { label: "Copy row as INSERT", act: "copyinsert" },
-             { label: "Insert row", act: "insert" }, { label: "Delete / restore row", act: "delete" }]
+             { label: "Insert row", act: "insert" }, { label: "Delete / restore row", act: "delete" }])
         delegate: Ui.Button {
           required property var modelData
           width: menu.width - 8
@@ -322,6 +331,8 @@ FocusScope {
             const t = grid.tab
             if (modelData.act === "edit") grid.beginEdit(t.selRow, t.selCol)
             else if (modelData.act === "null") t.setCell(t.selRow, grid.vis[t.selCol], null)
+            else if (modelData.act === "bigedit") grid.openEditor(t.selRow, t.selCol)
+            else if (modelData.act === "default") t.setCell(t.selRow, grid.vis[t.selCol], { $t: "default" })
             else if (modelData.act === "copy") t.copyCell()
             else if (modelData.act === "copyrow") t.copyRow()
             else if (modelData.act === "copyjson") t.copyRowJson()

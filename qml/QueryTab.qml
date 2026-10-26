@@ -114,6 +114,11 @@ Item {
     })
   }
 
+  function explain() {
+    if (editor.selectionEnd > editor.selectionStart) planView.show(editor.text.substring(editor.selectionStart, editor.selectionEnd), null)
+    else planView.show(editor.text, editor.cursorPosition)
+  }
+
   function cancel() {
     if (running) helper.request("query.cancel", { session: sid })
   }
@@ -165,6 +170,7 @@ Item {
   Shortcut { sequences: [StandardKey.Save]; enabled: q.active; onActivated: savePopup.open() }
   Shortcut { sequence: "Ctrl+H"; enabled: q.active; onActivated: { if (q.drawerOpen) q.drawerOpen = false; else q.openDrawer("history") } }
   Shortcut { sequence: "Ctrl+."; enabled: q.active && q.running; onActivated: q.cancel() }
+  Shortcut { sequence: "Ctrl+E"; enabled: q.active && !q.running; onActivated: q.explain() }
 
   onActiveChanged: if (active) editor.focusEditor()
   Component.onCompleted: editor.focusEditor()
@@ -193,6 +199,8 @@ Item {
           Ui.Button { bordered: true; foreground: Color.accent; text: "▶ Run"; tooltipText: "Run the statement at the cursor, or the selection (Ctrl+Enter)"; enabled: !q.running; onClicked: q.run(false) }
           Ui.Button { bordered: true; text: "Run all"; tooltipText: "Ctrl+Shift+Enter"; enabled: !q.running; onClicked: q.run(true) }
           Ui.Button { visible: q.running; bordered: true; foreground: Color.urgent; text: "■ Cancel"; tooltipText: "Ctrl+."; onClicked: q.cancel() }
+          Ui.Button { bordered: true; text: "Explain"; tooltipText: "Show how the server runs the statement at the cursor (Ctrl+E)"; onClicked: q.explain() }
+          Ui.Button { bordered: true; text: "Format"; tooltipText: "Tidy the SQL, or the selection (Ctrl+Shift+F)"; onClicked: { editor.format(); editor.focusEditor() } }
           Text {
             visible: q.running
             text: "Running… " + q.elapsed.toFixed(1) + " s"
@@ -412,6 +420,7 @@ Item {
     }
   }
   FilePicker { id: picker; helper: q.helper }
+  PlanView { id: planView; helper: q.helper; sid: q.sid; engine: q.engine; onNotify: function(m) { q.notify(m) } }
   Confirm { id: confirm }
 
   Popup {

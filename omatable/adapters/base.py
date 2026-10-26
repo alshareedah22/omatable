@@ -9,7 +9,7 @@ import contextlib
 import math
 import time
 
-from .. import ddl, sqlgen
+from .. import ddl, explain, sqlgen
 from ..protocol import Error
 
 MAX_ROWS = 1000
@@ -61,6 +61,27 @@ class SQLAdapter:
     def structure(self, schema, table):
         """Columns, indexes, foreign keys and the CREATE statement."""
         raise NotImplementedError
+
+    def explain(self, sql, analyze=False):
+        """The plan of one statement as an explain tree; analyze runs it."""
+        raise Error("unsupported", "query plans are not available for this engine")
+
+    # administration ---------------------------------------------------------
+    def processes(self):
+        raise Error("unsupported", "the running queries are not available for this engine")
+
+    def kill(self, pid, hard=False):
+        raise Error("unsupported", "stopping queries is not available for this engine")
+
+    def users(self):
+        raise Error("unsupported", "users are managed by PostgreSQL and MySQL/MariaDB only")
+
+    def user_grants(self, spec):
+        raise Error("unsupported", "users are managed by PostgreSQL and MySQL/MariaDB only")
+
+    def admin_run(self, statements):
+        self.run_ddl(statements)
+        return {"statements": len(statements)}
 
     def catalog_rows(self):
         """(schema, table, kind, column, type) for every column, in table and column order."""

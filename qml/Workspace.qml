@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
 import qs.Ui as Ui
@@ -230,6 +231,18 @@ Item {
       databaseOptions: !ws.info ? [] : mysql ? [{ value: "", label: "All databases" }].concat(ws.info.databases) : ws.info.databases
       onCloseRequested: ws.closeRequested()
       onDatabaseChosen: function(db) { ws.switchDatabase(db) }
+      Ui.Button {
+        id: serverBtn
+        bordered: true
+        text: "Server ▾"
+        tooltipText: "Databases, running queries, users, backup"
+        onClicked: {
+          const p = serverBtn.mapToItem(ws, 0, serverBtn.height + 2)
+          serverMenu.x = Math.min(p.x, ws.width - serverMenu.width - 4)
+          serverMenu.y = p.y
+          serverMenu.open()
+        }
+      }
       Ui.Button { bordered: true; text: "+ Query"; tooltipText: "New SQL query tab (Ctrl+T)"; onClicked: ws.openQuery() }
     }
 
@@ -246,13 +259,7 @@ Item {
         onOpenRequested: function(schema, table) { ws.openTable(schema, table) }
         onActionRequested: function(act, schema, name, kind) { ws.tableAction(act, schema, name, kind) }
         onRefreshRequested: ws.loadTree()
-        hasDatabases: ws.info && ws.info.engine !== "sqlite"
         onNewTableRequested: function(schema) { newTable.show(ws.tree.map(function(s) { return s.name }), schema || ws.info.database) }
-        onDatabasesRequested: databasesDialog.show(ws.info.databases || [], ws.info.database)
-        canBackup: !!ws.info
-        canRestore: ws.info && ws.info.engine !== "sqlite"
-        onBackupRequested: ws.backup(false, "")
-        onRestoreRequested: ws.restore()
       }
       Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
 
@@ -375,6 +382,48 @@ Item {
 
   Confirm { id: confirm }
   FilePicker { id: picker; helper: ws.helper }
+  ProcessesDialog { id: processes; helper: ws.helper; sid: ws.info ? ws.info.session : ""; engine: ws.info ? ws.info.engine : ""; onNotify: function(m) { ws.toast = m } }
+  UsersDialog {
+    id: usersDialog
+    helper: ws.helper
+    sid: ws.info ? ws.info.session : ""
+    engine: ws.info ? ws.info.engine : ""
+    database: ws.info ? ws.info.database : ""
+    schemas: ws.tree.map(function(s) { return s.name })
+    onNotify: function(m) { ws.toast = m }
+  }
+
+  Popup {
+    id: serverMenu
+    readonly property bool sqlite: ws.info && ws.info.engine === "sqlite"
+    padding: 4
+    width: 220
+    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    Column {
+      width: parent.width
+      Repeater {
+        model: serverMenu.sqlite ? [{ act: "backup", label: "Back up database…" }]
+          : [{ act: "databases", label: "Databases…" }, { act: "processes", label: "Running queries…" },
+             { act: "users", label: "Users and privileges…" }, { act: "backup", label: "Back up database…" },
+             { act: "restore", label: "Restore from file…" }]
+        delegate: Ui.Button {
+          required property var modelData
+          width: serverMenu.width - 8
+          leftAlign: true
+          text: modelData.label
+          onClicked: {
+            serverMenu.close()
+            const a = modelData.act
+            if (a === "databases") databasesDialog.show(ws.info.databases || [], ws.info.database)
+            else if (a === "processes") processes.show()
+            else if (a === "users") usersDialog.show()
+            else if (a === "backup") ws.backup(false, "")
+            else ws.restore()
+          }
+        }
+      }
+    }
+  }
   Busy { id: busy }
   NewTableDialog {
     id: newTable

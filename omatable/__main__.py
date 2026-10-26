@@ -6,7 +6,7 @@ import signal
 import sys
 import tomllib
 
-from . import __version__, dump, files, omadb, safety, sqlsplit, transfer
+from . import __version__, admin, dump, files, omadb, safety, sqlsplit, transfer
 from .history import History, Saved
 from .protocol import Error, Server
 from .session import Sessions
@@ -312,6 +312,68 @@ def build(store, server=None, sessions=None):
         if err:
             summary["error"] = {**err, "statement": len(results), "sql": results[-1]["sql"][:2000]}
         return summary
+
+    @server.method("query.explain")
+    def query_explain(session, text, cursor=None, analyze=False):
+        s = sessions.get(session)
+        engine = s.conn.get("engine")
+        text = str(text or "")
+        if cursor is None:
+            stmts = sqlsplit.split(text, engine)
+            if len(stmts) > 1:
+                raise Error("invalid", "Explain works on one statement; put the cursor in it or select it")
+            one = stmts[0] if stmts else None
+        else:
+            one = sqlsplit.at(text, sqlsplit.from_utf16(text, int(cursor)), engine)
+        if not one:
+            raise Error("invalid", "There is no SQL to explain")
+        sql = one[2]
+        if sqlsplit.keyword(sql) == "EXPLAIN":
+            raise Error("invalid", "Leave out EXPLAIN: the Explain button adds it")
+        if analyze and safety.sql_writes([sql], engine):
+            raise Error("invalid", "Explain analyze runs the statement, so it is only offered for queries that read")
+        out = s.run(s.adapter.explain, sql, bool(analyze))
+        return {**out, "sql": sql, "analyze": bool(analyze),
+                "range": [sqlsplit.to_utf16(text, one[0]), sqlsplit.to_utf16(text, one[1])]}
+
+    @server.method("server.processes")
+    def server_processes(session):
+        s = sessions.get(session)
+        return {"processes": s.run(s.adapter.processes)}
+
+    @server.method("server.kill")
+    def server_kill(session, id, hard=False, confirmed=False):  # noqa: A002
+        s = sessions.get(session)
+        ask(s, confirmed, f"{'Close the connection of' if hard else 'Stop the query of'} process {id}?")
+        return s.run(s.adapter.kill, id, bool(hard))
+
+    @server.method("users.list")
+    def users_list(session):
+        s = sessions.get(session)
+        family = "mysql" if s.adapter.d.name == "mysql" else s.adapter.d.name
+        return {"users": s.run(s.adapter.users), "privileges": admin.PRIVILEGES.get(family, {})}
+
+    @server.method("users.grants")
+    def users_grants(session, name, host=""):
+        s = sessions.get(session)
+        return {"grants": s.run(s.adapter.user_grants, {"name": name, "host": host})}
+
+    USER_CHANGES = {"create": admin.create_user, "alter": admin.alter_user, "drop": admin.drop_user,
+                    "grant": admin.grant, "revoke": lambda d, spec: admin.grant(d, spec, revoke=True)}
+
+    @server.method("users.change")
+    def users_change(session, op, spec, preview=False, confirmed=False):
+        s = sessions.get(session)
+        build_sql = USER_CHANGES.get(op)
+        if build_sql is None:
+            raise Error("invalid", f"unknown change {op!r}")
+        pairs = build_sql(s.adapter.d, spec or {})
+        masked = [m for _, m in pairs]
+        if preview:
+            return {"statements": masked}
+        ask(s, confirmed, f"Apply {len(pairs)} user change{'s' if len(pairs) != 1 else ''}?", ";\n".join(masked) + ";")
+        s.run(s.adapter.admin_run, [sql for sql, _ in pairs])
+        return {"ok": True, "statements": masked}
 
     @server.method("query.cancel")
     def query_cancel(session):

@@ -1,5 +1,8 @@
 """PostgreSQL through psycopg 3."""
 
+import json
+
+from .. import explain
 from ..protocol import Error
 from .base import SQLAdapter
 
@@ -107,6 +110,71 @@ class Postgres(SQLAdapter):
             if schema in schemas:
                 schemas[schema]["functions"].append(name)
         return list(schemas.values())
+
+    def explain(self, sql, analyze=False):
+        opts = "FORMAT JSON" + (", ANALYZE, BUFFERS" if analyze else "")
+        cur = self.db.cursor()
+        try:
+            with self.guard():
+                # ANALYZE runs the statement: inside a transaction that is rolled back
+                cur.execute("BEGIN")
+                try:
+                    cur.execute(f"EXPLAIN ({opts}) {sql}")
+                    data = cur.fetchone()[0]
+                finally:
+                    cur.execute("ROLLBACK")
+        finally:
+            cur.close()
+        out = explain.postgres(data)
+        out["raw"] = json.dumps(data, indent=2)
+        return out
+
+    def processes(self):
+        cols, rows = self.query(
+            "SELECT pid, usename, datname, COALESCE(host(client_addr), 'local'), application_name, state, "
+            "EXTRACT(EPOCH FROM now() - COALESCE(query_start, backend_start))::float, wait_event_type, query "
+            "FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND backend_type = 'client backend' "
+            "ORDER BY state = 'active' DESC, query_start NULLS LAST")
+        return [{"id": pid, "user": user, "database": db, "client": client, "app": app, "state": state or "",
+                 "seconds": round(secs or 0, 1), "wait": wait or "", "query": query or ""}
+                for pid, user, db, client, app, state, secs, wait, query in rows]
+
+    def kill(self, pid, hard=False):
+        fn = "pg_terminate_backend" if hard else "pg_cancel_backend"
+        ok = self.query(f"SELECT {fn}(%s)", (int(pid),))[1][0][0]
+        if not ok:
+            raise Error("notfound", f"process {pid} is gone, or you may not stop it")
+        return {"ok": True}
+
+    def users(self):
+        rows = self.query(
+            "SELECT r.rolname, r.rolcanlogin, r.rolsuper, r.rolcreatedb, r.rolcreaterole, r.rolreplication, "
+            "r.rolvaliduntil::text, ARRAY(SELECT b.rolname FROM pg_auth_members m JOIN pg_roles b ON b.oid = m.roleid "
+            "WHERE m.member = r.oid ORDER BY 1) FROM pg_roles r WHERE r.rolname !~ '^pg_' ORDER BY 1")[1]
+        return [{"name": n, "host": "", "login": login, "superuser": sup, "createdb": cdb, "createrole": crole,
+                 "replication": repl, "valid_until": until, "member_of": list(member or [])}
+                for n, login, sup, cdb, crole, repl, until, member in rows]
+
+    def user_grants(self, spec):
+        name = spec.get("name")
+        out = []
+        db = self.database
+        privs = [p for p in ("CONNECT", "CREATE", "TEMPORARY")
+                 if self.query("SELECT has_database_privilege(%s, %s, %s)", (name, db, p))[1][0][0]]
+        if privs:
+            out.append(f"{', '.join(privs)} ON DATABASE {db}")
+        hide = HIDDEN_SCHEMAS.format("nspname")
+        for schema, usage, create in self.query(
+                "SELECT nspname, has_schema_privilege(%s, oid, 'USAGE'), has_schema_privilege(%s, oid, 'CREATE') "
+                f"FROM pg_namespace WHERE nspname {hide} ORDER BY 1", (name, name))[1]:
+            privs = [p for p, ok in (("USAGE", usage), ("CREATE", create)) if ok]
+            if privs:
+                out.append(f"{', '.join(privs)} ON SCHEMA {schema}")
+        for schema, table, privs in self.query(
+                "SELECT table_schema, table_name, string_agg(privilege_type, ', ' ORDER BY privilege_type) "
+                "FROM information_schema.role_table_grants WHERE grantee = %s GROUP BY 1, 2 ORDER BY 1, 2", (name,))[1]:
+            out.append(f"{privs} ON {schema}.{table}")
+        return out
 
     def catalog_rows(self):
         hide = HIDDEN_SCHEMAS.format("n.nspname")

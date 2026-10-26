@@ -14,16 +14,10 @@ Rectangle {
   property string selected: ""     // "schema.table"
   property var collapsed: ({})
   property bool loading: false
-  property bool hasDatabases: false
-  property bool canBackup: false
-  property bool canRestore: false
   signal openRequested(string schema, string table, string kind)
   signal actionRequested(string action, string schema, string name, string kind)
   signal refreshRequested()
   signal newTableRequested(string schema)
-  signal databasesRequested()
-  signal backupRequested()
-  signal restoreRequested()
 
   color: Qt.lighter(Color.background, 1.05)
 
@@ -85,14 +79,8 @@ Rectangle {
       Ui.Button {
         id: addBtn
         text: "+"
-        tooltipText: side.hasDatabases ? "New table, databases, backup" : "New table, backup"
-        onClicked: {
-          const p = addBtn.mapToItem(side, 0, addBtn.height)
-          menu.item = { kind: "add", name: "", schema: "" }
-          menu.x = Math.min(p.x, side.width - menu.width - 4)
-          menu.y = p.y
-          menu.open()
-        }
+        tooltipText: "New table"
+        onClicked: side.newTableRequested("")
       }
       Ui.Button { text: "\uf021"; tooltipText: "Reload the schema"; onClicked: side.refreshRequested() }
     }
@@ -175,10 +163,6 @@ Rectangle {
       : item.kind === "views" ? [
           { act: "open", label: "Open" }, { act: "export", label: "Export…" },
           { act: "drop", label: "Drop view…", danger: true }, { act: "copy", label: "Copy name" }]
-      : item.kind === "add" ? [{ act: "newtable", label: "New table…" }]
-          .concat(side.hasDatabases ? [{ act: "databases", label: "Databases…" }] : [])
-          .concat(side.canBackup ? [{ act: "backup", label: "Back up database…" }] : [])
-          .concat(side.canRestore ? [{ act: "restore", label: "Restore from file…" }] : [])
       : item.kind === "schema" ? [{ act: "newtable", label: "New table…" }, { act: "copy", label: "Copy name" }]
       : [{ act: "copy", label: "Copy name" }]
     padding: 4
@@ -199,9 +183,7 @@ Rectangle {
             menu.close()
             if (modelData.act === "copy") Quickshell.execDetached(["wl-copy", "--", d.name])
             else if (modelData.act === "newtable") side.newTableRequested(d.schema)
-            else if (modelData.act === "databases") side.databasesRequested()
-            else if (modelData.act === "backup") side.backupRequested()
-            else if (modelData.act === "restore") side.restoreRequested()
+
             else side.actionRequested(modelData.act, d.schema, d.name, d.kind === "views" ? "view" : "table")
           }
         }

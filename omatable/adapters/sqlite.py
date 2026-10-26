@@ -4,6 +4,7 @@ import os
 import sqlite3
 import urllib.parse
 
+from .. import explain
 from ..protocol import Error
 from .base import SQLAdapter
 
@@ -49,6 +50,14 @@ class SQLite(SQLAdapter):
                              "AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' ORDER BY name")
         return [{"name": SCHEMA, "tables": [n for n, t in rows if t == "table"],
                  "views": [n for n, t in rows if t == "view"], "functions": [], "sequences": []}]
+
+    def explain(self, sql, analyze=False):
+        if analyze:
+            raise Error("unsupported", "SQLite has no EXPLAIN ANALYZE; Explain shows the plan")
+        _, rows = self.query(f"EXPLAIN QUERY PLAN {sql}")
+        out = explain.sqlite(rows)
+        out["raw"] = "\n".join(str(r[-1]) for r in rows)
+        return out
 
     def catalog_rows(self):
         _, rows = self.query(

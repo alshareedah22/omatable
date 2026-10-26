@@ -67,6 +67,11 @@ def decode(value):
     return value
 
 
+def is_default(value):
+    """The window's marker for "set this column to its DEFAULT"."""
+    return isinstance(value, dict) and value.get("$t") == "default"
+
+
 def _column(columns, name):
     if name not in columns:
         raise Error("invalid", f"unknown column {name!r}")
@@ -169,12 +174,15 @@ def changes(d, schema, table, columns, key, changes, raw_keys=None):
         values = item.get("values") or {}
         if not values:
             raise Error("invalid", "an update needs at least one value")
-        sets = [f"{d.quote(_column(columns, c))} = {d.mark}" for c in values]
+        if d.name == "sqlite" and any(is_default(v) for v in values.values()):
+            raise Error("unsupported", "SQLite cannot set a column back to its default in an update")
+        sets = [f"{d.quote(_column(columns, c))} = {'DEFAULT' if is_default(v) else d.mark}" for c, v in values.items()]
         cond, kparams = _key_where(d, key, item.get("key"), raw_keys)
         out.append((f"UPDATE {target} SET {', '.join(sets)}{cond}",
-                    [decode(v) for v in values.values()] + kparams, True))
+                    [decode(v) for v in values.values() if not is_default(v)] + kparams, True))
     for item in changes.get("inserts") or ():
-        values = item.get("values") or {}
+        # a column left at DEFAULT is simply not named
+        values = {c: v for c, v in (item.get("values") or {}).items() if not is_default(v)}
         if not values:
             out.append((f"INSERT INTO {target} {d.default_values}", [], False))
             continue
