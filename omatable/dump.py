@@ -82,7 +82,8 @@ class Job:
             self.proc.terminate()
 
     def run(self, cmd, env=None, stdin=None, stdout=None):
-        self.proc = subprocess.Popen(cmd, env={**os.environ, **(env or {})}, stdin=stdin or subprocess.DEVNULL,
+        env = {k: v for k, v in {**os.environ, **(env or {})}.items() if v is not None}  # None unsets
+        self.proc = subprocess.Popen(cmd, env=env, stdin=stdin or subprocess.DEVNULL,
                                      stdout=stdout or subprocess.DEVNULL, stderr=subprocess.PIPE)
         err = self.proc.communicate()[1].decode("utf-8", "replace")
         if self.cancelled:
@@ -133,14 +134,19 @@ def _server_version(adapter):
 
 # ---- PostgreSQL --------------------------------------------------------------
 
-def _pg_env(c):
-    return {"PGPASSWORD": c.get("password") or "", "PGSSLMODE": c.get("tls") or "prefer",
-            "PGAPPNAME": "OmaTable", "PGCONNECT_TIMEOUT": "10"}
+def _pg_env(c, database):
+    # The whole connection goes in the environment. A database name is chosen by whoever created
+    # it, and as `-d` (or `-h`, `-U`) libpq would read one like "host=… " as a connection string
+    # of its own and send PGPASSWORD wherever it points; PG* variables are only ever plain values.
+    return {"PGHOST": c.get("host") or "127.0.0.1", "PGPORT": str(c.get("port") or 5432),
+            "PGUSER": c.get("user") or "postgres", "PGDATABASE": database,
+            "PGPASSWORD": c.get("password") or "", "PGSSLMODE": c.get("tls") or "prefer",
+            "PGAPPNAME": "OmaTable", "PGCONNECT_TIMEOUT": "10",
+            # inherited ones that would take precedence over the host above
+            "PGHOSTADDR": None, "PGSERVICE": None, "PGSERVICEFILE": None}
 
 
-def _pg_args(c, database):
-    return ["-h", c.get("host") or "127.0.0.1", "-p", str(c.get("port") or 5432),
-            "-U", c.get("user") or "postgres", "-d", database, "--no-password"]
+PG_ARGS = ["--no-password"]
 
 
 # ---- MySQL / MariaDB ---------------------------------------------------------
@@ -255,8 +261,8 @@ def backup(adapter, job, path, database=None, overwrite=False):
     with _output(path, overwrite) as (path, tmp):
         if engine == "postgresql":
             tool = find_tool(TOOLS["postgresql"]["dump"], _server_version(adapter))
-            job.run([tool, *_pg_args(c, database), "--format=plain", "--no-owner", "--no-privileges", "-f", tmp],
-                    env=_pg_env(c))
+            job.run([tool, *PG_ARGS, "--format=plain", "--no-owner", "--no-privileges", "-f", tmp],
+                    env=_pg_env(c, database))
         elif engine in ("mysql", "mariadb"):
             tool = find_tool(TOOLS[engine]["dump"], _server_version(adapter))
             with _my_options(c, engine) as opts:
@@ -289,12 +295,12 @@ def restore(adapter, job, path, database=None):
         server = _server_version(adapter)
         if custom:
             tool = find_tool(TOOLS["postgresql"]["restore"], server)
-            job.run([tool, *_pg_args(c, database), "--no-owner", "--no-privileges", "--single-transaction",
-                     "--exit-on-error", path], env=_pg_env(c))
+            job.run([tool, *PG_ARGS, "--no-owner", "--no-privileges", "--single-transaction",
+                     "--exit-on-error", path], env=_pg_env(c, database))
         else:
             tool = find_tool(TOOLS["postgresql"]["load"], server)
-            job.run([tool, *_pg_args(c, database), "-X", "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction",
-                     "-f", path], env=_pg_env(c))
+            job.run([tool, *PG_ARGS, "-X", "-q", "-v", "ON_ERROR_STOP=1", "--single-transaction",
+                     "-f", path], env=_pg_env(c, database))
     elif engine in ("mysql", "mariadb"):
         if not database:
             raise Error("invalid", "choose a database to restore into")

