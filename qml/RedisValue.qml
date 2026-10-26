@@ -174,6 +174,7 @@ Item {
   Shortcut { sequence: "Ctrl+S"; enabled: pane.visible && pane.stringDirty; onActivated: pane.saveString() }
 
   Text {
+    textFormat: Text.PlainText
     anchors.centerIn: parent
     visible: pane.key === null
     text: "Pick a key on the left"
@@ -198,7 +199,7 @@ Item {
         implicitHeight: typeText.implicitHeight + 4
         radius: 3
         color: pane.entry ? (pane.typeColors[pane.entry.type] || "#777") : "transparent"
-        Text { id: typeText; anchors.centerIn: parent; text: pane.entry ? pane.entry.type.toUpperCase() : ""; color: "white"; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+        Text { textFormat: Text.PlainText; id: typeText; anchors.centerIn: parent; text: pane.entry ? pane.entry.type.toUpperCase() : ""; color: "white"; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
       }
       TextEdit {
         Layout.fillWidth: true
@@ -220,6 +221,7 @@ Item {
       visible: pane.entry !== null
       spacing: 12
       Text {
+        textFormat: Text.PlainText
         text: !pane.entry ? "" : pane.entry.type === "string" ? pane.entry.size.toLocaleString(Qt.locale(), "f", 0) + " bytes"
           : pane.entry.size.toLocaleString(Qt.locale(), "f", 0) + (pane.entry.size === 1 ? " item" : " items")
         color: Color.muted
@@ -227,6 +229,7 @@ Item {
         font.pixelSize: Style.font.bodySmall
       }
       Text {
+        textFormat: Text.PlainText
         text: pane.entry ? "TTL: " + pane.ttlText(pane.entry.ttl) : ""
         color: pane.entry && pane.entry.ttl >= 0 ? Color.foreground : Color.muted
         font.family: Style.font.family
@@ -251,6 +254,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: pane.error !== ""
       text: pane.error
@@ -260,6 +264,7 @@ Item {
       font.pixelSize: Style.font.bodySmall
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: pane.entry !== null && (pane.entry.truncated || (pane.entry.type === "string" && pane.isBinary(pane.entry.value)) || pane.entry.value === null)
       wrapMode: Text.Wrap
@@ -294,7 +299,7 @@ Item {
       visible: pane.entry !== null && pane.entry.type === "string" && !stringArea.readOnly
       Ui.Button { text: "Format JSON"; onClicked: pane.formatJson() }
       Item { Layout.fillWidth: true }
-      Text { visible: pane.stringDirty; text: "Unsaved"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; visible: pane.stringDirty; text: "Unsaved"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       Ui.Button { text: "Revert"; enabled: pane.stringDirty; onClicked: { pane.stringDirty = false; pane.load(false) } }
       Ui.Button { bordered: true; foreground: Color.accent; text: "Save (Ctrl+S)"; enabled: pane.stringDirty; onClicked: pane.saveString() }
     }
@@ -310,8 +315,8 @@ Item {
         x: 8
         width: parent.width - 16
         anchors.verticalCenter: parent.verticalCenter
-        Text { Layout.preferredWidth: Math.round(itemList.width * (pane.entry && pane.entry.type === "set" ? 0.85 : 0.32)); text: pane.headers[0]; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
-        Text { Layout.fillWidth: true; text: pane.headers[1]; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+        Text { textFormat: Text.PlainText; Layout.preferredWidth: Math.round(itemList.width * (pane.entry && pane.entry.type === "set" ? 0.85 : 0.32)); text: pane.headers[0]; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: pane.headers[1]; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
       }
     }
     ListView {
@@ -338,6 +343,7 @@ Item {
           anchors.verticalCenter: parent.verticalCenter
           spacing: 8
           Text {
+            textFormat: Text.PlainText
             Layout.preferredWidth: Math.round(itemList.width * (pane.entry.type === "set" ? 0.85 : 0.32))
             text: Values.display(itemRow.modelData.a)
             elide: Text.ElideRight
@@ -347,6 +353,7 @@ Item {
           }
           Text {
             id: bText
+            textFormat: Text.PlainText
             Layout.fillWidth: true
             text: itemRow.modelData.b === null ? "" : Values.display(itemRow.modelData.b)
             maximumLineCount: 3
@@ -361,6 +368,7 @@ Item {
         }
       }
       Text {
+        textFormat: Text.PlainText
         y: 8
         x: 8
         visible: pane.rows.length === 0
@@ -393,6 +401,7 @@ Item {
       anchors.fill: parent
       spacing: 10
       Text {
+        textFormat: Text.PlainText
         text: (itemDlg.row ? "Edit " : "Add to ") + (pane.key === null ? "" : pane.keyLabel(pane.key))
         color: Color.foreground
         font.family: Style.font.family
@@ -407,6 +416,7 @@ Item {
         label: itemDlg.type === "hash" ? "Field" : itemDlg.type === "zset" ? "Score" : "Index"
       }
       Text {
+        textFormat: Text.PlainText
         text: itemDlg.type === "hash" || itemDlg.type === "list" ? "Value" : itemDlg.type === "stream" ? "Fields, one field=value per line" : "Member"
         color: Color.muted
         font.family: Style.font.family
@@ -429,6 +439,7 @@ Item {
         }
       }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         visible: itemDlg.err !== ""
         text: itemDlg.err
@@ -470,7 +481,7 @@ Item {
       anchors.fill: parent
       spacing: 10
       Field { id: renameField; Layout.fillWidth: true; label: "New key name"; Keys.onReturnPressed: renameDlg.apply() }
-      Text { visible: renameDlg.err !== ""; text: renameDlg.err; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; visible: renameDlg.err !== ""; text: renameDlg.err; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
@@ -504,7 +515,7 @@ Item {
       anchors.fill: parent
       spacing: 10
       Field { id: ttlField; Layout.fillWidth: true; label: "Expire after (seconds)"; placeholder: "e.g. 3600"; Keys.onReturnPressed: ttlDlg.apply(ttlField.text.trim()) }
-      Text { visible: ttlDlg.err !== ""; text: ttlDlg.err; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; visible: ttlDlg.err !== ""; text: ttlDlg.err; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Ui.Button { text: "Remove expiry"; onClicked: ttlDlg.apply(null) }

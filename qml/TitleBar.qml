@@ -29,6 +29,7 @@ Rectangle {
     spacing: 10
     Ui.Button { text: "‹ Connections"; tooltipText: "Close this connection"; onClicked: bar.closeRequested() }
     Text {
+      textFormat: Text.PlainText
       text: bar.info ? bar.info.name : ""
       color: Color.foreground
       font.family: Style.font.family
@@ -41,7 +42,7 @@ Rectangle {
       implicitHeight: roText.implicitHeight + 4
       radius: 3
       color: Qt.lighter(Color.background, 1.6)
-      Text { id: roText; anchors.centerIn: parent; text: "READ-ONLY"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+      Text { textFormat: Text.PlainText; id: roText; anchors.centerIn: parent; text: "READ-ONLY"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
     }
     Rectangle {
       visible: bar.info && bar.info.tag === "production"
@@ -49,9 +50,10 @@ Rectangle {
       implicitHeight: prodText.implicitHeight + 4
       radius: 3
       color: "#c94040"
-      Text { id: prodText; anchors.centerIn: parent; text: "PRODUCTION"; color: "white"; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+      Text { textFormat: Text.PlainText; id: prodText; anchors.centerIn: parent; text: "PRODUCTION"; color: "white"; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       elide: Text.ElideRight
       text: bar.info ? bar.info.version + (bar.info.ssh ? "  ·   SSH" : "") : ""
@@ -61,6 +63,7 @@ Rectangle {
     }
     RowLayout { id: extra; spacing: 6 }
     Text {
+      textFormat: Text.PlainText
       visible: bar.showDatabases
       text: "Database"
       color: Color.muted

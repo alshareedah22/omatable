@@ -211,6 +211,7 @@ Item {
     verticalPadding: 2
   }
   component HeadText: Text {
+    textFormat: Text.PlainText
     color: Color.muted
     font.family: Style.font.family
     font.pixelSize: Style.font.bodySmall
@@ -264,6 +265,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       Layout.margins: 8
       visible: st.error !== ""
@@ -325,6 +327,7 @@ Item {
               anchors.verticalCenter: parent.verticalCenter
               spacing: 6
               Text {
+                textFormat: Text.PlainText
                 Layout.preferredWidth: 20
                 text: colRow.existing && st.columns[colRow.index].pk ? "" : ""
                 color: Color.accent
@@ -378,6 +381,7 @@ Item {
             }
           }
           Text {
+            textFormat: Text.PlainText
             x: 16
             y: 12
             visible: st.loading
@@ -388,6 +392,7 @@ Item {
           }
         }
         Text {
+          textFormat: Text.PlainText
           Layout.fillWidth: true
           Layout.margins: 8
           visible: st.sqlite
@@ -426,6 +431,7 @@ Item {
               anchors.verticalCenter: parent.verticalCenter
               spacing: 10
               Text {
+                textFormat: Text.PlainText
                 Layout.preferredWidth: 220
                 text: ixRow.modelData.name
                 elide: Text.ElideRight
@@ -435,6 +441,7 @@ Item {
                 font.pixelSize: Style.font.bodySmall
               }
               Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 text: "(" + ixRow.modelData.columns.join(", ") + ")"
                   + (ixRow.modelData.primary ? "   PRIMARY KEY" : ixRow.modelData.unique ? "   UNIQUE" : "")
@@ -498,6 +505,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 10
             Text {
+              textFormat: Text.PlainText
               Layout.fillWidth: true
               text: fkRow.modelData.name + "   (" + fkRow.modelData.columns.join(", ") + ") → "
                 + (fkRow.modelData.ref_schema && fkRow.modelData.ref_schema !== st.schema ? fkRow.modelData.ref_schema + "." : "")
@@ -521,6 +529,7 @@ Item {
           }
         }
         Text {
+          textFormat: Text.PlainText
           x: 16
           y: 12
           visible: fkList.count === 0
@@ -531,6 +540,7 @@ Item {
         }
       }
         Text {
+          textFormat: Text.PlainText
           Layout.fillWidth: true
           Layout.margins: 8
           visible: st.sqlite
@@ -549,7 +559,7 @@ Item {
           rowSpacing: 6
           Cell { id: fkName; Layout.preferredWidth: 150; placeholderText: "name (optional)" }
           Cell { id: fkCols; Layout.fillWidth: true; Layout.minimumWidth: 100; placeholderText: "column(s), e.g. " + (st.columns.length > 1 ? st.columns[1].name : "id") }
-          Text { text: "→"; color: Color.muted; font.pixelSize: Style.font.body }
+          Text { textFormat: Text.PlainText; text: "→"; color: Color.muted; font.pixelSize: Style.font.body }
           Cell { id: fkRef; Layout.fillWidth: true; Layout.minimumWidth: 100; placeholderText: "references table" }
           Cell { id: fkRefCols; Layout.preferredWidth: 110; placeholderText: "id" }
           Ui.Dropdown { id: fkDel; Layout.columnSpan: 2; Layout.fillWidth: true; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "on delete: " + a } }) }
@@ -594,6 +604,7 @@ Item {
               RowLayout {
                 Layout.fillWidth: true
                 Text {
+                  textFormat: Text.PlainText
                   Layout.fillWidth: true
                   text: trow.modelData.name
                   color: Color.foreground
@@ -605,6 +616,7 @@ Item {
                 Ui.Button { text: "Drop…"; foreground: Color.urgent; onClicked: st.dropTrigger(trow.modelData.name) }
               }
               Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 text: trow.modelData.definition
                 wrapMode: Text.Wrap
@@ -617,6 +629,7 @@ Item {
             }
           }
           Text {
+            textFormat: Text.PlainText
             x: 16
             y: 12
             visible: trigList.count === 0
@@ -658,10 +671,12 @@ Item {
           Ui.Button {
             bordered: true
             text: "Copy"
-            onClicked: { Quickshell.execDetached(["wl-copy", "--", st.info ? st.info.ddl : ""]); st.notify("Copied the DDL") }
+            onClicked: { clipboard.copy(st.info ? st.info.ddl : ""); st.notify("Copied the DDL") }
           }
         }
       }
     }
   }
+
+  Clipboard { id: clipboard }
 }

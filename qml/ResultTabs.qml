@@ -92,6 +92,7 @@ Item {
             Rectangle { visible: index === rt.current; width: parent.width; height: 2; color: modelData.error ? Color.urgent : Color.accent }
             Text {
               id: label
+              textFormat: Text.PlainText
               anchors.centerIn: parent
               text: (index + 1) + " · " + rt.summary(modelData)
               color: modelData.error ? Color.urgent : index === rt.current ? Color.foreground : Color.muted
@@ -122,6 +123,7 @@ Item {
         width: parent.width - 32
         spacing: 8
         Text {
+          textFormat: Text.PlainText
           width: parent.width
           text: !rt.shown ? rt.placeholder
             : rt.shown.error ? rt.shown.error.message
@@ -133,6 +135,7 @@ Item {
           font.pixelSize: Style.font.body
         }
         Text {
+          textFormat: Text.PlainText
           visible: rt.shown !== null
           width: parent.width
           text: rt.shown ? rt.shown.sql : ""
@@ -163,6 +166,7 @@ Item {
                     text: "Commit " + model.changeCount + (model.changeCount === 1 ? " change" : " changes"); onClicked: rt.commit() }
       }
       Text {
+        textFormat: Text.PlainText
         anchors.right: exportBtn.left
         anchors.rightMargin: 8
         anchors.verticalCenter: parent.verticalCenter
@@ -185,6 +189,7 @@ Item {
       }
       Text {
         id: statusText
+        textFormat: Text.PlainText
         x: 8
         width: parent.width - 16 - (exportBtn.visible ? exportBtn.width + 8 : 0) - (editBar.visible ? editBar.width + 8 : model.editable ? 140 : 0)
         anchors.verticalCenter: parent.verticalCenter

@@ -99,6 +99,7 @@ Popup {
   background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
 
   component HeadText: Text {
+    textFormat: Text.PlainText
     color: Color.muted
     font.family: Style.font.family
     font.pixelSize: Style.font.bodySmall
@@ -110,6 +111,7 @@ Popup {
     spacing: 10
 
     Text {
+      textFormat: Text.PlainText
       text: "New table"
       color: Color.foreground
       font.family: Style.font.family
@@ -129,7 +131,7 @@ Popup {
       ColumnLayout {
         visible: dlg.schemas.length > 1
         spacing: 4
-        Text { text: dlg.mysql ? "Database" : "Schema"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: dlg.mysql ? "Database" : "Schema"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown {
           Layout.preferredWidth: 200
           showLabel: false
@@ -237,6 +239,7 @@ Popup {
       Layout.fillWidth: true
       Ui.Button { bordered: true; text: "+ Column"; onClicked: dlg.addColumn() }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Defaults are SQL: 'text' needs quotes, now() does not"
         color: Color.muted
@@ -261,6 +264,7 @@ Popup {
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error

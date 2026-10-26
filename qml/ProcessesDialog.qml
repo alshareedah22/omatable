@@ -57,8 +57,8 @@ Popup {
   closePolicy: Popup.CloseOnEscape
   background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
 
-  component Head: Text { color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight }
-  component Cell: Text { color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight }
+  component Head: Text { textFormat: Text.PlainText; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight }
+  component Cell: Text { textFormat: Text.PlainText; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight }
 
   ColumnLayout {
     anchors.fill: parent
@@ -67,6 +67,7 @@ Popup {
       Layout.fillWidth: true
       spacing: 8
       Text {
+        textFormat: Text.PlainText
         text: dlg.mongo ? "Running operations" : "Running queries"
         color: Color.foreground
         font.family: Style.font.family
@@ -74,6 +75,7 @@ Popup {
         font.bold: true
       }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: dlg.shown.length + " of " + dlg.items.length + (dlg.live ? " · refreshing every 2 s" : "")
         color: Color.muted
@@ -85,6 +87,7 @@ Popup {
       Ui.Button { bordered: true; text: "Refresh"; onClicked: dlg.refresh() }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error
@@ -138,6 +141,7 @@ Popup {
         }
         Text {
           id: full
+          textFormat: Text.PlainText
           visible: row.open_
           x: 8
           y: lay.y + lay.implicitHeight + 4
@@ -150,6 +154,7 @@ Popup {
         }
       }
       Text {
+        textFormat: Text.PlainText
         anchors.centerIn: parent
         visible: list.count === 0
         text: dlg.items.length ? "Only idle connections" : "Nothing else is running"
@@ -161,6 +166,7 @@ Popup {
     RowLayout {
       Layout.fillWidth: true
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Click a row for the whole query. Your own OmaTable connection is not listed."
         color: Color.muted

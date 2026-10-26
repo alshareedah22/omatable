@@ -249,7 +249,7 @@ Item {
     return (sort[i].desc ? "▼" : "▲") + (sort.length > 1 ? String(i + 1) : "")
   }
 
-  function copyText(text) { Quickshell.execDetached(["wl-copy", "--", text]) }
+  function copyText(text) { clipboard.copy(text) }
 
   function rowObject(r) {
     const out = {}
@@ -365,6 +365,7 @@ Item {
     }
 
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       Layout.margins: 8
       visible: tab.error !== ""
@@ -389,6 +390,7 @@ Item {
 
         Ui.Button { text: "‹"; tooltipText: "Previous page"; enabled: tab.offset > 0; onClicked: tab.page(-1) }
         Text {
+          textFormat: Text.PlainText
           text: tab.loading ? "Loading…"
             : (tab.rows.length ? (tab.offset + 1) + "–" + (tab.offset + tab.rows.length) : "0")
               + (tab.total >= 0 ? " of " + tab.total.toLocaleString(Qt.locale(), "f", 0) : "") + " rows · " + tab.ms + " ms"
@@ -404,6 +406,7 @@ Item {
         }
         Ui.Button { text: "\uf021"; tooltipText: "Refresh (Ctrl+R)"; onClicked: { if (tab.dirty) tab.notify("Commit or discard first"); else tab.reload(false) } }
         Text {
+          textFormat: Text.PlainText
           visible: !tab.editable && tab.columns.length > 0
           text: "read-only"
           color: Color.muted
@@ -456,7 +459,7 @@ Item {
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Text { text: "SQL to run on commit"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+      Text { textFormat: Text.PlainText; text: "SQL to run on commit"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
       ScrollView {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -479,4 +482,6 @@ Item {
       }
     }
   }
+
+  Clipboard { id: clipboard }
 }

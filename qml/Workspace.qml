@@ -332,6 +332,7 @@ Item {
                 Rectangle { visible: index === ws.current; width: parent.width; height: 2; color: Color.accent }
                 Text {
                   id: tabLabel
+                  textFormat: Text.PlainText
                   x: 12
                   anchors.verticalCenter: parent.verticalCenter
                   text: (page && page.dirty ? "● " : "") + (kind === "query" ? "\uf1c0  " : "") + title
@@ -421,6 +422,7 @@ Item {
         }
 
         Text {
+          textFormat: Text.PlainText
           Layout.fillWidth: true
           Layout.fillHeight: true
           visible: tabModel.count === 0
@@ -534,6 +536,7 @@ Item {
     border.color: Color.popups.border
     Text {
       id: toastText
+      textFormat: Text.PlainText
       anchors.centerIn: parent
       width: parent.width - 32
       horizontalAlignment: Text.AlignHCenter

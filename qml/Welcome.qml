@@ -123,6 +123,7 @@ Item {
           }
 
           Text {
+            textFormat: Text.PlainText
             y: 8
             width: list.width
             visible: welcome.rows.length === 0
@@ -140,6 +141,7 @@ Item {
             height: modelData.header ? 28 : 52
 
             Text {
+              textFormat: Text.PlainText
               visible: !!modelData.header
               anchors.bottom: parent.bottom
               anchors.bottomMargin: 4
@@ -169,6 +171,7 @@ Item {
 
               Text {
                 id: icon
+                textFormat: Text.PlainText
                 x: 16
                 anchors.verticalCenter: parent.verticalCenter
                 text: modelData.conn ? (welcome.engineIcons[modelData.conn.engine] || "") : ""
@@ -183,6 +186,7 @@ Item {
                 anchors.rightMargin: 8
                 anchors.verticalCenter: parent.verticalCenter
                 Text {
+                  textFormat: Text.PlainText
                   width: parent.width
                   elide: Text.ElideRight
                   text: modelData.conn ? modelData.conn.name : ""
@@ -191,6 +195,7 @@ Item {
                   font.pixelSize: Style.font.body
                 }
                 Text {
+                  textFormat: Text.PlainText
                   width: parent.width
                   elide: Text.ElideRight
                   text: modelData.conn ? welcome.subtitle(modelData.conn) : ""
@@ -201,6 +206,7 @@ Item {
               }
               Text {
                 id: badge
+                textFormat: Text.PlainText
                 anchors.right: parent.right
                 anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
@@ -242,7 +248,7 @@ Item {
           sourceSize: Qt.size(176, 176)
           opacity: 0.85
         }
-        Text { anchors.horizontalCenter: parent.horizontalCenter; text: "Select a connection, or press + to create one"
+        Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: "Select a connection, or press + to create one"
           color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
       }
 
@@ -271,7 +277,7 @@ Item {
     height: toastText.implicitHeight + 12
     radius: 6
     color: Qt.lighter(Color.background, 1.6)
-    Text { id: toastText; anchors.centerIn: parent; text: welcome.toast; color: Color.foreground
+    Text { textFormat: Text.PlainText; id: toastText; anchors.centerIn: parent; text: welcome.toast; color: Color.foreground
       font.family: Style.font.family; font.pixelSize: Style.font.body }
     Timer { running: welcome.toast !== ""; interval: 3000; onTriggered: welcome.toast = "" }
   }

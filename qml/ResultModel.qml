@@ -155,7 +155,7 @@ Item {
     return sort.length && sort[0].column === name ? (sort[0].desc ? "▼" : "▲") : ""
   }
 
-  function copyText(text) { Quickshell.execDetached(["wl-copy", "--", text]) }
+  function copyText(text) { clipboard.copy(text) }
 
   function copyCell() {
     if (selRow < 0) return
@@ -184,4 +184,6 @@ Item {
     copyText(visibleColumns.map(function(c) { return editText(cellValue(selRow, c)) }).join("\t"))
     notify("Copied row")
   }
+
+  Clipboard { id: clipboard }
 }

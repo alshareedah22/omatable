@@ -111,6 +111,7 @@ FocusScope {
           width: grid.widths[index] || 120
           height: header.height
           Text {
+            textFormat: Text.PlainText
             anchors.left: parent.left
             anchors.leftMargin: 8
             anchors.right: sortMark.left
@@ -124,6 +125,7 @@ FocusScope {
           }
           Text {
             id: sortMark
+            textFormat: Text.PlainText
             anchors.right: parent.right
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
@@ -144,6 +146,7 @@ FocusScope {
             y: parent.height + 2
             padding: 6
             contentItem: Text {
+              textFormat: Text.PlainText
               text: col.name + "  " + col.type + (col.nullable ? "" : "  NOT NULL")
                 + (col.default !== null && col.default !== undefined ? "  DEFAULT " + col.default : "")
               color: Color.tooltip.text
@@ -205,6 +208,7 @@ FocusScope {
           : rowItem.index % 2 ? Qt.lighter(Color.background, 1.06) : Color.background
       }
       Text {
+        textFormat: Text.PlainText
         width: grid.gutter - 8
         anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignRight
@@ -229,6 +233,7 @@ FocusScope {
           border.width: selected ? 1 : 0
           border.color: Color.accent
           Text {
+            textFormat: Text.PlainText
             anchors.fill: parent
             anchors.leftMargin: 8
             anchors.rightMargin: 8
@@ -269,6 +274,7 @@ FocusScope {
     }
 
     Text {
+      textFormat: Text.PlainText
       y: 16
       x: 16
       visible: grid.tab && grid.tab.rowCount === 0 && !grid.tab.loading

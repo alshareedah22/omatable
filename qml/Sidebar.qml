@@ -111,6 +111,7 @@ Rectangle {
           : rowHover.hovered ? Qt.lighter(Color.background, 1.25) : "transparent"
 
         Text {
+          textFormat: Text.PlainText
           x: 6 + (modelData.depth || 0) * 14
           anchors.verticalCenter: parent.verticalCenter
           width: parent.width - x - 6
@@ -147,6 +148,7 @@ Rectangle {
       }
 
       Text {
+        textFormat: Text.PlainText
         y: 8
         width: list.width
         visible: side.rows.length === 0
@@ -194,7 +196,7 @@ Rectangle {
           onClicked: {
             const d = menu.item
             menu.close()
-            if (modelData.act === "copy") Quickshell.execDetached(["wl-copy", "--", d.name])
+            if (modelData.act === "copy") clipboard.copy(d.name)
             else if (modelData.act === "newtable") side.newTableRequested(d.schema)
 
             else side.actionRequested(modelData.act, d.schema, d.name, d.kind === "views" ? "view" : d.kind === "functions" ? "function" : "table")
@@ -203,4 +205,6 @@ Rectangle {
       }
     }
   }
+
+  Clipboard { id: clipboard }
 }

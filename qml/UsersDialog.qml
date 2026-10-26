@@ -124,7 +124,7 @@ Popup {
   closePolicy: Popup.CloseOnEscape
   background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
 
-  component Label: Text { color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+  component Label: Text { textFormat: Text.PlainText; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
   component Check: Ui.Button { property bool on: false; bordered: true; selected: on; fontSize: Style.font.bodySmall }
 
   ColumnLayout {
@@ -133,6 +133,7 @@ Popup {
     RowLayout {
       Layout.fillWidth: true
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: dlg.mysql ? "Users" : "Roles and users"
         color: Color.foreground
@@ -143,6 +144,7 @@ Popup {
       Ui.Button { bordered: true; foreground: Color.accent; text: "+ New user"; onClicked: { dlg.mode = "new"; dlg.current = null; dlg.error = ""; newName.focusInput() } }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error
@@ -180,6 +182,7 @@ Popup {
             HoverHandler { id: uhover }
             TapHandler { onTapped: dlg.pick(urow.modelData) }
             Text {
+              textFormat: Text.PlainText
               x: 8
               anchors.verticalCenter: parent.verticalCenter
               width: parent.width - 16
@@ -200,7 +203,7 @@ Popup {
         Layout.fillHeight: true
         visible: dlg.mode === "new"
         spacing: 10
-        Text { text: "New user"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+        Text { textFormat: Text.PlainText; text: "New user"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
         RowLayout {
           Layout.fillWidth: true
           Field { id: newName; Layout.fillWidth: true; label: "Name" }
@@ -231,6 +234,7 @@ Popup {
         RowLayout {
           Layout.fillWidth: true
           Text {
+            textFormat: Text.PlainText
             Layout.fillWidth: true
             text: dlg.current ? dlg.key(dlg.current) : ""
             color: Color.foreground
@@ -241,6 +245,7 @@ Popup {
           Ui.Button { text: "Drop…"; foreground: Color.urgent; onClicked: dlg.dropUser() }
         }
         Text {
+          textFormat: Text.PlainText
           visible: !dlg.mysql && dlg.current && dlg.current.member_of && dlg.current.member_of.length > 0
           text: dlg.current && dlg.current.member_of ? "member of " + dlg.current.member_of.join(", ") : ""
           color: Color.muted
@@ -268,7 +273,7 @@ Popup {
           Field { id: pwField; Layout.fillWidth: true; label: "New password"; secret: true }
           Ui.Button { Layout.alignment: Qt.AlignBottom; bordered: true; text: "Change password"; onClicked: dlg.setPassword() }
         }
-        Label { text: "Privileges" + (dlg.mysql ? "" : " in " + dlg.database) }
+        Label { textFormat: Text.PlainText; text: "Privileges" + (dlg.mysql ? "" : " in " + dlg.database) }
         Rectangle {
           Layout.fillWidth: true
           Layout.fillHeight: true
@@ -283,6 +288,7 @@ Popup {
             model: dlg.grants
             ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
             delegate: Text {
+              textFormat: Text.PlainText
               required property string modelData
               width: grantList.width
               wrapMode: Text.Wrap
@@ -291,7 +297,7 @@ Popup {
               font.family: "monospace"
               font.pixelSize: Style.font.bodySmall
             }
-            Text { visible: grantList.count === 0; text: "No privileges"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+            Text { textFormat: Text.PlainText; visible: grantList.count === 0; text: "No privileges"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
           }
         }
 
@@ -299,7 +305,7 @@ Popup {
         RowLayout {
           Layout.fillWidth: true
           spacing: 6
-          Label { text: "On" }
+          Label { textFormat: Text.PlainText; text: "On" }
           Ui.Dropdown { id: scopeBox; Layout.preferredWidth: 220; showLabel: false; options: dlg.scopes; value: dlg.scopes[0].value; onChanged: dlg.picked = [] }
           Field { id: targetDb; visible: dlg.mysql && dlg.scope !== "global"; Layout.preferredWidth: 150; label: ""; placeholder: dlg.database || "database" }
           Ui.Dropdown { id: targetSchema; visible: !dlg.mysql && dlg.scope !== "database"; Layout.preferredWidth: 150; showLabel: false
@@ -329,6 +335,7 @@ Popup {
         }
       }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         Layout.fillHeight: true
         visible: dlg.mode === "view" && dlg.current === null

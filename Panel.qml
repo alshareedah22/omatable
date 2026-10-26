@@ -135,6 +135,7 @@ Item {
           sourceSize: Qt.size(width * 2, height * 2)
         }
         Text {
+          textFormat: Text.PlainText
           anchors.verticalCenter: parent.verticalCenter
           text: "OmaTable"
           color: Color.foreground
@@ -143,6 +144,7 @@ Item {
         }
       }
       Text {
+        textFormat: Text.PlainText
         anchors.horizontalCenter: parent.horizontalCenter
         text: helperProc.fatalText !== "" ? helperProc.fatalText
           : helperProc.status === "installing" ? helperProc.progressText
@@ -187,6 +189,7 @@ Item {
             Rectangle { x: 8; anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: ctab.info.color || Color.accent }
             Text {
               id: ctabText
+              textFormat: Text.PlainText
               x: 22
               anchors.verticalCenter: parent.verticalCenter
               width: Math.min(implicitWidth, 160)
@@ -281,6 +284,7 @@ Item {
       color: Qt.rgba(0, 0, 0, 0.45)
       MouseArea { anchors.fill: parent }
       Text {
+        textFormat: Text.PlainText
         anchors.centerIn: parent
         text: "Connecting to " + root.connecting + "…"
         color: Color.foreground

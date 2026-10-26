@@ -66,6 +66,7 @@ Popup {
     RowLayout {
       Layout.fillWidth: true
       Text {
+        textFormat: Text.PlainText
         text: dlg.column ? dlg.column.name : ""
         color: Color.foreground
         font.family: "monospace"
@@ -73,6 +74,7 @@ Popup {
         font.bold: true
       }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         elide: Text.ElideRight
         text: !dlg.column ? "" : (dlg.column.type || "") + (dlg.column.nullable === false ? "  NOT NULL" : "")
@@ -83,6 +85,7 @@ Popup {
       }
       Text {
         id: nullNote
+        textFormat: Text.PlainText
         text: "currently NULL"
         color: Color.muted
         font.italic: true
@@ -109,6 +112,7 @@ Popup {
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error
@@ -130,6 +134,7 @@ Popup {
       }
       Ui.Button { bordered: true; text: "Format JSON"; onClicked: dlg.formatJson() }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Ctrl+S applies · Esc cancels · saved with the other changes"
         color: Color.muted

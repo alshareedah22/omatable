@@ -53,6 +53,7 @@ Popup {
     anchors.fill: parent
     spacing: 10
     Text {
+      textFormat: Text.PlainText
       text: dlg.title
       color: dlg.danger ? Color.urgent : Color.foreground
       font.family: Style.font.family
@@ -60,6 +61,7 @@ Popup {
       font.bold: true
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.text !== ""
       text: dlg.text
@@ -84,6 +86,7 @@ Popup {
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error

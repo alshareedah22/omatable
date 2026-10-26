@@ -209,6 +209,7 @@ Item {
           Ui.Button { bordered: true; text: "Explain"; tooltipText: "Show how the server runs the statement at the cursor (Ctrl+E)"; onClicked: q.explain() }
           Ui.Button { bordered: true; text: "Format"; tooltipText: "Tidy the SQL, or the selection (Ctrl+Shift+F)"; onClicked: { editor.format(); editor.focusEditor() } }
           Text {
+            textFormat: Text.PlainText
             visible: q.running
             text: "Running… " + q.elapsed.toFixed(1) + " s"
             color: Color.muted
@@ -217,6 +218,7 @@ Item {
           }
           Item { Layout.fillWidth: true }
           Text {
+            textFormat: Text.PlainText
             visible: q.savedName !== ""
             text: q.savedName
             color: Color.muted
@@ -341,6 +343,7 @@ Item {
               width: parent.width - 12 - (delBtn.visible ? delBtn.width : 0)
               spacing: 2
               Text {
+                textFormat: Text.PlainText
                 visible: q.drawerPage === "saved"
                 width: parent.width
                 text: entry.modelData.name || ""
@@ -350,6 +353,7 @@ Item {
                 font.pixelSize: Style.font.body
               }
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 text: String(entry.modelData.sql || "").replace(/\s+/g, " ")
                 color: q.drawerPage === "saved" ? Color.muted : Color.foreground
@@ -360,6 +364,7 @@ Item {
                 font.pixelSize: Style.font.bodySmall
               }
               Text {
+                textFormat: Text.PlainText
                 visible: q.drawerPage === "history"
                 width: parent.width
                 text: q.drawerPage !== "history" ? ""
@@ -391,6 +396,7 @@ Item {
             }
           }
           Text {
+            textFormat: Text.PlainText
             visible: drawerList.count === 0
             width: parent.width
             wrapMode: Text.Wrap
@@ -447,7 +453,7 @@ Item {
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Text { text: q.savedId ? "Save query" : "Save query as"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+      Text { textFormat: Text.PlainText; text: q.savedId ? "Save query" : "Save query as"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
       Ui.TextField {
         id: nameField
         Layout.fillWidth: true

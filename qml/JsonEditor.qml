@@ -50,6 +50,7 @@ Popup {
     anchors.fill: parent
     spacing: 10
     Text {
+      textFormat: Text.PlainText
       text: dlg.title
       color: Color.foreground
       font.family: Style.font.family
@@ -57,6 +58,7 @@ Popup {
       font.bold: true
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.hint !== ""
       text: dlg.hint
@@ -85,6 +87,7 @@ Popup {
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error
@@ -96,6 +99,7 @@ Popup {
     RowLayout {
       Layout.fillWidth: true
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Ctrl+S saves · Esc cancels"
         color: Color.muted

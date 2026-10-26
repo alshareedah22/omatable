@@ -87,7 +87,7 @@ Item {
     return sort.length && sort[0].column === name ? (sort[0].desc ? "▼" : "▲") : ""
   }
 
-  function copyText(text) { Quickshell.execDetached(["wl-copy", "--", text]) }
+  function copyText(text) { clipboard.copy(text) }
 
   function copyCell() {
     if (selRow < 0) return
@@ -113,4 +113,6 @@ Item {
       notify("Copied _id")
     }
   }
+
+  Clipboard { id: clipboard }
 }

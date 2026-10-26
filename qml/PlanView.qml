@@ -87,6 +87,7 @@ Popup {
   background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
 
   component Cell: Text {
+    textFormat: Text.PlainText
     color: Color.muted
     font.family: "monospace"
     font.pixelSize: Style.font.bodySmall
@@ -101,6 +102,7 @@ Popup {
       Layout.fillWidth: true
       spacing: 8
       Text {
+        textFormat: Text.PlainText
         text: dlg.plan && dlg.plan.analyze ? "Query plan · analyzed" : "Query plan"
         color: Color.foreground
         font.family: Style.font.family
@@ -108,6 +110,7 @@ Popup {
         font.bold: true
       }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         elide: Text.ElideRight
         text: !dlg.plan ? "" : [dlg.plan.summary && dlg.plan.summary.planning_ms != null ? "planning " + dlg.ms(dlg.plan.summary.planning_ms) : "",
@@ -131,10 +134,11 @@ Popup {
         bordered: true
         text: "Copy"
         enabled: dlg.plan !== null
-        onClicked: { Quickshell.execDetached(["wl-copy", "--", dlg.plan.raw]); dlg.notify("Copied the plan") }
+        onClicked: { clipboard.copy(dlg.plan.raw); dlg.notify("Copied the plan") }
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.plan !== null
       text: dlg.plan ? dlg.plan.sql.replace(/\s+/g, " ") : ""
@@ -144,6 +148,7 @@ Popup {
       font.pixelSize: Style.font.bodySmall
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error
@@ -158,7 +163,7 @@ Popup {
       Layout.fillWidth: true
       visible: !dlg.raw && dlg.plan !== null
       spacing: 8
-      Text { Layout.fillWidth: true; text: "Step"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "Step"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
       Cell { Layout.preferredWidth: 70; text: "cost"; font.bold: true }
       Cell { Layout.preferredWidth: 70; text: "rows"; font.bold: true }
       Cell { Layout.preferredWidth: 70; visible: dlg.timed; text: "actual"; font.bold: true }
@@ -193,6 +198,7 @@ Popup {
           width: parent.width - 8
           spacing: 8
           Text {
+            textFormat: Text.PlainText
             Layout.fillWidth: true
             leftPadding: row.modelData.depth * 18
             elide: Text.ElideRight
@@ -230,6 +236,7 @@ Popup {
           Repeater {
             model: row.n.detail
             delegate: Text {
+              textFormat: Text.PlainText
               required property var modelData
               width: details.width
               wrapMode: Text.Wrap
@@ -240,6 +247,7 @@ Popup {
             }
           }
           Text {
+            textFormat: Text.PlainText
             visible: row.n.detail.length === 0
             text: "No more details"
             color: Color.muted
@@ -249,6 +257,7 @@ Popup {
         }
       }
       Text {
+        textFormat: Text.PlainText
         anchors.centerIn: parent
         visible: dlg.busy
         text: "Working…"
@@ -275,6 +284,7 @@ Popup {
     RowLayout {
       Layout.fillWidth: true
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Click a step for its details. Red: the most expensive steps, and row estimates off by 10× or more."
         color: Color.muted
@@ -285,4 +295,6 @@ Popup {
       Ui.Button { text: "Close"; onClicked: dlg.close() }
     }
   }
+
+  Clipboard { id: clipboard }
 }

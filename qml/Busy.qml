@@ -38,6 +38,7 @@ Popup {
     width: parent.width
     spacing: 12
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       text: dlg.text
       wrapMode: Text.Wrap
@@ -48,6 +49,7 @@ Popup {
     RowLayout {
       Layout.fillWidth: true
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: (dlg.cancelling ? "Stopping… " : "") + dlg.elapsed.toFixed(0) + " s"
         color: Color.muted

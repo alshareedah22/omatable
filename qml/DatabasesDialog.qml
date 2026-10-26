@@ -80,6 +80,7 @@ Popup {
     spacing: 10
 
     Text {
+      textFormat: Text.PlainText
       text: "Databases"
       color: Color.foreground
       font.family: Style.font.family
@@ -107,6 +108,7 @@ Popup {
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error
@@ -136,6 +138,7 @@ Popup {
           anchors.rightMargin: 4
           spacing: 6
           Text {
+            textFormat: Text.PlainText
             Layout.fillWidth: true
             elide: Text.ElideRight
             text: "  " + row.modelData + (row.isCurrent ? "   (open)" : "")

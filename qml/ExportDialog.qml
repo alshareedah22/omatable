@@ -65,6 +65,7 @@ Popup {
     anchors.fill: parent
     spacing: 10
     Text {
+      textFormat: Text.PlainText
       text: dlg.target.sql !== undefined ? "Export query results" : "Export " + dlg.baseName
       color: Color.foreground
       font.family: Style.font.family
@@ -72,6 +73,7 @@ Popup {
       font.bold: true
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.target.sql === undefined && dlg.target.filters !== undefined && dlg.target.filters.length > 0
       text: "Only rows matching the current filters are exported."
@@ -106,6 +108,7 @@ Popup {
       label: "Table name in the INSERTs"
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error

@@ -224,9 +224,10 @@ Item {
                     implicitHeight: badge.implicitHeight + 2
                     radius: 3
                     color: rb.typeColors[keyRow.modelData.type] || "#777"
-                    Text { id: badge; anchors.centerIn: parent; text: ({ string: "STR", stream: "STRM" })[keyRow.modelData.type] || keyRow.modelData.type.substring(0, 4).toUpperCase(); color: "white"; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall - 2; font.bold: true }
+                    Text { textFormat: Text.PlainText; id: badge; anchors.centerIn: parent; text: ({ string: "STR", stream: "STRM" })[keyRow.modelData.type] || keyRow.modelData.type.substring(0, 4).toUpperCase(); color: "white"; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall - 2; font.bold: true }
                   }
                   Text {
+                    textFormat: Text.PlainText
                     Layout.fillWidth: true
                     text: Values.escaped(keyRow.modelData.key)
                     elide: Text.ElideMiddle
@@ -235,6 +236,7 @@ Item {
                     font.pixelSize: Style.font.bodySmall
                   }
                   Text {
+                    textFormat: Text.PlainText
                     text: rb.ttlShort(keyRow.modelData.ttl)
                     color: Color.muted
                     font.family: Style.font.family
@@ -243,6 +245,7 @@ Item {
                 }
               }
               Text {
+                textFormat: Text.PlainText
                 y: 8
                 width: keyList.width
                 visible: rb.keys.length === 0
@@ -256,6 +259,7 @@ Item {
             RowLayout {
               Layout.fillWidth: true
               Text {
+                textFormat: Text.PlainText
                 Layout.fillWidth: true
                 text: rb.keys.length.toLocaleString(Qt.locale(), "f", 0) + " shown · " + rb.total.toLocaleString(Qt.locale(), "f", 0) + " in db" + (rb.info ? rb.info.database : "")
                 elide: Text.ElideRight
@@ -349,7 +353,7 @@ Item {
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Text { text: "New key in db" + (rb.info ? rb.info.database : ""); color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+      Text { textFormat: Text.PlainText; text: "New key in db" + (rb.info ? rb.info.database : ""); color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
       RowLayout {
         Layout.fillWidth: true
         spacing: 8
@@ -372,6 +376,7 @@ Item {
         placeholder: newKey.type === "zset" ? "0" : ""
       }
       Text {
+        textFormat: Text.PlainText
         text: newKey.type === "string" ? "Value" : newKey.type === "set" || newKey.type === "zset" ? "First member" : "First value"
         color: Color.muted
         font.family: Style.font.family
@@ -391,6 +396,7 @@ Item {
         }
       }
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         visible: newKey.type !== "string"
         text: "Add more items after creating the key."
@@ -398,7 +404,7 @@ Item {
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
-      Text { Layout.fillWidth: true; visible: newKey.err !== ""; text: newKey.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newKey.err !== ""; text: newKey.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }

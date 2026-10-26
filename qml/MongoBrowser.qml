@@ -378,6 +378,7 @@ Item {
                   : collHover.hovered && !modelData.head ? Qt.lighter(Color.background, 1.25) : "transparent"
                 HoverHandler { id: collHover }
                 Text {
+                  textFormat: Text.PlainText
                   x: 6
                   anchors.verticalCenter: parent.verticalCenter
                   width: parent.width - 12
@@ -404,6 +405,7 @@ Item {
                 }
               }
               Text {
+                textFormat: Text.PlainText
                 y: 8
                 width: collList.width
                 visible: collList.count === 0
@@ -424,6 +426,7 @@ Item {
           Layout.fillHeight: true
 
           Text {
+            textFormat: Text.PlainText
             anchors.centerIn: parent
             visible: mb.collection === ""
             text: "Pick a collection on the left"
@@ -525,6 +528,7 @@ Item {
             }
 
             Text {
+              textFormat: Text.PlainText
               Layout.fillWidth: true
               Layout.margins: 8
               visible: mb.error !== ""
@@ -580,6 +584,7 @@ Item {
                 }
               }
               Text {
+                textFormat: Text.PlainText
                 y: 8
                 x: 8
                 visible: jsonList.count === 0
@@ -614,9 +619,10 @@ Item {
                     width: parent.width - 16
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 12
-                    Text { Layout.preferredWidth: 200; text: ixRow.modelData.name; elide: Text.ElideRight; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
-                    Text { Layout.fillWidth: true; text: ixRow.modelData.keys; elide: Text.ElideRight; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
+                    Text { textFormat: Text.PlainText; Layout.preferredWidth: 200; text: ixRow.modelData.name; elide: Text.ElideRight; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
+                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: ixRow.modelData.keys; elide: Text.ElideRight; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
                     Text {
+                      textFormat: Text.PlainText
                       text: [ixRow.modelData.unique ? "unique" : "", ixRow.modelData.sparse ? "sparse" : "",
                              ixRow.modelData.ttl !== null && ixRow.modelData.ttl !== undefined ? "TTL " + ixRow.modelData.ttl + " s" : "",
                              ixRow.modelData.partial ? "partial" : ""].filter(function(x) { return x }).join(" · ")
@@ -650,6 +656,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 6
                 Text {
+                  textFormat: Text.PlainText
                   Layout.fillWidth: true
                   text: {
                     const n = docsModel.rowCount
@@ -663,7 +670,7 @@ Item {
                 }
                 Ui.Button { visible: mb.mode === "find"; text: "‹"; enabled: mb.skip > 0 && !mb.running; onClicked: { mb.skip = Math.max(0, mb.skip - mb.limit); mb.run(false) } }
                 Ui.Button { visible: mb.mode === "find"; text: "›"; enabled: docsModel.rowCount >= mb.limit && !mb.running; onClicked: { mb.skip += mb.limit; mb.run(false) } }
-                Text { text: "per page"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+                Text { textFormat: Text.PlainText; text: "per page"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
                 Ui.Dropdown {
                   Layout.preferredWidth: 90
                   showLabel: false
@@ -715,7 +722,7 @@ Item {
             collMenu.close()
             if (modelData.act === "open") mb.open(d.name, d.view)
             else if (modelData.act === "drop") mb.dropCollection(d.name, d.view)
-            else { Quickshell.execDetached(["wl-copy", "--", d.name]); mb.toast = "Copied" }
+            else { clipboard.copy(d.name); mb.toast = "Copied" }
           }
         }
       }
@@ -746,7 +753,7 @@ Item {
       anchors.fill: parent
       spacing: 10
       Field { id: newCollName; Layout.fillWidth: true; label: "New collection in " + (mb.info ? mb.info.database : ""); Keys.onReturnPressed: newColl.create(); Keys.onEnterPressed: newColl.create() }
-      Text { Layout.fillWidth: true; visible: newColl.err !== ""; text: newColl.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newColl.err !== ""; text: newColl.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
@@ -819,7 +826,7 @@ Item {
       spacing: 10
       Field { id: newDbName; Layout.fillWidth: true; label: "New database"; Keys.onReturnPressed: newDb.create(); Keys.onEnterPressed: newDb.create() }
       Field { id: newDbColl; Layout.fillWidth: true; label: "Its first collection (MongoDB keeps a database once it holds one)"; placeholder: "items"; Keys.onReturnPressed: newDb.create(); Keys.onEnterPressed: newDb.create() }
-      Text { Layout.fillWidth: true; visible: newDb.err !== ""; text: newDb.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newDb.err !== ""; text: newDb.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
@@ -830,4 +837,6 @@ Item {
   }
   JsonEditor { id: jsonEditor }
   Toast { message: mb.toast; onExpired: mb.toast = "" }
+
+  Clipboard { id: clipboard }
 }

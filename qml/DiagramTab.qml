@@ -142,6 +142,7 @@ Item {
           onChanged: function(v) { dg.schema = v; dg.load() }
         }
         Text {
+          textFormat: Text.PlainText
           Layout.fillWidth: true
           text: dg.loading ? "Loading…" : dg.tables.length + " tables · " + dg.links.length + " links"
             + (dg.truncated ? " · the first " + dg.tables.length + " only" : "")
@@ -150,7 +151,7 @@ Item {
           font.pixelSize: Style.font.bodySmall
         }
         Ui.Button { bordered: true; text: "−"; tooltipText: "Zoom out (Ctrl+wheel)"; onClicked: dg.setZoom(dg.zoom / 1.2) }
-        Text { text: Math.round(dg.zoom * 100) + "%"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: Math.round(dg.zoom * 100) + "%"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Button { bordered: true; text: "+"; tooltipText: "Zoom in (Ctrl+wheel)"; onClicked: dg.setZoom(dg.zoom * 1.2) }
         Ui.Button { bordered: true; text: "Fit"; onClicked: dg.fit() }
         Ui.Button { bordered: true; text: "Arrange"; tooltipText: "Lay the boxes out again"; onClicked: dg.layout() }
@@ -158,6 +159,7 @@ Item {
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       Layout.margins: 8
       visible: dg.error !== ""
@@ -255,6 +257,7 @@ Item {
               color: Qt.alpha(Color.accent, 0.25)
               Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 6; color: parent.color }
               Text {
+                textFormat: Text.PlainText
                 x: 10
                 width: parent.width - 20
                 anchors.verticalCenter: parent.verticalCenter
@@ -291,6 +294,7 @@ Item {
                   height: dg.rowH
                   Text {
                     id: cname
+                    textFormat: Text.PlainText
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width * 0.58
                     elide: Text.ElideRight
@@ -300,6 +304,7 @@ Item {
                     font.pixelSize: Style.font.bodySmall * 0.95
                   }
                   Text {
+                    textFormat: Text.PlainText
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width * 0.4
@@ -313,6 +318,7 @@ Item {
                 }
               }
               Text {
+                textFormat: Text.PlainText
                 visible: box.t.columns.length > dg.maxRows
                 height: dg.rowH
                 text: "+ " + (box.t.columns.length - dg.maxRows) + " more"
@@ -325,6 +331,7 @@ Item {
         }
       }
       Text {
+        textFormat: Text.PlainText
         anchors.centerIn: parent
         visible: !dg.loading && dg.tables.length === 0 && dg.error === ""
         text: "No tables here"

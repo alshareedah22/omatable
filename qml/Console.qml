@@ -65,7 +65,7 @@ Rectangle {
     spacing: 6
     RowLayout {
       Layout.fillWidth: true
-      Text { text: "Console"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+      Text { textFormat: Text.PlainText; text: "Console"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
       Item { Layout.fillWidth: true }
       Ui.Button { text: "Clear"; fontSize: Style.font.bodySmall; onClicked: con.log = [] }
       Ui.Button { text: "✕"; fontSize: Style.font.bodySmall; tooltipText: "Hide the console"; onClicked: con.closeRequested() }
@@ -104,6 +104,7 @@ Rectangle {
         }
       }
       Text {
+        textFormat: Text.PlainText
         visible: con.log.length === 0
         text: con.multiline ? "Run a database command, e.g. {ping: 1} or {dbStats: 1}. Ctrl+Enter runs it." : "Type a command, e.g. INFO memory or HGETALL key, and press Enter."
         color: Color.muted

@@ -84,6 +84,7 @@ Popup {
     spacing: 8
 
     Text {
+      textFormat: Text.PlainText
       text: dlg.title
       color: Color.foreground
       font.family: Style.font.family
@@ -129,12 +130,14 @@ Popup {
             anchors.rightMargin: 8
             spacing: 8
             Text {
+              textFormat: Text.PlainText
               text: row.modelData.dir ? "" : ""
               color: row.modelData.dir ? Color.accent : Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.body
             }
             Text {
+              textFormat: Text.PlainText
               Layout.fillWidth: true
               elide: Text.ElideMiddle
               text: row.modelData.name
@@ -143,6 +146,7 @@ Popup {
               font.pixelSize: Style.font.body
             }
             Text {
+              textFormat: Text.PlainText
               visible: !row.modelData.dir
               text: dlg.size(row.modelData.size)
               color: Color.muted
@@ -160,6 +164,7 @@ Popup {
           }
         }
         Text {
+          textFormat: Text.PlainText
           anchors.centerIn: parent
           visible: list.count === 0
           text: dlg.extensions.length ? "No " + dlg.extensions.join(" / ") + " files here" : "Empty folder"
@@ -178,6 +183,7 @@ Popup {
       Keys.onEnterPressed: dlg.choose()
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error

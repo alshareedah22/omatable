@@ -121,6 +121,7 @@ Flickable {
     spacing: 12
 
     Text {
+      textFormat: Text.PlainText
       text: form.fromOmadb ? "OmaDBngin server · " + form.conn.name : form.isNew ? "New connection" : "Edit connection"
       color: Color.foreground
       font.family: Style.font.family
@@ -136,7 +137,7 @@ Flickable {
       Column {
         spacing: 4
         Layout.fillWidth: true
-        Text { text: "Engine"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: "Engine"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown {
           id: engineBox
           width: parent.width
@@ -151,7 +152,7 @@ Flickable {
       Column {
         spacing: 4
         Layout.preferredWidth: 160
-        Text { text: "Tag"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: "Tag"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown { id: tagBox; width: parent.width; showLabel: false; value: "local"; options: form.tags }
       }
       Field { id: colorField; label: "Color"; Layout.preferredWidth: 110; placeholder: "#rrggbb" }
@@ -183,6 +184,7 @@ Flickable {
     }
 
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: !form.keyring && form.engine !== "sqlite"
       text: "No keyring is available: passwords are stored in ~/.config/omatable/connections.json (readable only by you)."
@@ -227,7 +229,7 @@ Flickable {
       Column {
         spacing: 4
         Layout.preferredWidth: 110
-        Text { text: "Auth"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: "Auth"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown { id: sshAuthBox; width: parent.width; showLabel: false; value: "agent"; options: form.sshAuths }
       }
       Field { id: sshKey; label: "Key file"; Layout.fillWidth: true; Layout.columnSpan: 2; visible: sshAuthBox.value === "key"; placeholder: "~/.ssh/id_ed25519" }
@@ -235,6 +237,7 @@ Flickable {
     }
 
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: form.errorText !== ""
       text: form.errorText
@@ -245,6 +248,7 @@ Flickable {
     }
 
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: form.testText !== ""
       text: form.testText

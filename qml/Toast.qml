@@ -24,6 +24,7 @@ Rectangle {
   Timer { id: timer; interval: 4000; onTriggered: toast.expired() }
   Text {
     id: toastText
+    textFormat: Text.PlainText
     anchors.centerIn: parent
     width: parent.width - 32
     horizontalAlignment: Text.AlignHCenter

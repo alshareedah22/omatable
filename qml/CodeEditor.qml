@@ -98,6 +98,7 @@ FocusScope {
       // only the lines in view
       model: Math.min(input.lineCount, Math.ceil(flick.height / ed.lineHeight) + 2)
       delegate: Text {
+        textFormat: Text.PlainText
         required property int index
         readonly property int line: Math.floor(flick.contentY / ed.lineHeight) + index
         visible: line < input.lineCount
@@ -250,6 +251,7 @@ FocusScope {
         color: index === ed.pick ? Qt.alpha(Color.accent, 0.3) : "transparent"
         Text {
           id: kindIcon
+          textFormat: Text.PlainText
           x: 6
           anchors.verticalCenter: parent.verticalCenter
           width: ed.fontSize * 1.3
@@ -259,6 +261,7 @@ FocusScope {
           font.pixelSize: ed.fontSize * 0.85
         }
         Text {
+          textFormat: Text.PlainText
           anchors.left: kindIcon.right
           anchors.leftMargin: 4
           anchors.verticalCenter: parent.verticalCenter
@@ -270,6 +273,7 @@ FocusScope {
           font.pixelSize: ed.fontSize * 0.9
         }
         Text {
+          textFormat: Text.PlainText
           anchors.right: parent.right
           anchors.rightMargin: 6
           anchors.verticalCenter: parent.verticalCenter

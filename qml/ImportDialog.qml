@@ -80,6 +80,7 @@ Popup {
     anchors.fill: parent
     spacing: 10
     Text {
+      textFormat: Text.PlainText
       text: "Import CSV into " + dlg.table
       color: Color.foreground
       font.family: Style.font.family
@@ -99,6 +100,7 @@ Popup {
       Ui.Button { bordered: true; text: dlg.header ? "First row is the header" : "No header row"; onClicked: { dlg.header = !dlg.header; dlg.load() } }
       Ui.Button { bordered: true; text: dlg.emptyNull ? "Empty → NULL" : "Empty → ''"; onClicked: dlg.emptyNull = !dlg.emptyNull }
       Text {
+        textFormat: Text.PlainText
         text: dlg.preview ? (dlg.preview.count + (dlg.header ? 0 : 1)).toLocaleString(Qt.locale(), "f", 0) + " rows" : ""
         color: Color.muted
         font.family: Style.font.family
@@ -106,6 +108,7 @@ Popup {
       }
     }
     Text {
+      textFormat: Text.PlainText
       visible: dlg.preview !== null
       text: "Map each CSV column to a table column"
       color: Color.muted
@@ -127,6 +130,7 @@ Popup {
         width: mapList.width - 12
         spacing: 10
         Text {
+          textFormat: Text.PlainText
           Layout.preferredWidth: 180
           text: dlg.header ? dlg.preview.header[mapRow.index] : "column " + (mapRow.index + 1)
           elide: Text.ElideRight
@@ -135,6 +139,7 @@ Popup {
           font.pixelSize: Style.font.bodySmall
         }
         Text {
+          textFormat: Text.PlainText
           Layout.preferredWidth: 160
           text: {
             const first = dlg.header ? dlg.preview.rows[0] : dlg.preview.header
@@ -145,7 +150,7 @@ Popup {
           font.family: "monospace"
           font.pixelSize: Style.font.bodySmall
         }
-        Text { text: "→"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
+        Text { textFormat: Text.PlainText; text: "→"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
         Ui.Dropdown {
           Layout.fillWidth: true
           showLabel: false
@@ -156,6 +161,7 @@ Popup {
       }
     }
     Text {
+      textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: dlg.error !== ""
       text: dlg.error
@@ -167,6 +173,7 @@ Popup {
     RowLayout {
       Layout.fillWidth: true
       Text {
+        textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "All rows go in one transaction: one bad row and nothing is imported."
         color: Color.muted

@@ -69,6 +69,7 @@ Rectangle {
         function focusValue() { valueField.forceActiveFocus() }
 
         Text {
+          textFormat: Text.PlainText
           Layout.preferredWidth: 36
           text: frow.index === 0 ? "where" : bar.match
           color: Color.muted

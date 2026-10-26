@@ -25,6 +25,7 @@ Item {
     spacing: 4
 
     Text {
+      textFormat: Text.PlainText
       text: field.label
       color: Color.muted
       font.family: Style.font.family
