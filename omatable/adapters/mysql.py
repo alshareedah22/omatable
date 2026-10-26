@@ -124,6 +124,17 @@ class MySQL(SQLAdapter):
                 schemas[schema]["functions"].append(name)
         return list(schemas.values())
 
+    def catalog_rows(self):
+        if self.database:
+            cond, params = "= %s", (self.database,)
+        else:
+            cond, params = f"NOT IN ({', '.join(['%s'] * len(SYSTEM))})", SYSTEM
+        return self.query(
+            "SELECT c.TABLE_SCHEMA, c.TABLE_NAME, IF(t.TABLE_TYPE = 'VIEW', 'view', 'table'), c.COLUMN_NAME, "
+            "c.COLUMN_TYPE FROM information_schema.COLUMNS c JOIN information_schema.TABLES t "
+            "ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME "
+            f"WHERE c.TABLE_SCHEMA {cond} ORDER BY c.TABLE_SCHEMA, c.TABLE_NAME, c.ORDINAL_POSITION", params)[1]
+
     def load_columns(self, schema, table):
         rows = self.query("SELECT COLUMN_NAME, COLUMN_TYPE, IS_NULLABLE, COLUMN_DEFAULT, COLUMN_KEY "
                           "FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s "

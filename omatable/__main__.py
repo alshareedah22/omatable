@@ -6,7 +6,7 @@ import signal
 import sys
 import tomllib
 
-from . import __version__, omadb, safety, sqlsplit, transfer
+from . import __version__, dump, files, omadb, safety, sqlsplit, transfer
 from .history import History, Saved
 from .protocol import Error, Server
 from .session import Sessions
@@ -118,6 +118,11 @@ def build(store, server=None, sessions=None):
         s = sessions.get(session)
         return {"schemas": s.run(s.adapter.tree), "database": s.adapter.database}
 
+    @server.method("schema.catalog")
+    def schema_catalog(session):
+        s = sessions.get(session)
+        return s.run(s.adapter.catalog)
+
     @server.method("table.rows")
     def table_rows(session, schema, table, offset=0, limit=300, sort=None, filters=None, match="and"):
         s = sessions.get(session)
@@ -179,10 +184,13 @@ def build(store, server=None, sessions=None):
         return s.run(s.adapter.create_table, schema, table, columns)
 
     @server.method("db.create")
-    def db_create(session, name, confirmed=False):
+    def db_create(session, name, collection="", confirmed=False):
         s = sessions.get(session)
         ask(s, confirmed, f"Create the database {name}?")
-        s.run(s.adapter.create_database, name)
+        if collection:
+            s.run(s.adapter.create_database, name, collection)
+        else:
+            s.run(s.adapter.create_database, name)
         return {"databases": s.run(s.adapter.databases), "database": s.adapter.database}
 
     @server.method("db.drop")
@@ -191,6 +199,25 @@ def build(store, server=None, sessions=None):
         ask(s, confirmed, f"Drop the database {name}?")
         s.run(s.adapter.drop_database, name)
         return {"databases": s.run(s.adapter.databases), "database": s.adapter.database}
+
+    def run_job(s, fn, *args):
+        job = dump.Job()
+        s.job = job
+        try:
+            return s.run(fn, s.adapter, job, *args)
+        finally:
+            s.job = None
+
+    @server.method("db.backup")
+    def db_backup(session, path, database=None, overwrite=False):
+        s = sessions.get(session)
+        return run_job(s, dump.backup, path, database, overwrite)
+
+    @server.method("db.restore")
+    def db_restore(session, path, database=None, confirmed=False):
+        s = sessions.get(session)
+        ask(s, confirmed, f"Restore {os.path.basename(str(path))} into {database or s.adapter.database}?")
+        return run_job(s, dump.restore, path, database)
 
     @server.method("table.truncate")
     def table_truncate(session, schema, table, confirmed=False):
@@ -242,6 +269,49 @@ def build(store, server=None, sessions=None):
                      "error": err["message"] if err else None, "ms": sum(r["ms"] for r in results),
                      "statements": len(stmts)})
         return {**out, "ddl": ddl, "range": [sqlsplit.to_utf16(text, start), sqlsplit.to_utf16(text, end)]}
+
+    @server.method("file.list")
+    def file_list(path="", extensions=None):
+        return files.listing(path, extensions)
+
+    @server.method("file.read")
+    def file_read(path):
+        return files.read_text(path)
+
+    @server.method("file.write")
+    def file_write(path, text, overwrite=False):
+        return files.write_text(path, text, overwrite)
+
+    @server.method("query.run_file")
+    def query_run_file(session, path, confirmed=False):
+        """Run every statement of a SQL file, stopping at the first error; returns a summary, not the rows."""
+        s = sessions.get(session)
+        engine = s.conn.get("engine")
+        text = files.read_text(path, files.MAX_SCRIPT_BYTES)["text"]
+        name = os.path.basename(str(path))
+        stmts = [sql for _, _, sql in sqlsplit.split(text, engine)]
+        if not stmts:
+            raise Error("invalid", f"{name} has no SQL to run")
+        if not confirmed and s.conn.get("tag") == "production":
+            writes = safety.sql_writes(stmts, engine)
+            if writes:
+                shown = ";\n".join(writes[:30]) + ";" + (f"\n… and {len(writes) - 30} more" if len(writes) > 30 else "")
+                ask(s, False, f"Run {name}? {len(writes)} of its {len(stmts)} statements can change data.", shown)
+        out = s.run(s.adapter.run, stmts, 1)
+        results = out["results"]
+        ddl = any(sqlsplit.keyword(sql) in DDL for sql in stmts[:len(results)])
+        if ddl:
+            s.run(s.adapter.forget)
+        err = results[-1].get("error") if results else None
+        ms = sum(r["ms"] for r in results)
+        history.add({"conn": s.conn.get("id"), "name": s.conn.get("name"), "engine": engine,
+                     "database": out["database"], "sql": f"-- {name} ({len(stmts)} statements)", "ok": err is None,
+                     "error": err["message"] if err else None, "ms": ms, "statements": len(results)})
+        summary = {"total": len(stmts), "ran": len(results) - (1 if err else 0), "ms": ms, "ddl": ddl,
+                   "affected": sum(max(r.get("affected") or 0, 0) for r in results), "database": out["database"]}
+        if err:
+            summary["error"] = {**err, "statement": len(results), "sql": results[-1]["sql"][:2000]}
+        return summary
 
     @server.method("query.cancel")
     def query_cancel(session):

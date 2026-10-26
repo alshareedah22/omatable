@@ -48,9 +48,21 @@ Hiding the window ends the session, so commit before you hide it.
 - **History** (Ctrl+H) lists what you ran on this connection, searchable; click an entry to load it.
   **Save** (Ctrl+S) keeps a query under a name in the **Saved** list.
 - `CREATE`/`DROP`/`ALTER` refresh the sidebar, and MySQL `USE` switches the database.
+- **Autocomplete** suggests as you type: tables after `FROM`/`JOIN`/`UPDATE`/`INTO`, the columns of a table or
+  alias after `name.`, and otherwise the columns of the tables the statement uses, then tables and keywords.
+  Up/Down pick, Tab or Enter insert, Esc closes, Ctrl+Space asks for suggestions. Names that need quotes get them.
+- **File ▾** opens a `.sql` file into the editor, saves the editor to a file, or runs a whole file without
+  opening it (it stops at the first error and says which statement failed). Dumps made by `pg_dump` or
+  `mysqldump` belong in **Restore from file…**, which uses the server's own tools.
 
 ### Structure, export and import
 
+- **Back up database…** (the **+** above the table list) writes the current database to a file: plain SQL from
+  `pg_dump` or `mysqldump`/`mariadb-dump` (with routines and triggers), or a copy of a SQLite file.
+  **Restore from file…** runs a backup against the current database (`psql` in one transaction, so a failure
+  changes nothing; `pg_restore` for custom-format dumps; `mysql`/`mariadb`). The tools come from PATH or from
+  OmaDBngin's engines, matching the server's major version when it can. Passwords reach them through the
+  environment or a private option file, never the command line. A Cancel button stops a running job.
 - **New table…** (the **+** above the table list, or right-click a schema) takes a name and a list of columns:
   type (type it or pick a common one), NULL rule, default (as SQL) and which columns form the primary key. The
   `CREATE TABLE` statement is shown as you type; the new table opens in Structure.
@@ -59,7 +71,8 @@ Hiding the window ends the session, so commit before you hide it.
   another one first. A SQLite database is one file: add a connection for a new file instead.
 - **Structure** (the switch under a table, or right-click → Structure) lists columns, indexes, foreign keys and
   the table's DDL. Rename columns, change type, NULL rule, default (as SQL, e.g. `0`, `'none'`, `now()`) or
-  comment, add and drop columns and indexes, drop foreign keys. Changes are staged; Ctrl+S shows the SQL and
+  comment, add and drop columns and indexes, add foreign keys (columns → table and its columns, with
+  `ON DELETE`/`ON UPDATE`) and drop them. Changes are staged; Ctrl+S shows the SQL and
   applies it after you confirm.
   - PostgreSQL and SQLite apply all of it in one transaction. MySQL commits each statement on its own, so a
     failure there says how many statements already ran.
@@ -92,6 +105,9 @@ Hiding the window ends the session, so commit before you hide it.
 ### MongoDB
 
 - Collections and views are on the left (right-click to drop, **+** for a new collection).
+- **Database ▾** creates a database (with its first collection, since MongoDB only keeps databases that hold
+  something), drops the current one, backs it up to a `.tar.gz` in mongodump's layout (collections, documents,
+  indexes and views; `mongorestore` reads it once extracted) and restores such a file into the current database.
 - **Find** takes a filter, sort and field list in mongosh syntax: `{age: {$gt: 30}, city: 'Riyadh'}`,
   `{_id: ObjectId('…')}`, `{joined: {$gte: ISODate('2025-01-01')}}`, `/regex/i`. Plain JSON and Extended JSON
   work too. Click a column header to sort on the server. Pages hold 50 to 1,000 documents.
@@ -137,7 +153,8 @@ version and SHA-256 in `requirements.lock`; anything that does not match is refu
 Omarchy with Python 3 (for the helper and its venv), `wl-copy` for copying, `ssh` for tunnels, and a Secret
 Service keyring (GNOME Keyring or KeePassXC) to keep passwords out of plain files. The drivers (psycopg, PyMySQL,
 redis-py, pymongo) come from PyPI on first launch, pinned by hash. [OmaDBngin](https://github.com/alshareedah22/omadbngin)
-is optional.
+is optional. Backups use `pg_dump`/`psql` or `mysqldump`/`mysql` (or the MariaDB versions), from PATH or
+OmaDBngin's engines. Running the editor tests needs `node`.
 
 ## Remove
 

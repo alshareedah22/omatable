@@ -10,6 +10,7 @@ Item {
   property var helper: null
   property var info: null          // session.open result
   property var tree: []
+  property var catalog: []         // tables and columns for the SQL autocomplete
   property bool treeLoading: false
   property int current: -1
   property string toast: ""
@@ -35,6 +36,7 @@ Item {
       if (e) { toast = e.message; return }
       tree = r.schemas
     })
+    helper.request("schema.catalog", { session: info.session }, function(r, e) { catalog = e ? [] : r.tables })
   }
 
   function openTable(schema, table, view) {
@@ -81,6 +83,58 @@ Item {
         })
       })
     }
+  }
+
+  function stamp() {
+    const d = new Date()
+    const p = function(n) { return (n < 10 ? "0" : "") + n }
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes())
+  }
+
+  function backup(overwrite, path) {
+    const db = info.database
+    if (!db && info.engine !== "sqlite") { toast = "Pick a database in the Database list first"; return }
+    if (!path) {
+      const base = (info.engine === "sqlite" ? info.name : db).replace(/[^A-Za-z0-9_.-]+/g, "_")
+      picker.pick({ title: "Back up " + (db || info.name), save: true, folder: downloads, confirm: "Back up",
+                    extensions: info.engine === "sqlite" ? [".db", ".sqlite"] : [".sql"],
+                    name: base + "-" + stamp() + (info.engine === "sqlite" ? ".db" : ".sql") }, function(p) { backup(false, p) })
+      return
+    }
+    busy.start("Backing up " + (db || info.name) + " to " + path.split("/").pop() + "…",
+               function() { helper.request("query.cancel", { session: info.session }) })
+    helper.request("db.backup", { session: info.session, path: path, database: db || null, overwrite: overwrite }, function(r, e) {
+      busy.finish()
+      if (e && e.code === "exists") {
+        confirm.ask({ title: "Replace " + path.split("/").pop() + "?", text: "A file with that name already exists.",
+                      confirm: "Replace", danger: true }, function(dlg) { dlg.done(); backup(true, path) })
+        return
+      }
+      if (e) { if (e.code !== "cancelled") toast = e.message; else toast = "Backup cancelled"; return }
+      toast = "Backed up " + (r.database || db) + " to " + r.path + " (" + picker.size(r.bytes) + ")"
+    })
+  }
+
+  function restore() {
+    const db = info.database
+    if (!db) { toast = "Pick a database in the Database list first"; return }
+    picker.pick({ title: "Restore into " + db, folder: downloads, confirm: "Restore",
+                  extensions: info.engine === "postgresql" ? [".sql", ".dump", ".backup"] : [".sql"] }, function(path) {
+      const name = path.split("/").pop()
+      confirm.ask({ title: "Restore " + name + " into " + db + "?",
+                    text: "Every statement in the file runs against " + db + ". Tables the file creates must not exist yet"
+                      + (info.engine === "postgresql" ? "; if anything fails, nothing is changed." : "."),
+                    confirm: "Restore", danger: true }, function(dlg) {
+        dlg.done()
+        busy.start("Restoring " + name + " into " + db + "…", function() { helper.request("query.cancel", { session: info.session }) })
+        helper.request("db.restore", { session: info.session, path: path, database: db, confirmed: true }, function(r, e) {
+          busy.finish()
+          if (e) { toast = e.code === "cancelled" ? "Restore cancelled" : e.message; return }
+          toast = "Restored " + name + " into " + db + " in " + (r.ms / 1000).toFixed(1) + " s"
+          loadTree()
+        })
+      })
+    })
   }
 
   function openQuery() {
@@ -195,6 +249,10 @@ Item {
         hasDatabases: ws.info && ws.info.engine !== "sqlite"
         onNewTableRequested: function(schema) { newTable.show(ws.tree.map(function(s) { return s.name }), schema || ws.info.database) }
         onDatabasesRequested: databasesDialog.show(ws.info.databases || [], ws.info.database)
+        canBackup: !!ws.info
+        canRestore: ws.info && ws.info.engine !== "sqlite"
+        onBackupRequested: ws.backup(false, "")
+        onRestoreRequested: ws.restore()
       }
       Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
 
@@ -287,6 +345,8 @@ Item {
                   engine: ws.info.engine
                   connId: ws.info.id
                   palette: ws.palette
+                  catalog: ws.catalog
+                  folder: ws.downloads
                   active: ws.visible && tabLoader.index === ws.current
                   onNotify: function(text) { ws.toast = text }
                   onDdlRan: ws.loadTree()
@@ -314,6 +374,8 @@ Item {
   }
 
   Confirm { id: confirm }
+  FilePicker { id: picker; helper: ws.helper }
+  Busy { id: busy }
   NewTableDialog {
     id: newTable
     helper: ws.helper

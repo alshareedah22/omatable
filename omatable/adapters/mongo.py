@@ -111,6 +111,29 @@ class Mongo:
             raise Error("invalid", f"{database!r} is not a valid database name")
         self.database = name
 
+    SYSTEM = ("admin", "config", "local")
+
+    def create_database(self, name, collection=""):
+        """MongoDB makes a database when something is stored in it: create its first collection."""
+        previous = self.database
+        if name in self.databases():
+            raise Error("exists", f"the database {name} already exists")
+        self.use(name)
+        try:
+            self.create_collection(collection or "items")
+        finally:
+            self.database = previous
+        return {"ok": True}
+
+    def drop_database(self, name):
+        if name in self.SYSTEM:
+            raise Error("invalid", f"{name} is a system database")
+        with self.guard():
+            self.client.drop_database(name)
+        if name == self.database:
+            self.database = "admin"
+        return {"ok": True}
+
     @property
     def db(self):
         return self.client[self.database]

@@ -11,7 +11,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, omadb
+from omatable import adapters, dump, omadb
 from omatable.protocol import Error
 
 LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
@@ -137,6 +137,48 @@ class MongoTest(unittest.TestCase):
         self.assertEqual(stats["n"], 3)
         with self.assertRaises(Error):
             self.a.command("{notACommand: 1}")
+
+    def test_create_drop_database(self):
+        target = DB + "_new"
+        self.a.client.drop_database(target)
+        self.a.create_database(target, "first")
+        self.assertIn(target, self.a.databases())
+        self.assertEqual(self.a.client[target].list_collection_names(), ["first"])
+        self.assertEqual(self.a.database, DB)
+        with self.assertRaises(Error) as cm:
+            self.a.create_database(target, "second")
+        self.assertEqual(cm.exception.code, "exists")
+        with self.assertRaises(Error):
+            self.a.create_database("bad.name", "x")
+        with self.assertRaises(Error):
+            self.a.drop_database("admin")
+        self.a.use(target)
+        self.a.drop_database(target)
+        self.assertNotIn(target, self.a.databases())
+        self.assertEqual(self.a.database, "admin")
+
+    def test_backup_restore(self):
+        import tempfile
+        self.a.create_index("people", "{name: 1}", unique=True)
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        out = os.path.join(tmp.name, "zt.tar.gz")
+        r = dump.backup(self.a, dump.Job(), out)
+        self.assertGreater(r["bytes"], 100)
+        target = DB + "_restored"
+        self.a.client.drop_database(target)
+        dump.restore(self.a, dump.Job(), out, target)
+        db = self.a.client[target]
+        self.assertEqual(sorted(db.list_collection_names()), ["adults", "logs", "people", "system.views"])
+        self.assertEqual(db.people.count_documents({}), 3)
+        self.assertEqual(db.people.find_one({"_id": self.oid})["at"], datetime.datetime(2024, 1, 2))
+        self.assertIn("name_1", db.people.index_information())
+        self.assertTrue(db.people.index_information()["name_1"]["unique"])
+        self.assertEqual(db.adults.count_documents({}), 2)
+        with self.assertRaises(Error) as cm:
+            dump.restore(self.a, dump.Job(), out, target)
+        self.assertEqual(cm.exception.code, "exists")
+        self.a.client.drop_database(target)
 
 
 if __name__ == "__main__":

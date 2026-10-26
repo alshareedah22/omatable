@@ -117,6 +117,34 @@ class SQLiteDDLTest(unittest.TestCase):
             self.assertEqual(e.exception.code, "unsupported")
 
 
+class ForeignKeyTest(unittest.TestCase):
+    FK = {"op": "add", "name": "fk_age", "columns": ["age"], "ref_table": "ages", "ref_columns": ["id"],
+          "on_delete": "cascade", "on_update": "NO ACTION"}
+
+    def test_add(self):
+        self.assertEqual(gen(PG, {"foreign_keys": [self.FK]}),
+                         ['ALTER TABLE "s"."people" ADD CONSTRAINT "fk_age" FOREIGN KEY ("age") '
+                          'REFERENCES "s"."ages" ("id") ON DELETE CASCADE'])
+        self.assertEqual(gen(MY, {"foreign_keys": [{**self.FK, "ref_schema": "o", "on_update": "SET NULL"}]}),
+                         ["ALTER TABLE `s`.`people` ADD CONSTRAINT `fk_age` FOREIGN KEY (`age`) "
+                          "REFERENCES `o`.`ages` (`id`) ON DELETE CASCADE ON UPDATE SET NULL"])
+
+    def test_after_new_columns(self):
+        out = gen(PG, {"columns": [{"op": "add", "name": "team", "type": "int"}],
+                       "foreign_keys": [{**self.FK, "columns": ["team"]}]})
+        self.assertIn("ADD COLUMN", out[0])
+        self.assertIn("FOREIGN KEY", out[1])
+
+    def test_rejections(self):
+        for bad in ({"columns": []}, {"ref_columns": ["id", "x"]}, {"columns": ["nope"]}, {"name": ""},
+                    {"name": "fk_team"}, {"on_delete": "EXPLODE"}, {"ref_table": ""}, {"op": "rename"}):
+            with self.assertRaises(Error):
+                gen(PG, {"foreign_keys": [{**self.FK, **bad}]})
+        with self.assertRaises(Error) as e:
+            gen(LITE, {"foreign_keys": [self.FK]})
+        self.assertEqual(e.exception.code, "unsupported")
+
+
 class CreateTest(unittest.TestCase):
     COLS = [{"name": "id", "type": "int", "pk": True}, {"name": "name", "type": "varchar(40)", "nullable": False},
             {"name": "note", "type": "text", "default": "''"}, {"name": "x", "type": "int", "default": ""}]

@@ -31,6 +31,7 @@ Item {
   property bool uniqueIndex: false
   readonly property bool dirty: false
   readonly property string sid: info ? info.session : ""
+  property string downloads: ""
   signal closeRequested()
 
   function loadTree() {
@@ -192,13 +193,84 @@ Item {
     helper.request("session.use", { session: sid, database: db }, function(r, e) {
       if (e) { toast = e.message; titleBar.resetDatabase(); return }
       info = Object.assign({}, info, { database: r.database })
+      titleBar.resetDatabase()
       collection = ""
       docsModel.result = null
       loadTree()
     })
   }
 
-  Component.onCompleted: loadTree()
+  // ---- databases: new, drop, backup, restore ----
+  function databasesChanged(r) {
+    const moved = r.database !== info.database
+    info = Object.assign({}, info, { databases: r.databases, database: r.database })
+    titleBar.resetDatabase()
+    if (moved) { collection = ""; docsModel.result = null }
+    loadTree()
+  }
+
+  function dropDatabase() {
+    const db = info.database
+    confirm.ask({ title: "Drop the database " + db + "?", text: "This deletes every collection and document in " + db + ". It cannot be undone.",
+                  confirm: "Drop database", danger: true }, function(dlg) {
+      helper.request("db.drop", { session: sid, name: db, confirmed: true }, function(r, e) {
+        if (e) { dlg.fail(e.message); return }
+        dlg.done()
+        databasesChanged(r)
+        toast = "Dropped the database " + db
+      })
+    })
+  }
+
+  function stamp() {
+    const d = new Date()
+    const p = function(n) { return (n < 10 ? "0" : "") + n }
+    return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes())
+  }
+
+  function backup(overwrite, path) {
+    const db = info.database
+    if (!path) {
+      picker.pick({ title: "Back up " + db, save: true, folder: downloads, confirm: "Back up", extensions: [".tar.gz", ".gz"],
+                    name: db.replace(/[^A-Za-z0-9_.-]+/g, "_") + "-" + stamp() + ".tar.gz" }, function(p) { backup(false, p) })
+      return
+    }
+    busy.start("Backing up " + db + " to " + path.split("/").pop() + "…", null)
+    helper.request("db.backup", { session: sid, path: path, database: db, overwrite: overwrite }, function(r, e) {
+      busy.finish()
+      if (e && e.code === "exists") {
+        confirm.ask({ title: "Replace " + path.split("/").pop() + "?", text: "A file with that name already exists.",
+                      confirm: "Replace", danger: true }, function(dlg) { dlg.done(); backup(true, path) })
+        return
+      }
+      if (e) { toast = e.message; return }
+      toast = "Backed up " + db + " to " + r.path + " (" + picker.size(r.bytes) + ")"
+    })
+  }
+
+  function restore() {
+    const db = info.database
+    picker.pick({ title: "Restore into " + db, folder: downloads, confirm: "Restore", extensions: [".tar.gz", ".gz", ".tar"] }, function(path) {
+      const name = path.split("/").pop()
+      confirm.ask({ title: "Restore " + name + " into " + db + "?",
+                    text: "Its collections, documents, indexes and views are created in " + db + ". None of them may exist there yet.",
+                    confirm: "Restore", danger: true }, function(dlg) {
+        dlg.done()
+        busy.start("Restoring " + name + " into " + db + "…", null)
+        helper.request("db.restore", { session: sid, path: path, database: db, confirmed: true }, function(r, e) {
+          busy.finish()
+          if (e) { toast = e.message; return }
+          toast = "Restored " + name + " into " + db + " in " + (r.ms / 1000).toFixed(1) + " s"
+          loadTree()
+        })
+      })
+    })
+  }
+
+  Component.onCompleted: {
+    loadTree()
+    helper.request("app.paths", {}, function(r, e) { if (!e) downloads = r.downloads })
+  }
 
   Shortcut { sequence: "Ctrl+`"; enabled: mb.visible; onActivated: mb.consoleOpen = !mb.consoleOpen }
   Shortcut { sequence: "Ctrl+R"; enabled: mb.visible && mb.collection !== ""; onActivated: mb.run(false) }
@@ -233,6 +305,18 @@ Item {
       databaseOptions: mb.info ? mb.info.databases : []
       onCloseRequested: mb.closeRequested()
       onDatabaseChosen: function(db) { mb.switchDatabase(db) }
+      Ui.Button {
+        id: dbMenuBtn
+        bordered: true
+        text: "Database ▾"
+        tooltipText: "New, drop, back up or restore a database"
+        onClicked: {
+          const p = dbMenuBtn.mapToItem(mb, 0, dbMenuBtn.height + 2)
+          dbMenu.x = Math.min(p.x, mb.width - dbMenu.width - 4)
+          dbMenu.y = p.y
+          dbMenu.open()
+        }
+      }
       Ui.Button { bordered: mb.consoleOpen; text: "Console"; tooltipText: "Run database commands (Ctrl+`)"; onClicked: mb.consoleOpen = !mb.consoleOpen }
     }
 
@@ -673,6 +757,74 @@ Item {
   }
 
   Confirm { id: confirm }
+  FilePicker { id: picker; helper: mb.helper }
+  Busy { id: busy }
+
+  Popup {
+    id: dbMenu
+    padding: 4
+    width: 230
+    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    Column {
+      width: parent.width
+      Repeater {
+        model: mb.info ? [{ act: "new", label: "New database…" }, { act: "backup", label: "Back up " + mb.info.database + "…" },
+                          { act: "restore", label: "Restore into " + mb.info.database + "…" },
+                          { act: "drop", label: "Drop " + mb.info.database + "…", danger: true }] : []
+        delegate: Ui.Button {
+          required property var modelData
+          width: dbMenu.width - 8
+          leftAlign: true
+          text: modelData.label
+          foreground: modelData.danger ? Color.urgent : Color.foreground
+          enabled: modelData.act !== "drop" || ["admin", "config", "local"].indexOf(mb.info.database) < 0
+          onClicked: {
+            dbMenu.close()
+            if (modelData.act === "new") { newDb.err = ""; newDbName.setText(""); newDbColl.setText(""); newDb.open() }
+            else if (modelData.act === "backup") mb.backup(false, "")
+            else if (modelData.act === "restore") mb.restore()
+            else mb.dropDatabase()
+          }
+        }
+      }
+    }
+  }
+
+  Popup {
+    id: newDb
+    property string err: ""
+    function create() {
+      const name = newDbName.text.trim(), coll = newDbColl.text.trim() || "items"
+      helper.request("db.create", { session: mb.sid, name: name, collection: coll }, function(r, e) {
+        if (e) { if (e.code !== "cancelled") newDb.err = e.message; return }
+        newDb.close()
+        mb.info = Object.assign({}, mb.info, { databases: r.databases })
+        mb.toast = "Created the database " + name
+        mb.switchDatabase(name)
+      })
+    }
+    parent: Overlay.overlay
+    anchors.centerIn: parent
+    width: Math.min(parent ? parent.width - 80 : 480, 440)
+    padding: 16
+    modal: true
+    focus: true
+    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    onOpened: newDbName.focusInput()
+    ColumnLayout {
+      anchors.fill: parent
+      spacing: 10
+      Field { id: newDbName; Layout.fillWidth: true; label: "New database"; Keys.onReturnPressed: newDb.create() }
+      Field { id: newDbColl; Layout.fillWidth: true; label: "Its first collection (MongoDB keeps a database once it holds one)"; placeholder: "items"; Keys.onReturnPressed: newDb.create() }
+      Text { Layout.fillWidth: true; visible: newDb.err !== ""; text: newDb.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      RowLayout {
+        Layout.fillWidth: true
+        Item { Layout.fillWidth: true }
+        Ui.Button { text: "Cancel"; onClicked: newDb.close() }
+        Ui.Button { bordered: true; foreground: Color.accent; text: "Create"; enabled: newDbName.text.trim() !== ""; onClicked: newDb.create() }
+      }
+    }
+  }
   JsonEditor { id: jsonEditor }
   Toast { message: mb.toast; onExpired: mb.toast = "" }
 }

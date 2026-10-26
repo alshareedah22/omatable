@@ -13,6 +13,7 @@ from .protocol import Error
 
 BAD = re.compile(r";|--|/\*|[\r\n]")
 FK_SQL = {"postgresql": "CONSTRAINT", "mysql": "FOREIGN KEY"}
+ACTIONS = ("NO ACTION", "RESTRICT", "CASCADE", "SET NULL", "SET DEFAULT")
 
 
 def check_fragment(text, what):
@@ -67,8 +68,10 @@ def statements(d, schema, table, current, changes):
         raise Error("unsupported", f"SQLite cannot {what}; recreate the table to do that")
 
     for fk in changes.get("foreign_keys") or ():
+        if fk.get("op") == "add":
+            continue
         if fk.get("op") != "drop":
-            raise Error("invalid", "foreign keys can only be dropped here")
+            raise Error("invalid", f"unknown foreign key change {fk.get('op')!r}")
         if fk.get("name") not in fks:
             raise Error("notfound", f"no foreign key {fk.get('name')!r}")
         if name == "sqlite":
@@ -171,6 +174,32 @@ def statements(d, schema, table, current, changes):
                 out.append(f"CREATE {unique}INDEX {q(ix_name)} ON {t} ({on})")
         elif ix.get("op") != "drop":
             raise Error("invalid", f"unknown index change {ix.get('op')!r}")
+
+    for fk in changes.get("foreign_keys") or ():
+        if fk.get("op") != "add":
+            continue
+        if name == "sqlite":
+            unsupported("add a foreign key")
+        fk_name = check_name(fk.get("name"), "foreign key")
+        if fk_name in fks:
+            raise Error("invalid", f"there is already a foreign key {fk_name!r}")
+        columns = fk.get("columns") or []
+        refs = fk.get("ref_columns") or []
+        if not columns or len(columns) != len(refs):
+            raise Error("invalid", "a foreign key needs as many referenced columns as columns")
+        for col in columns:
+            if col not in known:
+                raise Error("invalid", f"unknown column {col!r}")
+        ref = d.table(fk.get("ref_schema") or schema, check_name(fk.get("ref_table"), "referenced table"))
+        sql = (f"ALTER TABLE {t} ADD CONSTRAINT {q(fk_name)} FOREIGN KEY ({', '.join(q(c) for c in columns)}) "
+               f"REFERENCES {ref} ({', '.join(q(check_name(c, 'referenced column')) for c in refs)})")
+        for when in ("on_delete", "on_update"):
+            action = (fk.get(when) or "NO ACTION").upper()
+            if action not in ACTIONS:
+                raise Error("invalid", f"{when.replace('_', ' ').upper()} must be one of {', '.join(ACTIONS)}")
+            if action != "NO ACTION":
+                sql += f" {when.replace('_', ' ').upper()} {action}"
+        out.append(sql)
     return out
 
 

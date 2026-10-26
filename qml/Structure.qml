@@ -29,15 +29,17 @@ Item {
   property var idxDropped: ({})
   property var idxAdded: []       // [{ name, columns, unique }]
   property var fkDropped: ({})
+  property var fkAdded: []        // [{ name, columns, ref_schema, ref_table, ref_columns, on_delete, on_update }]
   property int revision: 0
   readonly property int changeCount: {
     revision
     return Object.keys(colEdits).length + Object.keys(dropped).length + added.length
-      + Object.keys(idxDropped).length + idxAdded.length + Object.keys(fkDropped).length
+      + Object.keys(idxDropped).length + idxAdded.length + Object.keys(fkDropped).length + fkAdded.length
   }
   readonly property bool dirty: changeCount > 0
   readonly property bool sqlite: engine === "sqlite"
   readonly property var columns: info ? info.columns : []
+  readonly property var fkActions: ["NO ACTION", "RESTRICT", "CASCADE", "SET NULL", "SET DEFAULT"]
   readonly property int rowCount: { revision; return columns.length + added.length }
 
   signal notify(string text)
@@ -56,7 +58,7 @@ Item {
 
   function clear() {
     colEdits = ({}); dropped = ({}); added = []
-    idxDropped = ({}); idxAdded = []; fkDropped = ({})
+    idxDropped = ({}); idxAdded = []; fkDropped = ({}); fkAdded = []
     revision++
   }
 
@@ -112,6 +114,23 @@ Item {
     return true
   }
 
+  function addForeignKey(name, cols, ref, refCols, onDelete, onUpdate) {
+    const split = function(t) { return t.split(",").map(function(x) { return x.trim() }).filter(function(x) { return x }) }
+    const list = split(cols), refList = split(refCols)
+    ref = ref.trim()
+    if (!name.trim() && list.length) name = "fk_" + table + "_" + list.join("_")
+    if (!name.trim() || !list.length || !ref || list.length !== refList.length) {
+      notify("A foreign key needs a name, its columns, the table it points to and as many columns there")
+      return false
+    }
+    const dot = ref.indexOf(".")
+    fkAdded.push({ name: name.trim(), columns: list, ref_schema: dot > 0 ? ref.substring(0, dot) : "",
+                   ref_table: dot > 0 ? ref.substring(dot + 1) : ref, ref_columns: refList,
+                   on_delete: onDelete, on_update: onUpdate })
+    revision++
+    return true
+  }
+
   function toggle(map, key) {
     if (map[key]) delete map[key]; else map[key] = true
     revision++
@@ -131,6 +150,7 @@ Item {
     for (const a of idxAdded) idx.push(Object.assign({ op: "add" }, a))
     const fks = []
     for (const name in fkDropped) fks.push({ op: "drop", name: name })
+    for (const a of fkAdded) fks.push(Object.assign({ op: "add" }, a))
     return { columns: cols, indexes: idx, foreign_keys: fks }
   }
 
@@ -427,20 +447,26 @@ Item {
       }
 
       // ---- foreign keys ----
+      ColumnLayout {
+        spacing: 4
       ListView {
         id: fkList
+        Layout.fillWidth: true
+        Layout.fillHeight: true
         clip: true
         spacing: 2
         topMargin: 6
-        model: st.info ? st.info.foreign_keys : []
+        model: { st.revision; return (st.info ? st.info.foreign_keys : []).concat(st.fkAdded.map(function(a) {
+          return Object.assign({ added: true }, a) })) }
         ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
         delegate: Rectangle {
           id: fkRow
           required property var modelData
-          readonly property bool gone: { st.revision; return !!st.fkDropped[modelData.name] }
+          required property int index
+          readonly property bool gone: { st.revision; return !!st.fkDropped[modelData.name] && !modelData.added }
           width: fkList.width
           height: fkLay.implicitHeight + 8
-          color: gone ? Qt.rgba(0.85, 0.25, 0.25, 0.22) : "transparent"
+          color: gone ? Qt.rgba(0.85, 0.25, 0.25, 0.22) : modelData.added ? Qt.rgba(0.3, 0.75, 0.35, 0.18) : "transparent"
           RowLayout {
             id: fkLay
             x: 12
@@ -462,8 +488,11 @@ Item {
             Ui.Button {
               visible: !st.sqlite
               text: fkRow.gone ? "↺" : "✕"
-              tooltipText: fkRow.gone ? "Keep this foreign key" : "Drop this foreign key"
-              onClicked: st.toggle(st.fkDropped, fkRow.modelData.name)
+              tooltipText: fkRow.gone ? "Keep this foreign key" : fkRow.modelData.added ? "Remove" : "Drop this foreign key"
+              onClicked: {
+                if (fkRow.modelData.added) { st.fkAdded.splice(fkRow.index - st.info.foreign_keys.length, 1); st.revision++ }
+                else st.toggle(st.fkDropped, fkRow.modelData.name)
+              }
             }
           }
         }
@@ -475,6 +504,37 @@ Item {
           color: Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.body
+        }
+      }
+        Text {
+          Layout.fillWidth: true
+          Layout.margins: 8
+          visible: st.sqlite
+          text: "SQLite cannot add a foreign key to an existing table; recreate the table to do that."
+          color: Color.muted
+          wrapMode: Text.Wrap
+          font.family: Style.font.family
+          font.pixelSize: Style.font.bodySmall
+        }
+        RowLayout {
+          Layout.fillWidth: true
+          Layout.margins: 8
+          visible: !st.sqlite
+          spacing: 6
+          Cell { id: fkName; Layout.preferredWidth: 130; placeholderText: "name (optional)" }
+          Cell { id: fkCols; Layout.fillWidth: true; placeholderText: "column(s), e.g. " + (st.columns.length > 1 ? st.columns[1].name : "id") }
+          Text { text: "→"; color: Color.muted; font.pixelSize: Style.font.body }
+          Cell { id: fkRef; Layout.fillWidth: true; placeholderText: "references table" }
+          Cell { id: fkRefCols; Layout.preferredWidth: 90; placeholderText: "id" }
+          Ui.Dropdown { id: fkDel; Layout.preferredWidth: 150; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "delete: " + a } }) }
+          Ui.Dropdown { id: fkUpd; Layout.preferredWidth: 150; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "update: " + a } }) }
+          Ui.Button {
+            bordered: true
+            text: "+ Foreign key"
+            onClicked: if (st.addForeignKey(fkName.text, fkCols.text, fkRef.text, fkRefCols.text || "id", fkDel.value, fkUpd.value)) {
+              fkName.text = ""; fkCols.text = ""; fkRef.text = ""; fkRefCols.text = ""; fkDel.value = "NO ACTION"; fkUpd.value = "NO ACTION"
+            }
+          }
         }
       }
 

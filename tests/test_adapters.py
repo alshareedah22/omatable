@@ -214,6 +214,26 @@ class Flow:
         self.assertNotIn("orders", tree["tables"])
         self.assertNotIn("v_people", tree["views"])
 
+    def test_add_foreign_key(self):
+        if self.engine == "sqlite":
+            self.skipTest("SQLite cannot add a foreign key to a table")
+        self.a.query("CREATE TABLE orders2 (id int PRIMARY KEY, person_id int)")
+        self.a.alter(self.schema, "orders2", {"foreign_keys": [
+            {"op": "add", "name": "fk_p", "columns": ["person_id"], "ref_table": "people", "ref_columns": ["id"],
+             "on_delete": "CASCADE"}]})
+        fk = self.a.structure(self.schema, "orders2")["foreign_keys"][0]
+        self.assertEqual((fk["name"], fk["columns"], fk["ref_table"], fk["on_delete"]), ("fk_p", ["person_id"], "people", "CASCADE"))
+        self.a.drop(self.schema, "orders2")
+
+    def test_catalog(self):
+        tables = {(t["schema"], t["name"]): t for t in self.a.catalog()["tables"]}
+        people = tables[(self.schema, "people")]
+        self.assertEqual(people["kind"], "table")
+        self.assertEqual([c["name"] for c in people["columns"]], ["id", "name", "age", "data"])
+        self.assertTrue(people["columns"][0]["type"])
+        self.assertEqual(tables[(self.schema, "v_people")]["kind"], "view")
+        self.assertTrue(self.a.catalog(limit=2)["truncated"])
+
     def test_create_table(self):
         cols = [{"name": "id", "type": "int", "pk": True}, {"name": "label", "type": self.TEXT, "nullable": False}]
         sql = self.a.create_table_preview(self.schema, "fresh", cols)["statements"][0]

@@ -21,6 +21,7 @@ class Session:
         self.adapter = adapter
         self.tunnel = tunnel
         self.worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="session-" + sid)
+        self.job = None     # a running backup or restore tool
 
     def run(self, fn, *args, **kwargs):
         if self.tunnel is not None and not self.tunnel.alive():
@@ -29,7 +30,10 @@ class Session:
 
     def cancel(self):
         # Not through the worker: it is busy running the statement to stop.
-        self.adapter.cancel()
+        if self.job is not None:
+            self.job.cancel()
+        else:
+            self.adapter.cancel()
 
     def info(self):
         a, c = self.adapter, self.conn

@@ -62,6 +62,22 @@ class SQLAdapter:
         """Columns, indexes, foreign keys and the CREATE statement."""
         raise NotImplementedError
 
+    def catalog_rows(self):
+        """(schema, table, kind, column, type) for every column, in table and column order."""
+        raise NotImplementedError
+
+    def catalog(self, limit=20000):
+        """Tables and views with their columns, for the editor's autocomplete."""
+        tables, out = {}, []
+        rows = self.catalog_rows()
+        for schema, table, kind, column, typ in rows[:limit]:
+            t = tables.get((schema, table))
+            if t is None:
+                t = tables[(schema, table)] = {"schema": schema, "name": table, "kind": kind, "columns": []}
+                out.append(t)
+            t["columns"].append({"name": column, "type": typ or ""})
+        return {"tables": out, "truncated": len(rows) > limit}
+
     def describe(self, cursor):
         """Type names for the columns of the cursor's result."""
         return [""] * len(cursor.description)

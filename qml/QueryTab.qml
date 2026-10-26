@@ -14,6 +14,8 @@ Item {
   property string engine: ""
   property string connId: ""
   property var palette: ({})
+  property var catalog: []
+  property string folder: ""        // where the file picker starts
   property bool active: false
   readonly property bool dirty: false
 
@@ -56,6 +58,59 @@ Item {
       if (r.ddl) q.ddlRan()
       q.databaseReported(r.database)
       if (drawerOpen && drawerPage === "history") loadHistory()
+    })
+  }
+
+  readonly property var sqlFiles: [".sql", ".txt"]
+
+  function openFile() {
+    picker.pick({ title: "Open a SQL file", extensions: sqlFiles, folder: folder }, function(path) {
+      helper.request("file.read", { path: path }, function(r, e) {
+        if (e) { notify(e.message); return }
+        load(r.text, null)
+        savedName = r.path.split("/").pop()
+        notify("Opened " + savedName)
+      })
+    })
+  }
+
+  function saveFile(overwrite, path) {
+    if (!path) {
+      picker.pick({ title: "Save the query to a file", save: true, extensions: sqlFiles, folder: folder,
+                    name: (savedName && /\.sql$/i.test(savedName) ? savedName : "query.sql") }, function(p) { saveFile(false, p) })
+      return
+    }
+    helper.request("file.write", { path: path, text: editor.text, overwrite: overwrite }, function(r, e) {
+      if (e && e.code === "exists") {
+        confirm.ask({ title: "Replace " + path.split("/").pop() + "?", text: "A file with that name already exists in this folder.",
+                      confirm: "Replace", danger: true }, function(dlg) { dlg.done(); saveFile(true, path) })
+        return
+      }
+      if (e) { notify(e.message); return }
+      notify("Saved to " + r.path)
+    })
+  }
+
+  function runFile() {
+    picker.pick({ title: "Run a SQL file", extensions: sqlFiles, folder: folder, confirm: "Run" }, function(path) {
+      const name = path.split("/").pop()
+      running = true
+      startedAt = Date.now()
+      elapsed = 0
+      error = ""
+      results = []
+      helper.request("query.run_file", { session: sid, path: path }, function(r, e) {
+        running = false
+        if (e) { if (e.code !== "cancelled") error = e.message; return }
+        if (r.ddl) q.ddlRan()
+        q.databaseReported(r.database)
+        const secs = (r.ms / 1000).toFixed(1) + " s"
+        if (r.error) error = name + ": statement " + r.error.statement + " of " + r.total + " failed after " + r.ran
+                             + " ran: " + r.error.message + "\n\n" + r.error.sql
+        else notify("Ran " + r.total + (r.total === 1 ? " statement" : " statements") + " from " + name
+                    + (r.affected ? " (" + r.affected + " rows changed)" : "") + " in " + secs)
+        if (drawerOpen && drawerPage === "history") loadHistory()
+      })
     })
   }
 
@@ -157,6 +212,18 @@ Item {
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
           }
+          Ui.Button {
+            id: fileBtn
+            bordered: true
+            text: "File ▾"
+            tooltipText: "Open, save or run a .sql file"
+            onClicked: {
+              const p = fileBtn.mapToItem(q, 0, fileBtn.height + 2)
+              fileMenu.x = Math.min(p.x, q.width - fileMenu.width - 4)
+              fileMenu.y = p.y
+              fileMenu.open()
+            }
+          }
           Ui.Button { bordered: true; text: "Save"; tooltipText: "Save this query (Ctrl+S)"; onClicked: savePopup.open() }
           Ui.Button { bordered: true; selected: q.drawerOpen; text: "History"; tooltipText: "History and saved queries (Ctrl+H)"; onClicked: { if (q.drawerOpen) q.drawerOpen = false; else q.openDrawer(q.drawerPage) } }
         }
@@ -177,6 +244,7 @@ Item {
           SplitView.minimumHeight: 80
           engine: q.engine
           palette: q.palette
+          catalog: q.catalog
           onRunCurrent: q.run(false)
           onRunAll: q.run(true)
         }
@@ -316,6 +384,35 @@ Item {
       }
     }
   }
+
+  Popup {
+    id: fileMenu
+    padding: 4
+    width: 200
+    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    Column {
+      width: parent.width
+      Repeater {
+        model: [{ label: "Open SQL file…", act: "open" }, { label: "Save to file…", act: "save" },
+                { label: "Run SQL file…", act: "run" }]
+        delegate: Ui.Button {
+          required property var modelData
+          width: fileMenu.width - 8
+          leftAlign: true
+          text: modelData.label
+          enabled: modelData.act !== "run" || !q.running
+          onClicked: {
+            fileMenu.close()
+            if (modelData.act === "open") q.openFile()
+            else if (modelData.act === "save") q.saveFile(false, "")
+            else q.runFile()
+          }
+        }
+      }
+    }
+  }
+  FilePicker { id: picker; helper: q.helper }
+  Confirm { id: confirm }
 
   Popup {
     id: savePopup

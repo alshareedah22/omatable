@@ -108,6 +108,15 @@ class Postgres(SQLAdapter):
                 schemas[schema]["functions"].append(name)
         return list(schemas.values())
 
+    def catalog_rows(self):
+        hide = HIDDEN_SCHEMAS.format("n.nspname")
+        return self.query(
+            "SELECT n.nspname, c.relname, CASE WHEN c.relkind IN ('v', 'm') THEN 'view' ELSE 'table' END, "
+            "a.attname, format_type(a.atttypid, a.atttypmod) FROM pg_attribute a "
+            "JOIN pg_class c ON c.oid = a.attrelid JOIN pg_namespace n ON n.oid = c.relnamespace "
+            f"WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f') AND n.nspname {hide} AND NOT c.relispartition "
+            "AND a.attnum > 0 AND NOT a.attisdropped ORDER BY n.nspname, c.relname, a.attnum")[1]
+
     def load_columns(self, schema, table):
         rows = self.query(
             "SELECT a.attname, format_type(a.atttypid, a.atttypmod), NOT a.attnotnull, "

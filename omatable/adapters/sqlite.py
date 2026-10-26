@@ -50,6 +50,12 @@ class SQLite(SQLAdapter):
         return [{"name": SCHEMA, "tables": [n for n, t in rows if t == "table"],
                  "views": [n for n, t in rows if t == "view"], "functions": [], "sequences": []}]
 
+    def catalog_rows(self):
+        _, rows = self.query(
+            "SELECT m.name, m.type, p.name, p.type FROM sqlite_master m, pragma_table_info(m.name) p "
+            "WHERE m.type IN ('table', 'view') AND m.name NOT LIKE 'sqlite\\_%' ESCAPE '\\' ORDER BY m.name, p.cid")
+        return [(SCHEMA, t, kind, c, typ) for t, kind, c, typ in rows]
+
     def _kind(self, table):
         _, rows = self.query("SELECT type FROM sqlite_master WHERE name = ?", (table,))
         return rows[0][0] if rows else None
