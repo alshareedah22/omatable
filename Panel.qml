@@ -63,10 +63,23 @@ Item {
     active = -1
   }
 
+  // summon with {"connect": "<connection id>"} (OmaDBngin's Open in OmaTable sends "omadb:<name>")
+  property string pendingConnect: ""
   function open(payloadJson) {
     closingFromHost = false
     window.visible = true
+    try {
+      const p = payloadJson ? JSON.parse(payloadJson) : {}
+      if (p && typeof p.connect === "string" && p.connect) pendingConnect = p.connect
+    } catch (e) {}
     helperProc.start()
+    connectPending()
+  }
+  function connectPending() {
+    if (!pendingConnect || helperProc.status !== "ready") return
+    const id = pendingConnect
+    pendingConnect = ""
+    connectTo({ id: id, name: id.replace(/^omadb:/, "") })
   }
 
   function close() {
@@ -88,7 +101,7 @@ Item {
                         detail: err.detail || "", confirm: "Run on production", danger: true },
                       function(dlg) { dlg.done(); yes() }, no)
     }
-    onStatusChanged: if (status !== "ready") root.disconnectAll()
+    onStatusChanged: { if (status !== "ready") root.disconnectAll(); else root.connectPending() }
   }
 
   FloatingWindow {
