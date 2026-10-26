@@ -99,7 +99,7 @@ Item {
   readonly property var bounds: {
     let w = 0, h = 0
     for (let i = 0; i < pos.length; i++) if (pos[i]) { w = Math.max(w, pos[i].x + boxW); h = Math.max(h, pos[i].y + boxH(tables[i])) }
-    return { w: w + 40, h: h + 40 }
+    return { w: w + 90, h: h + 40 }   // room for links that curve out to the right
   }
   function fit() {
     if (!bounds.w) return

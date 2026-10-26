@@ -34,7 +34,7 @@ Item {
     const open = indexOfConn(conn.id)
     if (open >= 0) { active = open; return }
     connecting = conn.name
-    helperProc.request("session.open", { id: conn.id }, function(r, e) {
+    helperProc.request("session.open", { id: conn.id, readonly: !!conn.readonly }, function(r, e) {
       connecting = ""
       if (e) { welcome.toast = conn.name + ": " + e.message; return }
       const copy = Object.assign({}, infos)

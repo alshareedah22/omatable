@@ -264,7 +264,8 @@ Flickable {
         text: "Connect"
         visible: !form.isNew
         enabled: !form.busy
-        onClicked: form.connectRequested(form.conn)
+        // an OmaDBngin server connects as it is, plus the Read-only switch
+        onClicked: form.connectRequested(form.fromOmadb ? Object.assign({}, form.conn, { readonly: readonlySwitch.checked }) : form.conn)
       }
       Ui.Button { text: "Cancel"; onClicked: form.cancelled() }
       Item { Layout.fillWidth: true }

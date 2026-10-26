@@ -40,6 +40,12 @@ class SessionTest(unittest.TestCase):
         os.environ.pop("OMATABLE_DBCTL", None)
         self.tmp.cleanup()
 
+    def test_read_only_at_connect_time(self):
+        sid = self.m["session.open"](id=self.conn["id"], readonly=True)["session"]
+        with self.assertRaises(Error) as e:
+            self.m["query.run"](session=sid, text="DELETE FROM notes")
+        self.assertEqual(e.exception.code, "readonly")
+
     def test_read_only_connection(self):
         self.store.save({**self.conn, "readonly": True, "folder": "Work"})
         listed = self.store.list()[0]

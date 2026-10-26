@@ -49,8 +49,8 @@ def build(store, server=None, sessions=None):
         """Every write passes here. Read-only connections refuse it; production
         connections confirm it (the window asks and resends with confirmed)."""
         if s.conn.get("readonly"):
-            raise Error("readonly", f"{s.conn.get('name') or 'This connection'} is read-only, so this is not allowed: "
-                        f"{question} Edit the connection to allow changes.", detail)
+            raise Error("readonly", f"{s.conn.get('name') or 'This connection'} is read-only, so nothing that changes "
+                        "data runs here. Connect without Read-only to make changes.", detail)
         if s.conn.get("tag") == "production" and not confirmed:
             raise Error("confirm", question, detail)
 
@@ -102,8 +102,8 @@ def build(store, server=None, sessions=None):
         return sessions.test(conn)
 
     @server.method("session.open")
-    def session_open(id):  # noqa: A002
-        return sessions.open(id)
+    def session_open(id, readonly=False):  # noqa: A002
+        return sessions.open(id, bool(readonly))
 
     @server.method("session.close")
     def session_close(session):

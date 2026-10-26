@@ -82,8 +82,11 @@ class Sessions:
             return omadb.server(str(conn_id)[6:])
         return self.store.get(conn_id, secrets=True)
 
-    def open(self, conn_id):
+    def open(self, conn_id, readonly=False):
         conn = self.resolve(conn_id)
+        if readonly:
+            # read-only can be asked for at connect time (OmaDBngin servers have no saved switch)
+            conn = {**conn, "readonly": True}
         adapter, tunnel = connect(conn)
         session = Session(uuid.uuid4().hex[:12], conn, adapter, tunnel)
         with self.lock:
