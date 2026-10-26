@@ -52,6 +52,8 @@ Flickable {
     pathField.setText(v.path || "")
     tagBox.value = v.tag || "local"
     colorField.setText(v.color || "")
+    folderField.setText(v.folder || "")
+    readonlySwitch.checked = !!v.readonly
     const ssh = v.ssh || {}
     sshSwitch.checked = !!ssh.enabled
     sshHost.setText(ssh.host || "")
@@ -72,7 +74,7 @@ Flickable {
     const c = {
       name: nameField.text, engine: engine, host: hostField.text, port: parseInt(portField.text) || 0,
       user: userField.text, database: dbField.text, path: pathField.text,
-      tag: tagBox.value, color: colorField.text || null,
+      tag: tagBox.value, color: colorField.text || null, folder: folderField.text, readonly: readonlySwitch.checked,
       ssh: sshSwitch.checked ? { enabled: true, host: sshHost.text, port: parseInt(sshPort.text) || 22,
         user: sshUser.text, auth: sshAuthBox.value, key_path: sshKey.text } : null
     }
@@ -188,6 +190,19 @@ Flickable {
       wrapMode: Text.Wrap
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
+    }
+
+    RowLayout {
+      Layout.fillWidth: true
+      spacing: 12
+      Field { id: folderField; label: "Folder (groups connections in the list)"; Layout.fillWidth: true; placeholder: "e.g. Work, Clients/Acme" }
+    }
+    Ui.Toggle {
+      id: readonlySwitch
+      Layout.fillWidth: true
+      label: "Read-only"
+      description: "Browse and query only: OmaTable refuses every change, and the server session is read-only too"
+      onClicked: checked = !checked
     }
 
     // ---- SSH tunnel ----

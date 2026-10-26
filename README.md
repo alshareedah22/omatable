@@ -15,6 +15,10 @@ Redis/Valkey and a document browser for MongoDB.
 ## Using it
 
 - Double-click a connection (or select it and press **Connect**). **Test** tries the form as typed.
+- **Folder** in a connection's form groups it in the list (click a folder to fold it). **Read-only** makes a
+  connection browse-and-query only: OmaTable refuses every change before it is sent, and the server session is
+  read-only too (PostgreSQL `default_transaction_read_only`, MySQL `SET SESSION TRANSACTION READ ONLY`, SQLite
+  opened read-only). The title bar shows READ-ONLY.
 - Each open connection gets a tab along the top; **+** (Ctrl+Shift+N) goes back to the list to open another,
   Ctrl+PgUp/PgDown switch between them, ✕ or a middle-click closes one (asking first if it has unsaved edits).
 - Pick a table in the sidebar; each table opens in a tab. Switch databases from the title bar.
@@ -64,6 +68,9 @@ Hiding the window ends the session, so commit before you hide it.
 - **History** (Ctrl+H) lists what you ran on this connection, searchable; click an entry to load it.
   **Save** (Ctrl+S) keeps a query under a name in the **Saved** list.
 - `CREATE`/`DROP`/`ALTER` refresh the sidebar, and MySQL `USE` switches the database.
+- Results of a plain `SELECT` of one table that include its primary key are editable right in the result grid
+  (the status line says so): edit cells, Set NULL/DEFAULT, delete rows, then **Commit** (the SQL is shown first)
+  or **Discard**. Joins, grouping, DISTINCT and computed columns stay read-only.
 - **Format** (Ctrl+Shift+F) tidies the SQL, or the selection: keywords upper-case, one clause per line, lists
   and AND/OR conditions one per line, subqueries indented. Strings, quoted names and comments stay as written.
 - **Explain** (Ctrl+E) shows the plan of the statement at the cursor as a tree with each step's cost and rows.
@@ -84,6 +91,13 @@ Hiding the window ends the session, so commit before you hide it.
   changes nothing; `pg_restore` for custom-format dumps; `mysql`/`mariadb`). The tools come from PATH or from
   OmaDBngin's engines, matching the server's major version when it can. Passwords reach them through the
   environment or a private option file, never the command line. A Cancel button stops a running job.
+- **Views, functions and triggers**: right-click a view or function for **Edit definition** (its SQL opens in
+  a query tab to change and run, as `CREATE OR REPLACE` where the engine has it) or **Drop**; the **+** above
+  the table list and a schema's right-click menu have **New view…** and **New function…** templates; a table's
+  right-click menu has **New trigger…**, and its Structure page a **Triggers** tab (edit, drop, add).
+- **Table diagram** (**Server ▾**) draws the tables as boxes, key columns marked, with a line from each foreign
+  key column to the column it references. Drag a box by its title, Ctrl+wheel or −/+ to zoom, **Fit**,
+  **Arrange** to lay them out again; click a title to open the table.
 - **New table…** (the **+** above the table list, or right-click a schema) takes a name and a list of columns:
   type (type it or pick a common one), NULL rule, default (as SQL) and which columns form the primary key. The
   `CREATE TABLE` statement is shown as you type; the new table opens in Structure.

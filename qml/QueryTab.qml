@@ -16,8 +16,9 @@ Item {
   property var palette: ({})
   property var catalog: []
   property string folder: ""        // where the file picker starts
+  property string initialText: ""   // a definition or template it opens with
   property bool active: false
-  readonly property bool dirty: false
+  readonly property bool dirty: resultTabs.dirty
 
   property bool running: false
   property real startedAt: 0
@@ -39,6 +40,7 @@ Item {
 
   function run(all) {
     if (running) return
+    if (resultTabs.dirty) { notify("Commit or discard the edits in the result first"); return }
     const text = editor.text
     const params = { session: sid }
     if (!all && editor.selectionEnd > editor.selectionStart) params.text = text.substring(editor.selectionStart, editor.selectionEnd)
@@ -90,6 +92,8 @@ Item {
       notify("Saved to " + r.path)
     })
   }
+
+  function discardAll() { resultTabs.discardEdits() }
 
   function runFile() {
     picker.pick({ title: "Run a SQL file", extensions: sqlFiles, folder: folder, confirm: "Run" }, function(path) {
@@ -173,7 +177,10 @@ Item {
   Shortcut { sequence: "Ctrl+E"; enabled: q.active && !q.running; onActivated: q.explain() }
 
   onActiveChanged: if (active) editor.focusEditor()
-  Component.onCompleted: editor.focusEditor()
+  Component.onCompleted: {
+    if (initialText) editor.replaceAll(initialText)
+    editor.focusEditor()
+  }
 
   RowLayout {
     anchors.fill: parent
@@ -258,6 +265,10 @@ Item {
         }
 
         ResultTabs {
+          id: resultTabs
+          helper: q.helper
+          sid: q.sid
+          engine: q.engine
           SplitView.fillHeight: true
           SplitView.minimumHeight: 80
           results: q.results

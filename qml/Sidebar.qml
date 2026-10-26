@@ -14,6 +14,7 @@ Rectangle {
   property string selected: ""     // "schema.table"
   property var collapsed: ({})
   property bool loading: false
+  property bool functions: true     // the engine has stored functions (not SQLite)
   signal openRequested(string schema, string table, string kind)
   signal actionRequested(string action, string schema, string name, string kind)
   signal refreshRequested()
@@ -79,8 +80,14 @@ Rectangle {
       Ui.Button {
         id: addBtn
         text: "+"
-        tooltipText: "New table"
-        onClicked: side.newTableRequested("")
+        tooltipText: "New table, view or function"
+        onClicked: {
+          const p = addBtn.mapToItem(side, 0, addBtn.height)
+          menu.item = { kind: "add", name: "", schema: "" }
+          menu.x = Math.min(p.x, side.width - menu.width - 4)
+          menu.y = p.y
+          menu.open()
+        }
       }
       Ui.Button { text: "\uf021"; tooltipText: "Reload the schema"; onClicked: side.refreshRequested() }
     }
@@ -156,14 +163,20 @@ Rectangle {
     property var item: null
     readonly property var actions: !item ? []
       : item.kind === "tables" ? [
-          { act: "open", label: "Open" }, { act: "structure", label: "Structure" },
+          { act: "open", label: "Open" }, { act: "structure", label: "Structure" }, { act: "newtrigger", label: "New trigger…" },
           { act: "export", label: "Export…" }, { act: "import", label: "Import CSV…" },
           { act: "truncate", label: "Truncate…", danger: true }, { act: "drop", label: "Drop table…", danger: true },
           { act: "copy", label: "Copy name" }]
       : item.kind === "views" ? [
-          { act: "open", label: "Open" }, { act: "export", label: "Export…" },
+          { act: "open", label: "Open" }, { act: "definition", label: "Edit definition" }, { act: "export", label: "Export…" },
           { act: "drop", label: "Drop view…", danger: true }, { act: "copy", label: "Copy name" }]
-      : item.kind === "schema" ? [{ act: "newtable", label: "New table…" }, { act: "copy", label: "Copy name" }]
+      : item.kind === "functions" ? [
+          { act: "definition", label: "Edit definition" }, { act: "dropfn", label: "Drop function…", danger: true },
+          { act: "copy", label: "Copy name" }]
+      : item.kind === "add" ? [{ act: "newtable", label: "New table…" }, { act: "newview", label: "New view…" }]
+          .concat(side.functions ? [{ act: "newfunction", label: "New function…" }] : [])
+      : item.kind === "schema" ? [{ act: "newtable", label: "New table…" }, { act: "newview", label: "New view…" },
+          { act: "newfunction", label: "New function…" }, { act: "copy", label: "Copy name" }]
       : [{ act: "copy", label: "Copy name" }]
     padding: 4
     width: 180
@@ -184,7 +197,7 @@ Rectangle {
             if (modelData.act === "copy") Quickshell.execDetached(["wl-copy", "--", d.name])
             else if (modelData.act === "newtable") side.newTableRequested(d.schema)
 
-            else side.actionRequested(modelData.act, d.schema, d.name, d.kind === "views" ? "view" : "table")
+            else side.actionRequested(modelData.act, d.schema, d.name, d.kind === "views" ? "view" : d.kind === "functions" ? "function" : "table")
           }
         }
       }

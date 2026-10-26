@@ -39,6 +39,7 @@ class Session:
         a, c = self.adapter, self.conn
         return {"session": self.id, "id": c.get("id"), "name": c.get("name"), "engine": c.get("engine"),
                 "tag": c.get("tag") or "local", "color": c.get("color"), "database": a.database,
+                "readonly": bool(c.get("readonly")),
                 "databases": a.databases(), "version": a.version(), "ssh": self.tunnel is not None}
 
     def close(self):

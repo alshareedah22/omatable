@@ -36,6 +36,14 @@ Rectangle {
       font.bold: true
     }
     Rectangle {
+      visible: bar.info && !!bar.info.readonly
+      implicitWidth: roText.implicitWidth + 12
+      implicitHeight: roText.implicitHeight + 4
+      radius: 3
+      color: Qt.lighter(Color.background, 1.6)
+      Text { id: roText; anchors.centerIn: parent; text: "READ-ONLY"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+    }
+    Rectangle {
       visible: bar.info && bar.info.tag === "production"
       implicitWidth: prodText.implicitWidth + 12
       implicitHeight: prodText.implicitHeight + 4

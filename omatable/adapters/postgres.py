@@ -23,7 +23,9 @@ class Postgres(SQLAdapter):
             db = psycopg.connect(host=c.get("host") or "127.0.0.1", port=int(c.get("port") or 5432),
                                  user=c.get("user") or None, password=c.get("password") or None,
                                  dbname=dbname, sslmode=c.get("tls") or "prefer", connect_timeout=10,
-                                 application_name="OmaTable", autocommit=True)
+                                 application_name="OmaTable", autocommit=True,
+                                 # read-only connections are read-only on the server too
+                                 options="-c default_transaction_read_only=on" if c.get("readonly") else None)
         self.close()
         self.db = db
         self.database = dbname
@@ -110,6 +112,88 @@ class Postgres(SQLAdapter):
             if schema in schemas:
                 schemas[schema]["functions"].append(name)
         return list(schemas.values())
+
+    def relation_rows(self):
+        hide = HIDDEN_SCHEMAS.format("ns.nspname")
+        pks = self.query(
+            "SELECT ns.nspname, cl.relname, a.attname FROM pg_index i JOIN pg_class cl ON cl.oid = i.indrelid "
+            "JOIN pg_namespace ns ON ns.oid = cl.relnamespace "
+            "JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) "
+            f"WHERE i.indisprimary AND ns.nspname {hide}")[1]
+        fks = self.query(
+            "SELECT con.conname, ns.nspname, cl.relname, "
+            "ARRAY(SELECT a.attname FROM unnest(con.conkey) WITH ORDINALITY k(n, i) "
+            "JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.n ORDER BY k.i), "
+            "fns.nspname, fcl.relname, "
+            "ARRAY(SELECT a.attname FROM unnest(con.confkey) WITH ORDINALITY k(n, i) "
+            "JOIN pg_attribute a ON a.attrelid = con.confrelid AND a.attnum = k.n ORDER BY k.i) "
+            "FROM pg_constraint con JOIN pg_class cl ON cl.oid = con.conrelid "
+            "JOIN pg_namespace ns ON ns.oid = cl.relnamespace JOIN pg_class fcl ON fcl.oid = con.confrelid "
+            f"JOIN pg_namespace fns ON fns.oid = fcl.relnamespace WHERE con.contype = 'f' AND ns.nspname {hide} "
+            "ORDER BY 2, 3, 1")[1]
+        return pks, fks
+
+    def resolve_schema(self, table, quoted):
+        rows = self.query("SELECT n.nspname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace "
+                          "WHERE c.oid = to_regclass(%s)", (self.d.quote(table) if quoted else table,))[1]
+        return rows[0][0] if rows else None
+
+    def _routines(self, schema, name):
+        return self.query(
+            "SELECT p.prokind, pg_get_functiondef(p.oid), pg_get_function_identity_arguments(p.oid) "
+            "FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace "
+            "WHERE n.nspname = %s AND p.proname = %s AND p.prokind IN ('f', 'p') ORDER BY p.oid", (schema, name))[1]
+
+    def definition(self, schema, name, kind):
+        t = self.d.table(schema, name)
+        if kind == "view":
+            rows = self.query("SELECT c.relkind, pg_get_viewdef(c.oid, true) FROM pg_class c "
+                              "JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = %s AND c.relname = %s "
+                              "AND c.relkind IN ('v', 'm')", (schema, name))[1]
+            if not rows:
+                raise Error("notfound", f"no view {name}")
+            body = rows[0][1].strip().rstrip(";")
+            if rows[0][0] == "m":
+                return {"sql": f"DROP MATERIALIZED VIEW {t};\nCREATE MATERIALIZED VIEW {t} AS\n{body};"}
+            return {"sql": f"CREATE OR REPLACE VIEW {t} AS\n{body};"}
+        if kind == "function":
+            rows = self._routines(schema, name)
+            if not rows:
+                raise Error("notfound", f"no function {name}")
+            return {"sql": "\n\n".join(dfn.strip() + ";" for _, dfn, _ in rows),
+                    "overloads": [sig for _, _, sig in rows]}
+        if kind == "trigger":
+            rows = self.query("SELECT pg_get_triggerdef(t.oid, true), c.relname FROM pg_trigger t "
+                              "JOIN pg_class c ON c.oid = t.tgrelid JOIN pg_namespace n ON n.oid = c.relnamespace "
+                              "WHERE n.nspname = %s AND t.tgname = %s AND NOT t.tgisinternal", (schema, name))[1]
+            if not rows:
+                raise Error("notfound", f"no trigger {name}")
+            on = self.d.table(schema, rows[0][1])
+            return {"sql": f"DROP TRIGGER IF EXISTS {self.d.quote(name)} ON {on};\n{rows[0][0]};"}
+        raise Error("invalid", f"unknown object kind {kind!r}")
+
+    def drop_object(self, schema, name, kind, table=None, signature=None):
+        q = self.d.quote
+        if kind == "function":
+            rows = self._routines(schema, name)
+            if signature is not None:
+                rows = [r for r in rows if r[2] == signature]
+            if not rows:
+                raise Error("notfound", f"no function {name}({signature or ''})")
+            if len(rows) > 1:
+                raise Error("invalid", f"{name} has {len(rows)} versions; pick one to drop")
+            prokind, _, sig = rows[0]
+            self.query(f"DROP {'PROCEDURE' if prokind == 'p' else 'FUNCTION'} {self.d.table(schema, name)}({sig})")
+        elif kind == "trigger":
+            if not table:
+                table = self.query("SELECT c.relname FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid "
+                                   "JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = %s AND t.tgname = %s",
+                                   (schema, name))[1][0][0]
+            self.query(f"DROP TRIGGER {q(name)} ON {self.d.table(schema, table)}")
+        else:
+            raise Error("invalid", f"unknown object kind {kind!r}")
+        self.forget()
+        return {"ok": True}
 
     def explain(self, sql, analyze=False):
         opts = "FORMAT JSON" + (", ANALYZE, BUFFERS" if analyze else "")
@@ -246,7 +330,12 @@ class Postgres(SQLAdapter):
                    "JOIN pg_namespace rn ON rn.oid = rc.relnamespace "
                    "WHERE con.contype = 'f' AND n.nspname = %s AND c.relname = %s ORDER BY con.conname",
                    (schema, table))[1]]
-        return {"columns": columns, "indexes": indexes, "foreign_keys": fks, "ddl": self._ddl(schema, table, columns)}
+        triggers = [{"name": n, "definition": dfn + ";"} for n, dfn in self.query(
+            "SELECT t.tgname, pg_get_triggerdef(t.oid, true) FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid "
+            "JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = %s AND c.relname = %s "
+            "AND NOT t.tgisinternal ORDER BY 1", (schema, table))[1]]
+        return {"columns": columns, "indexes": indexes, "foreign_keys": fks, "triggers": triggers,
+                "ddl": self._ddl(schema, table, columns)}
 
     def _ddl(self, schema, table, columns):
         q, t = self.d.quote, self.d.table(schema, table)

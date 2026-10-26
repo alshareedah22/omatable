@@ -8,6 +8,10 @@ import qs.Ui as Ui
 Item {
   id: rt
 
+  property var helper: null
+  property string sid: ""
+  property string engine: ""
+  readonly property bool dirty: model.dirty
   property var results: []
   property int current: 0
   property string placeholder: "Run a query with Ctrl+Enter"
@@ -33,7 +37,35 @@ Item {
   ResultModel {
     id: model
     result: rt.shown && rt.shown.columns ? rt.shown : null
+    engine: rt.engine
     onNotify: function(text) { rt.notify(text) }
+    onEditorRequested: function(r, c) { cellEditor.edit(r, c) }
+  }
+  CellEditor { id: cellEditor; tab: model }
+  Confirm { id: confirm }
+
+  function discardEdits() { model.discardAll() }
+
+  function preview(then) {
+    const src = model.source
+    helper.request("table.preview", { session: sid, schema: src.schema, table: src.table, changes: model.changes() }, function(r, e) {
+      if (e) { notify(e.message); return }
+      then(r.statements)
+    })
+  }
+  function commit() {
+    const src = model.source
+    preview(function(stmts) {
+      confirm.ask({ title: "Save " + stmts.length + (stmts.length === 1 ? " change" : " changes") + " to " + src.table + "?",
+                    detail: stmts.join("\n"), confirm: "Commit" }, function(dlg) {
+        helper.request("table.commit", { session: sid, schema: src.schema, table: src.table, changes: model.changes(), confirmed: true }, function(r, e) {
+          if (e) { dlg.fail(e.message); return }
+          dlg.done()
+          model.applied()
+          notify("Saved " + stmts.length + (stmts.length === 1 ? " change" : " changes") + " to " + src.table)
+        })
+      })
+    })
   }
 
   ColumnLayout {
@@ -66,7 +98,7 @@ Item {
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
             }
-            MouseArea { anchors.fill: parent; onClicked: rt.current = index }
+            MouseArea { anchors.fill: parent; onClicked: { if (model.dirty && index !== rt.current) rt.notify("Commit or discard the edits first"); else rt.current = index } }
             Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Color.background, 1.4) }
           }
         }
@@ -119,6 +151,27 @@ Item {
       visible: rt.shown !== null
       implicitHeight: statusText.implicitHeight + 10
       color: Qt.lighter(Color.background, 1.08)
+      Row {
+        id: editBar
+        anchors.right: exportBtn.left
+        anchors.rightMargin: 6
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 6
+        visible: model.dirty
+        Ui.Button { bordered: true; text: "Discard"; fontSize: Style.font.bodySmall; onClicked: model.discardAll() }
+        Ui.Button { bordered: true; foreground: Color.accent; fontSize: Style.font.bodySmall
+                    text: "Commit " + model.changeCount + (model.changeCount === 1 ? " change" : " changes"); onClicked: rt.commit() }
+      }
+      Text {
+        anchors.right: exportBtn.left
+        anchors.rightMargin: 8
+        anchors.verticalCenter: parent.verticalCenter
+        visible: !model.dirty && model.editable
+        text: "editable · " + (model.source ? model.source.table : "")
+        color: Color.accent
+        font.family: Style.font.family
+        font.pixelSize: Style.font.bodySmall
+      }
       Ui.Button {
         id: exportBtn
         anchors.right: parent.right
@@ -133,7 +186,7 @@ Item {
       Text {
         id: statusText
         x: 8
-        width: parent.width - 16 - (exportBtn.visible ? exportBtn.width + 8 : 0)
+        width: parent.width - 16 - (exportBtn.visible ? exportBtn.width + 8 : 0) - (editBar.visible ? editBar.width + 8 : model.editable ? 140 : 0)
         anchors.verticalCenter: parent.verticalCenter
         elide: Text.ElideRight
         text: !rt.shown ? "" : rt.summary(rt.shown) + " · " + rt.shown.ms + " ms"

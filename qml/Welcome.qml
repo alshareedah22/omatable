@@ -44,14 +44,25 @@ Item {
       out.push({ header: "OmaDBngin" })
       omadb.forEach(function(c) { out.push({ conn: c }) })
     }
+    // folders first (A–Z, collapsible), then the rest by tag
+    const folders = {}
+    connections.forEach(function(c) { if (c.folder && matches(c)) (folders[c.folder] = folders[c.folder] || []).push(c) })
+    Object.keys(folders).sort(function(a, b) { return a.localeCompare(b) }).forEach(function(f) {
+      const shut = !!collapsed[f] && search === ""
+      out.push({ header: (shut ? "▸ " : "▾ ") + f + "  " + folders[f].length, folder: f })
+      if (!shut) folders[f].forEach(function(c) { out.push({ conn: c }) })
+    })
     tagOrder.forEach(function(tag) {
-      const group = connections.filter(function(c) { return c.tag === tag && matches(c) })
+      const group = connections.filter(function(c) { return !c.folder && c.tag === tag && matches(c) })
       if (!group.length) return
       out.push({ header: tag.charAt(0).toUpperCase() + tag.slice(1) })
       group.forEach(function(c) { out.push({ conn: c }) })
     })
     return out
   }
+
+  property var collapsed: ({})     // folder -> true when shut
+  function toggleFolder(f) { const c = Object.assign({}, collapsed); c[f] = !c[f]; collapsed = c }
 
   function select(c) {
     selectedId = c ? c.id : ""
@@ -133,10 +144,15 @@ Item {
               anchors.bottom: parent.bottom
               anchors.bottomMargin: 4
               text: modelData.header || ""
-              color: Color.muted
+              color: modelData.folder ? Color.foreground : Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
               font.bold: true
+            }
+            MouseArea {
+              visible: !!modelData.folder
+              anchors.fill: parent
+              onClicked: welcome.toggleFolder(modelData.folder)
             }
 
             Rectangle {
@@ -189,7 +205,7 @@ Item {
                 anchors.rightMargin: 10
                 anchors.verticalCenter: parent.verticalCenter
                 text: !modelData.conn ? "" : modelData.conn.source === "omadb" ? (modelData.conn.running ? "●" : "○")
-                  : modelData.conn.ssh ? "" : ""
+                  : (modelData.conn.readonly ? "\uf023 " : "") + (modelData.conn.ssh ? "" : "")
                 color: modelData.conn && modelData.conn.source === "omadb" && modelData.conn.running ? "#5fb85f" : Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body

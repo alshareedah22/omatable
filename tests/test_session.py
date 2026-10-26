@@ -40,6 +40,23 @@ class SessionTest(unittest.TestCase):
         os.environ.pop("OMATABLE_DBCTL", None)
         self.tmp.cleanup()
 
+    def test_read_only_connection(self):
+        self.store.save({**self.conn, "readonly": True, "folder": "Work"})
+        listed = self.store.list()[0]
+        self.assertEqual((listed["readonly"], listed["folder"]), (True, "Work"))
+        sid = self.m["session.open"](id=self.conn["id"])["session"]
+        self.assertEqual(len(self.m["query.run"](session=sid, text="SELECT * FROM notes")["results"][0]["rows"]), 3)
+        writes = [("query.run", {"text": "DELETE FROM notes"}),
+                  ("table.commit", {"schema": "main", "table": "notes",
+                                    "changes": {"updates": [{"key": {"id": 1}, "values": {"body": "x"}}]}}),
+                  ("table.drop", {"schema": "main", "table": "notes"}),
+                  ("table.truncate", {"schema": "main", "table": "notes", "confirmed": True})]
+        for method, params in writes:
+            with self.assertRaises(Error) as e:
+                self.m[method](session=sid, **params)
+            self.assertEqual(e.exception.code, "readonly", method)
+        self.assertEqual(len(self.m["query.run"](session=sid, text="SELECT * FROM notes")["results"][0]["rows"]), 3)
+
     def test_open_browse_commit_close(self):
         info = self.m["session.open"](id=self.conn["id"])
         self.assertEqual(info["engine"], "sqlite")

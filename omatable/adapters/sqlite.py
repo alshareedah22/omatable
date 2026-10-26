@@ -18,7 +18,7 @@ class SQLite(SQLAdapter):
         path = os.path.expanduser(self.conn.get("path") or "")
         if not os.path.isfile(path):
             raise Error("notfound", f"no SQLite file at {path}")
-        uri = "file:" + urllib.parse.quote(os.path.abspath(path)) + "?mode=rw"
+        uri = "file:" + urllib.parse.quote(os.path.abspath(path)) + ("?mode=ro" if self.conn.get("readonly") else "?mode=rw")
         with self.guard():
             self.db = sqlite3.connect(uri, uri=True, check_same_thread=False, isolation_level=None, timeout=5)
             self.db.execute("SELECT 1 FROM sqlite_master LIMIT 1")
@@ -50,6 +50,41 @@ class SQLite(SQLAdapter):
                              "AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\' ORDER BY name")
         return [{"name": SCHEMA, "tables": [n for n, t in rows if t == "table"],
                  "views": [n for n, t in rows if t == "view"], "functions": [], "sequences": []}]
+
+    def relation_rows(self):
+        pks, fks = [], []
+        for (table,) in self.query("SELECT name FROM sqlite_master WHERE type = 'table' "
+                                   "AND name NOT LIKE 'sqlite\\_%' ESCAPE '\\'")[1]:
+            q = self.d.quote(table)
+            for _, name, _, _, _, pk in self.query(f"PRAGMA table_info({q})")[1]:
+                if pk:
+                    pks.append((SCHEMA, table, name))
+            groups = {}
+            for fid, _, ref, frm, to, *_ in self.query(f"PRAGMA foreign_key_list({q})")[1]:
+                g = groups.setdefault(fid, [f"fk_{table}_{fid}", SCHEMA, table, [], SCHEMA, ref, []])
+                g[3].append(frm)
+                g[6].append(to)
+            fks += [tuple(g) for g in groups.values()]
+        return pks, fks
+
+    def resolve_schema(self, table, quoted):
+        return SCHEMA
+
+    def definition(self, schema, name, kind):
+        if kind not in ("view", "trigger"):
+            raise Error("unsupported", "SQLite has no stored functions")
+        rows = self.query("SELECT sql FROM sqlite_master WHERE type = ? AND name = ?", (kind, name))[1]
+        if not rows:
+            raise Error("notfound", f"no {kind} {name}")
+        # SQLite cannot replace either in place: drop, then create again
+        return {"sql": f"DROP {kind.upper()} IF EXISTS {self.d.quote(name)};\n{rows[0][0]};"}
+
+    def drop_object(self, schema, name, kind, table=None, signature=None):
+        if kind != "trigger":
+            raise Error("unsupported", "SQLite has no stored functions")
+        self.query(f"DROP TRIGGER {self.d.quote(name)}")
+        self.forget()
+        return {"ok": True}
 
     def explain(self, sql, analyze=False):
         if analyze:
@@ -112,7 +147,10 @@ class SQLite(SQLAdapter):
         sqls = [r[0] + ";" for r in self.query(
             "SELECT sql FROM sqlite_master WHERE tbl_name = ? AND sql IS NOT NULL "
             "ORDER BY type = 'table' DESC, name", (table,))[1]]
-        return {"columns": columns, "indexes": indexes, "foreign_keys": list(fks.values()), "ddl": "\n".join(sqls)}
+        triggers = [{"name": n, "definition": sql + ";"} for n, sql in self.query(
+            "SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND tbl_name = ? ORDER BY name", (table,))[1]]
+        return {"columns": columns, "indexes": indexes, "foreign_keys": list(fks.values()), "triggers": triggers,
+                "ddl": "\n".join(sqls)}
 
     def truncate(self, schema, table):
         self.query(f"DELETE FROM {self.d.table(schema, table)}")

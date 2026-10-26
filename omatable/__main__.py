@@ -6,7 +6,7 @@ import signal
 import sys
 import tomllib
 
-from . import __version__, admin, dump, files, omadb, safety, sqlsplit, transfer
+from . import __version__, admin, dump, files, objects, omadb, safety, sqlsplit, transfer
 from .history import History, Saved
 from .protocol import Error, Server
 from .session import Sessions
@@ -46,9 +46,17 @@ def build(store, server=None, sessions=None):
     saved = Saved(store.dir)
 
     def ask(s, confirmed, question, detail=None):
-        """Safe mode: production connections confirm writes. The window asks and resends with confirmed."""
+        """Every write passes here. Read-only connections refuse it; production
+        connections confirm it (the window asks and resends with confirmed)."""
+        if s.conn.get("readonly"):
+            raise Error("readonly", f"{s.conn.get('name') or 'This connection'} is read-only, so this is not allowed: "
+                        f"{question} Edit the connection to allow changes.", detail)
         if s.conn.get("tag") == "production" and not confirmed:
             raise Error("confirm", question, detail)
+
+    def guarded(s, confirmed):
+        """Whether a write has to go through ask(): on read-only connections always."""
+        return bool(s.conn.get("readonly")) or (not confirmed and s.conn.get("tag") == "production")
 
     @server.method("app.version")
     def version():
@@ -123,6 +131,27 @@ def build(store, server=None, sessions=None):
         s = sessions.get(session)
         return s.run(s.adapter.catalog)
 
+    @server.method("schema.relations")
+    def schema_relations(session, schema=None):
+        s = sessions.get(session)
+        return s.run(s.adapter.relations, schema)
+
+    @server.method("schema.definition")
+    def schema_definition(session, schema, name, kind):
+        s = sessions.get(session)
+        return s.run(s.adapter.definition, schema, name, kind)
+
+    @server.method("schema.template")
+    def schema_template(session, schema, kind, table=None):
+        s = sessions.get(session)
+        return {"sql": objects.template(s.adapter.d, schema, kind, table)}
+
+    @server.method("schema.drop_object")
+    def schema_drop_object(session, schema, name, kind, table=None, signature=None, confirmed=False):
+        s = sessions.get(session)
+        ask(s, confirmed, f"Drop the {kind} {name}?")
+        return s.run(s.adapter.drop_object, schema, name, kind, table, signature)
+
     @server.method("table.rows")
     def table_rows(session, schema, table, offset=0, limit=300, sort=None, filters=None, match="and"):
         s = sessions.get(session)
@@ -141,7 +170,7 @@ def build(store, server=None, sessions=None):
     @server.method("table.commit")
     def table_commit(session, schema, table, changes, confirmed=False):
         s = sessions.get(session)
-        if not confirmed and s.conn.get("tag") == "production":
+        if guarded(s, confirmed):
             stmts = s.run(s.adapter.preview, schema, table, changes)["statements"]
             ask(s, False, f"Save {len(stmts)} change{'s' if len(stmts) != 1 else ''} to {table}?", "\n".join(stmts))
         return s.run(s.adapter.commit, schema, table, changes)
@@ -159,7 +188,7 @@ def build(store, server=None, sessions=None):
     @server.method("struct.apply")
     def struct_apply(session, schema, table, changes, confirmed=False):
         s = sessions.get(session)
-        if not confirmed and s.conn.get("tag") == "production":
+        if guarded(s, confirmed):
             stmts = s.run(s.adapter.alter_preview, schema, table, changes)["statements"]
             ask(s, False, f"Change the structure of {table}?", "\n".join(stmts))
         return s.run(s.adapter.alter, schema, table, changes)
@@ -178,7 +207,7 @@ def build(store, server=None, sessions=None):
     @server.method("table.create")
     def table_create(session, schema, table, columns, confirmed=False):
         s = sessions.get(session)
-        if not confirmed and s.conn.get("tag") == "production":
+        if guarded(s, confirmed):
             stmts = s.run(s.adapter.create_table_preview, schema, table, columns)["statements"]
             ask(s, False, f"Create the table {table}?", "\n".join(stmts))
         return s.run(s.adapter.create_table, schema, table, columns)
@@ -252,7 +281,7 @@ def build(store, server=None, sessions=None):
             stmts = [one] if one else []
         if not stmts:
             raise Error("invalid", "There is no SQL to run")
-        if not confirmed and s.conn.get("tag") == "production":
+        if guarded(s, confirmed):
             writes = safety.sql_writes([sql for _, _, sql in stmts], engine)
             if writes:
                 n = len(writes)
@@ -261,6 +290,10 @@ def build(store, server=None, sessions=None):
         ddl = any(sqlsplit.keyword(sql) in DDL for _, _, sql in stmts)
         if ddl:
             s.run(s.adapter.forget)
+        for r in out["results"]:
+            # rows of a plain one-table SELECT can be edited in the result grid
+            if r.get("columns") and not s.conn.get("readonly"):
+                r["source"] = s.run(s.adapter.edit_source, r["sql"], [c["name"] for c in r["columns"]])
         results = out["results"]
         err = results[-1].get("error") if results else None
         start, end = stmts[0][0], stmts[-1][1]
@@ -292,7 +325,7 @@ def build(store, server=None, sessions=None):
         stmts = [sql for _, _, sql in sqlsplit.split(text, engine)]
         if not stmts:
             raise Error("invalid", f"{name} has no SQL to run")
-        if not confirmed and s.conn.get("tag") == "production":
+        if guarded(s, confirmed):
             writes = safety.sql_writes(stmts, engine)
             if writes:
                 shown = ";\n".join(writes[:30]) + ";" + (f"\n… and {len(writes) - 30} more" if len(writes) > 30 else "")
@@ -466,7 +499,7 @@ def build(store, server=None, sessions=None):
     @server.method("redis.cmd")
     def redis_cmd(session, text, confirmed=False):
         s = kind(session, "redis")
-        if not confirmed and s.conn.get("tag") == "production":
+        if guarded(s, confirmed):
             args = s.adapter.parse(text)
             if args[0].upper() != "SELECT" and s.run(s.adapter.writes, args):
                 ask(s, False, "Run a command that can change data?", str(text).strip())
@@ -487,7 +520,7 @@ def build(store, server=None, sessions=None):
     @server.method("mongo.aggregate")
     def mongo_aggregate(session, collection, pipeline, limit=100, confirmed=False):
         s = kind(session, "mongodb")
-        if not confirmed and s.conn.get("tag") == "production" and str(pipeline or "").strip():
+        if guarded(s, confirmed) and str(pipeline or "").strip():
             from . import mongojs  # needs the drivers' bson
             stages = mongojs.parse(pipeline, "pipeline")
             if isinstance(stages, list) and safety.pipeline_writes(stages):
@@ -550,7 +583,7 @@ def build(store, server=None, sessions=None):
     def mongo_run(session, text, confirmed=False):
         s = kind(session, "mongodb")
         from . import mongojs
-        if not confirmed and s.conn.get("tag") == "production" and safety.mongo_writes(mongojs.parse(text, "command")):
+        if guarded(s, confirmed) and safety.mongo_writes(mongojs.parse(text, "command")):
             ask(s, False, "Run a command that can change data?", str(text).strip())
         try:
             out = s.run(s.adapter.command, text)

@@ -44,6 +44,30 @@ Item {
 
   signal notify(string text)
   signal applied()
+  signal sqlRequested(string sql, string title)   // open SQL in a query tab
+
+  function editTrigger(name) {
+    helper.request("schema.definition", { session: sid, schema: schema, name: name, kind: "trigger" }, function(r, e) {
+      if (e) { notify(e.message); return }
+      sqlRequested(r.sql, name)
+    })
+  }
+  function newTrigger() {
+    helper.request("schema.template", { session: sid, schema: schema, kind: "trigger", table: table }, function(r, e) {
+      if (e) { notify(e.message); return }
+      sqlRequested(r.sql, "new trigger")
+    })
+  }
+  function dropTrigger(name) {
+    confirm.ask({ title: "Drop the trigger " + name + "?", text: "It stops running on " + table + ".", confirm: "Drop trigger", danger: true }, function(dlg) {
+      helper.request("schema.drop_object", { session: sid, schema: schema, name: name, kind: "trigger", table: table, confirmed: true }, function(r, e) {
+        if (e) { dlg.fail(e.message); return }
+        dlg.done()
+        notify("Dropped " + name)
+        reload()
+      })
+    })
+  }
 
   function reload() {
     loading = true
@@ -216,7 +240,7 @@ Item {
         spacing: 6
         Repeater {
           model: [{ key: "columns", label: "Columns" }, { key: "indexes", label: "Indexes" },
-                  { key: "fks", label: "Foreign keys" }, { key: "ddl", label: "DDL" }]
+                  { key: "fks", label: "Foreign keys" }, { key: "triggers", label: "Triggers" }, { key: "ddl", label: "DDL" }]
           delegate: Ui.Button {
             required property var modelData
             bordered: st.page === modelData.key
@@ -253,7 +277,7 @@ Item {
     StackLayout {
       Layout.fillWidth: true
       Layout.fillHeight: true
-      currentIndex: ["columns", "indexes", "fks", "ddl"].indexOf(st.page)
+      currentIndex: ["columns", "indexes", "fks", "triggers", "ddl"].indexOf(st.page)
 
       // ---- columns ----
       ColumnLayout {
@@ -539,6 +563,74 @@ Item {
               fkName.text = ""; fkCols.text = ""; fkRef.text = ""; fkRefCols.text = ""; fkDel.value = "NO ACTION"; fkUpd.value = "NO ACTION"
             }
           }
+        }
+      }
+
+      // ---- triggers ----
+      ColumnLayout {
+        spacing: 4
+        ListView {
+          id: trigList
+          Layout.fillWidth: true
+          Layout.fillHeight: true
+          Layout.topMargin: 6
+          clip: true
+          spacing: 6
+          model: st.info && st.info.triggers ? st.info.triggers : []
+          ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+          delegate: Rectangle {
+            id: trow
+            required property var modelData
+            width: trigList.width
+            height: tlay.implicitHeight + 12
+            color: Qt.lighter(Color.background, 1.06)
+            radius: 4
+            ColumnLayout {
+              id: tlay
+              x: 12
+              y: 6
+              width: parent.width - 24
+              spacing: 4
+              RowLayout {
+                Layout.fillWidth: true
+                Text {
+                  Layout.fillWidth: true
+                  text: trow.modelData.name
+                  color: Color.foreground
+                  font.family: "monospace"
+                  font.pixelSize: Style.font.bodySmall
+                  font.bold: true
+                }
+                Ui.Button { text: "Edit"; tooltipText: "Open its definition in a query tab"; onClicked: st.editTrigger(trow.modelData.name) }
+                Ui.Button { text: "Drop…"; foreground: Color.urgent; onClicked: st.dropTrigger(trow.modelData.name) }
+              }
+              Text {
+                Layout.fillWidth: true
+                text: trow.modelData.definition
+                wrapMode: Text.Wrap
+                maximumLineCount: 6
+                elide: Text.ElideRight
+                color: Color.muted
+                font.family: "monospace"
+                font.pixelSize: Style.font.bodySmall
+              }
+            }
+          }
+          Text {
+            x: 16
+            y: 12
+            visible: trigList.count === 0
+            text: "No triggers on " + st.table
+            color: Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
+          }
+        }
+        RowLayout {
+          Layout.fillWidth: true
+          Layout.margins: 8
+          Item { Layout.fillWidth: true }
+          Ui.Button { bordered: true; text: "+ Trigger"; tooltipText: "Open a trigger template in a query tab"; onClicked: st.newTrigger() }
         }
       }
 

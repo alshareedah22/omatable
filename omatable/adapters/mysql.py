@@ -34,6 +34,10 @@ class MySQL(SQLAdapter):
             # update that keeps a value still counts as touching its row.
             self.db = pymysql.connect(**self.params(), database=self.database or None,
                                       autocommit=True, client_flag=CLIENT.FOUND_ROWS)
+            if self.conn.get("readonly"):
+                # read-only connections are read-only on the server too
+                with self.db.cursor() as cur:
+                    cur.execute("SET SESSION TRANSACTION READ ONLY")
 
     def interrupt(self):
         # The running connection is busy, so kill its query from a second one.
@@ -123,6 +127,63 @@ class MySQL(SQLAdapter):
             if schema in schemas:
                 schemas[schema]["functions"].append(name)
         return list(schemas.values())
+
+    def relation_rows(self):
+        if self.database:
+            cond, params = "= %s", (self.database,)
+        else:
+            cond, params = f"NOT IN ({', '.join(['%s'] * len(SYSTEM))})", SYSTEM
+        rows = self.query(
+            "SELECT CONSTRAINT_NAME, TABLE_SCHEMA, TABLE_NAME, COLUMN_NAME, REFERENCED_TABLE_SCHEMA, "
+            "REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME FROM information_schema.KEY_COLUMN_USAGE "
+            f"WHERE TABLE_SCHEMA {cond} AND (CONSTRAINT_NAME = 'PRIMARY' OR REFERENCED_TABLE_NAME IS NOT NULL) "
+            "ORDER BY TABLE_SCHEMA, TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION", params)[1]
+        pks, fks = [], {}
+        for name, s, t, col, rs, rt, rcol in rows:
+            if name == "PRIMARY":
+                pks.append((s, t, col))
+                continue
+            fk = fks.setdefault((s, t, name), [name, s, t, [], rs, rt, []])
+            fk[3].append(col)
+            fk[6].append(rcol)
+        return pks, [tuple(v) for v in fks.values()]
+
+    def _routine_type(self, schema, name):
+        rows = self.query("SELECT ROUTINE_TYPE FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = %s "
+                          "AND ROUTINE_NAME = %s", (schema, name))[1]
+        if not rows:
+            raise Error("notfound", f"no function or procedure {name}")
+        return rows[0][0]
+
+    def definition(self, schema, name, kind):
+        t = self.d.table(schema, name)
+        if kind == "view":
+            rows = self.query("SELECT VIEW_DEFINITION FROM information_schema.VIEWS WHERE TABLE_SCHEMA = %s "
+                              "AND TABLE_NAME = %s", (schema, name))[1]
+            if not rows:
+                raise Error("notfound", f"no view {name}")
+            return {"sql": f"CREATE OR REPLACE VIEW {t} AS\n{rows[0][0]};"}
+        if kind in ("function", "trigger"):
+            what = self._routine_type(schema, name) if kind == "function" else "TRIGGER"
+            row = self.query(f"SHOW CREATE {what} {t}")[1][0]
+            create = row[2]
+            if not create:
+                raise Error("denied", f"you may not read the definition of {name}")
+            # without DEFINER the object belongs to whoever runs the edit
+            create = re.sub(r"DEFINER\s*=\s*`[^`]*`@`[^`]*`\s*", "", create)
+            return {"sql": f"DROP {what} IF EXISTS {t};\n{create.strip().rstrip(';')};"}
+        raise Error("invalid", f"unknown object kind {kind!r}")
+
+    def drop_object(self, schema, name, kind, table=None, signature=None):
+        t = self.d.table(schema, name)
+        if kind == "function":
+            self.query(f"DROP {self._routine_type(schema, name)} {t}")
+        elif kind == "trigger":
+            self.query(f"DROP TRIGGER {t}")
+        else:
+            raise Error("invalid", f"unknown object kind {kind!r}")
+        self.forget()
+        return {"ok": True}
 
     def explain(self, sql, analyze=False):
         if self.version().startswith("MariaDB"):
@@ -233,7 +294,12 @@ class MySQL(SQLAdapter):
             fk["columns"].append(column)
             fk["ref_columns"].append(rc)
         create = self.query(f"SHOW CREATE TABLE {self.d.table(schema, table)}")[1][0][1]
+        triggers = [{"name": n, "definition": f"{when} FOR EACH ROW {body}"} for n, when, body in self.query(
+            "SELECT TRIGGER_NAME, CONCAT(ACTION_TIMING, ' ', EVENT_MANIPULATION), ACTION_STATEMENT "
+            "FROM information_schema.TRIGGERS WHERE EVENT_OBJECT_SCHEMA = %s AND EVENT_OBJECT_TABLE = %s ORDER BY 1",
+            (schema, table))[1]]
         return {"columns": columns, "indexes": list(indexes.values()), "foreign_keys": list(fks.values()),
+                "triggers": triggers,
                 "ddl": create + ";"}
 
     def run_ddl(self, statements):

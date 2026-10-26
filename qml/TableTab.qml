@@ -52,6 +52,7 @@ Item {
 
   signal notify(string text)
   signal exportRequested(var target, string name)
+  signal sqlRequested(string sql, string title)
 
   // ---- loading ----
   function reload(resetOffset) {
@@ -331,6 +332,7 @@ Item {
       active: tab.active && tab.view === "structure"
       onNotify: function(text) { tab.notify(text) }
       onApplied: tab.reload(true)
+      onSqlRequested: function(sql, title) { tab.sqlRequested(sql, title) }
       Component.onCompleted: reload()
     }
   }

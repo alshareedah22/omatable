@@ -46,7 +46,7 @@ Item {
       const t = tabModel.get(i)
       if (t.kind === "table" && t.schema === schema && t.table === table) break
     }
-    if (i === tabModel.count) tabModel.append({ kind: "table", schema: schema, table: table, title: table })
+    if (i === tabModel.count) tabModel.append({ kind: "table", schema: schema, table: table, title: table, sql: "" })
     current = i
     if (view) Qt.callLater(function() { const p = page(i); if (p) p.showView(view) })
   }
@@ -60,6 +60,10 @@ Item {
   }
 
   function tableAction(act, schema, name, kind) {
+    if (act === "definition" || act === "dropfn") { objectAction(act, schema, name, kind); return }
+    if (act === "newview") { objectAction("new", schema, "", "view"); return }
+    if (act === "newfunction") { objectAction("new", schema, "", "function"); return }
+    if (act === "newtrigger") { objectAction("new", schema, name, "trigger"); return }
     if (act === "open") openTable(schema, name)
     else if (act === "structure") openTable(schema, name, "structure")
     else if (act === "export") exportDialog.show({ schema: schema, table: name }, name)
@@ -138,10 +142,46 @@ Item {
     })
   }
 
-  function openQuery() {
-    queryCount++
-    tabModel.append({ kind: "query", schema: "", table: "", title: "Query " + queryCount })
+  function openDiagram() {
+    for (let i = 0; i < tabModel.count; i++) if (tabModel.get(i).kind === "diagram") { current = i; return }
+    tabModel.append({ kind: "diagram", schema: "", table: "", title: "Diagram", sql: "" })
     current = tabModel.count - 1
+  }
+
+  function openQuery(sql, title) {
+    queryCount++
+    tabModel.append({ kind: "query", schema: "", table: "", title: title || "Query " + queryCount, sql: sql || "" })
+    current = tabModel.count - 1
+  }
+
+  // Views, functions, triggers: definitions and templates open in a query tab to edit and run.
+  function defaultSchema() {
+    const names = tree.map(function(s) { return s.name })
+    return names.indexOf("public") >= 0 ? "public" : info.database && names.indexOf(info.database) >= 0 ? info.database : (names[0] || "")
+  }
+
+  function objectAction(act, schema, name, kind) {
+    schema = schema || defaultSchema()
+    if (act === "definition") {
+      helper.request("schema.definition", { session: info.session, schema: schema, name: name, kind: kind }, function(r, e) {
+        if (e) { toast = e.message; return }
+        openQuery(r.sql, name)
+      })
+    } else if (act === "new") {
+      helper.request("schema.template", { session: info.session, schema: schema, kind: kind, table: name || null }, function(r, e) {
+        if (e) { toast = e.message; return }
+        openQuery(r.sql, "new " + kind)
+      })
+    } else if (act === "dropfn") {
+      confirm.ask({ title: "Drop the function " + name + "?", text: "Anything that calls it stops working.", confirm: "Drop function", danger: true }, function(dlg) {
+        helper.request("schema.drop_object", { session: info.session, schema: schema, name: name, kind: "function", confirmed: true }, function(r, e) {
+          if (e) { dlg.fail(e.message); return }
+          dlg.done()
+          toast = "Dropped " + name
+          loadTree()
+        })
+      })
+    }
   }
 
   function followDatabase(db) {
@@ -259,6 +299,7 @@ Item {
         onOpenRequested: function(schema, table) { ws.openTable(schema, table) }
         onActionRequested: function(act, schema, name, kind) { ws.tableAction(act, schema, name, kind) }
         onRefreshRequested: ws.loadTree()
+        functions: ws.info && ws.info.engine !== "sqlite"
         onNewTableRequested: function(schema) { newTable.show(ws.tree.map(function(s) { return s.name }), schema || ws.info.database) }
       }
       Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
@@ -330,7 +371,19 @@ Item {
               id: tabLoader
               required property int index
               required property var model
-              sourceComponent: model.kind === "query" ? queryTab : tableTab
+              sourceComponent: model.kind === "query" ? queryTab : model.kind === "diagram" ? diagramTab : tableTab
+              Component {
+                id: diagramTab
+                DiagramTab {
+                  helper: ws.helper
+                  sid: ws.info.session
+                  schemas: ws.tree.length > 1 ? [{ value: "", label: "All schemas" }].concat(ws.tree.map(function(s) { return s.name })) : []
+                  schema: ws.tree.length > 1 ? ws.defaultSchema() : ""
+                  active: ws.visible && tabLoader.index === ws.current
+                  onOpenTable: function(schema, table) { ws.openTable(schema, table) }
+                  onNotify: function(text) { ws.toast = text }
+                }
+              }
               Component {
                 id: tableTab
                 TableTab {
@@ -340,6 +393,7 @@ Item {
                   helper: ws.helper
                   sid: ws.info.session
                   onExportRequested: function(target, name) { exportDialog.show(target, name) }
+                  onSqlRequested: function(sql, title) { ws.openQuery(sql, title) }
                   active: ws.visible && tabLoader.index === ws.current
                   onNotify: function(text) { ws.toast = text }
                 }
@@ -354,6 +408,7 @@ Item {
                   palette: ws.palette
                   catalog: ws.catalog
                   folder: ws.downloads
+                  initialText: tabLoader.model.sql || ""
                   active: ws.visible && tabLoader.index === ws.current
                   onNotify: function(text) { ws.toast = text }
                   onDdlRan: ws.loadTree()
@@ -402,8 +457,8 @@ Item {
     Column {
       width: parent.width
       Repeater {
-        model: serverMenu.sqlite ? [{ act: "backup", label: "Back up database…" }]
-          : [{ act: "databases", label: "Databases…" }, { act: "processes", label: "Running queries…" },
+        model: serverMenu.sqlite ? [{ act: "diagram", label: "Table diagram" }, { act: "backup", label: "Back up database…" }]
+          : [{ act: "diagram", label: "Table diagram" }, { act: "databases", label: "Databases…" }, { act: "processes", label: "Running queries…" },
              { act: "users", label: "Users and privileges…" }, { act: "backup", label: "Back up database…" },
              { act: "restore", label: "Restore from file…" }]
         delegate: Ui.Button {
@@ -414,7 +469,8 @@ Item {
           onClicked: {
             serverMenu.close()
             const a = modelData.act
-            if (a === "databases") databasesDialog.show(ws.info.databases || [], ws.info.database)
+            if (a === "diagram") ws.openDiagram()
+            else if (a === "databases") databasesDialog.show(ws.info.databases || [], ws.info.database)
             else if (a === "processes") processes.show()
             else if (a === "users") usersDialog.show()
             else if (a === "backup") ws.backup(false, "")

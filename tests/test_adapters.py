@@ -225,6 +225,53 @@ class Flow:
         self.assertEqual((fk["name"], fk["columns"], fk["ref_table"], fk["on_delete"]), ("fk_p", ["person_id"], "people", "CASCADE"))
         self.a.drop(self.schema, "orders2")
 
+    def test_relations(self):
+        self.a.query("CREATE TABLE orders3 (id int PRIMARY KEY, person_id int REFERENCES people(id))")
+        out = self.a.relations(self.schema)
+        tables = {t["name"]: t for t in out["tables"]}
+        self.assertIn("people", tables)
+        self.assertNotIn("v_people", tables)
+        self.assertTrue(next(c for c in tables["people"]["columns"] if c["name"] == "id")["pk"])
+        link = next(l for l in out["links"] if l["from"][1] == "orders3")
+        self.assertEqual((link["from"][2], link["to"][1], link["to"][2]), (["person_id"], "people", ["id"]))
+        self.a.drop(self.schema, "orders3")
+
+    def run_sql(self, text):
+        stmts = [sql for _, _, sql in sqlsplit.split(text, self.a.d.name)]
+        out = self.a.run(stmts)["results"]
+        self.assertNotIn("error", out[-1], out[-1].get("error"))
+
+    def test_views_functions_triggers(self):
+        from omatable import objects
+        d = self.a.d
+        # templates run as they are
+        self.run_sql(objects.template(d, self.schema, "view", "people"))
+        self.run_sql(objects.template(d, self.schema, "trigger", "people"))
+        if self.engine != "sqlite":
+            self.run_sql(objects.template(d, self.schema, "function"))
+        tree = {s["name"]: s for s in self.a.tree()}[self.schema]
+        self.assertIn("new_view", tree["views"])
+        # a definition runs again unchanged (replacing the object)
+        self.run_sql(self.a.definition(self.schema, "new_view", "view")["sql"])
+        trig = self.a.structure(self.schema, "people")["triggers"]
+        self.assertEqual(len(trig), 1)
+        self.run_sql(self.a.definition(self.schema, trig[0]["name"], "trigger")["sql"])
+        self.assertEqual(len(self.a.structure(self.schema, "people")["triggers"]), 1)
+        if self.engine != "sqlite":
+            fn = self.a.definition(self.schema, "new_function", "function")
+            self.assertIn("new_function", fn["sql"])
+            self.run_sql(fn["sql"])
+            self.a.drop_object(self.schema, "new_function", "function")
+            self.assertNotIn("new_function", {s["name"]: s for s in self.a.tree()}[self.schema]["functions"])
+        else:
+            with self.assertRaises(Error):
+                self.a.definition(self.schema, "x", "function")
+        self.a.drop_object(self.schema, trig[0]["name"], "trigger", "people")
+        self.assertEqual(self.a.structure(self.schema, "people")["triggers"], [])
+        self.a.drop(self.schema, "new_view", "view")
+        with self.assertRaises(Error):
+            self.a.definition(self.schema, "new_view", "view")
+
     def test_explain(self):
         out = self.a.explain("SELECT * FROM people WHERE id = 1")
         self.assertTrue(out["nodes"][0]["label"])
@@ -387,6 +434,15 @@ class PostgresTest(Flow, unittest.TestCase):
         self.a.drop_database("zt_fresh")
         self.assertNotIn("zt_fresh", self.a.databases())
 
+    def test_read_only_on_the_server(self):
+        ro = adapters.create({**live_conn("zt-pg", "zt_omatable"), "readonly": True})
+        ro.connect()
+        self.addCleanup(ro.close)
+        self.assertEqual(ro.query("SELECT 1")[1][0][0], 1)
+        with self.assertRaises(Error) as e:
+            ro.query("CREATE TABLE zt_flow.nope (x int)")
+        self.assertIn("read-only", e.exception.message)
+
     def test_failed_alter_changes_nothing(self):
         with self.assertRaises(Error) as e:
             self.a.alter(self.schema, "people", {"columns": [{"op": "add", "name": "ok", "type": "int"},
@@ -460,6 +516,14 @@ class MySQLTest(Flow, unittest.TestCase):
         self.a.drop_database("zt_flow")      # the current one: back to every database
         self.assertEqual(self.a.database, "")
         self.a.create_database("zt_flow")    # for tearDown
+
+    def test_read_only_on_the_server(self):
+        ro = adapters.create({**live_conn("zt-my", "zt_flow"), "readonly": True})
+        ro.connect()
+        self.addCleanup(ro.close)
+        with self.assertRaises(Error) as e:
+            ro.query("INSERT INTO people (name) VALUES ('x')")
+        self.assertIn("READ ONLY", e.exception.message.upper())
 
     def test_failed_alter_reports_progress(self):
         with self.assertRaises(Error) as e:

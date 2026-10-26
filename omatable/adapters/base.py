@@ -9,7 +9,7 @@ import contextlib
 import math
 import time
 
-from .. import ddl, explain, sqlgen
+from .. import ddl, editable, explain, sqlgen
 from ..protocol import Error
 
 MAX_ROWS = 1000
@@ -61,6 +61,55 @@ class SQLAdapter:
     def structure(self, schema, table):
         """Columns, indexes, foreign keys and the CREATE statement."""
         raise NotImplementedError
+
+    def relation_rows(self):
+        """(pk rows [(schema, table, column)], fk rows [(name, schema, table, cols, ref_schema, ref_table, ref_cols)])."""
+        raise Error("unsupported", "diagrams are not available for this engine")
+
+    def relations(self, schema=None, limit=200):
+        """Tables (with columns and key flags) and the foreign keys between them, for the diagram."""
+        cat = [t for t in self.catalog()["tables"] if t["kind"] == "table" and (not schema or t["schema"] == schema)]
+        truncated = len(cat) > limit
+        cat = cat[:limit]
+        pks, fks = self.relation_rows()
+        keyed = {(s, t, c) for s, t, c in pks}
+        names = {(t["schema"], t["name"]) for t in cat}
+        tables = [{"schema": t["schema"], "name": t["name"],
+                   "columns": [{**c, "pk": (t["schema"], t["name"], c["name"]) in keyed} for c in t["columns"]]}
+                  for t in cat]
+        links = [{"name": n, "from": [s, t, list(cols)], "to": [rs, rt, list(rcols)]}
+                 for n, s, t, cols, rs, rt, rcols in fks if (s, t) in names and (rs, rt) in names]
+        return {"tables": tables, "links": links, "truncated": truncated}
+
+    def resolve_schema(self, table, quoted):
+        """The schema an unqualified table name refers to, or None."""
+        return self.database or None
+
+    def edit_source(self, sql, names):
+        """{schema, table, key} when the result of sql (with columns names) can be edited, else None."""
+        found = editable.table_of(sql)
+        if not found:
+            return None
+        schema, table, quoted = found
+        try:
+            schema = schema or self.resolve_schema(table, quoted)
+            if not schema:
+                return None
+            columns = [c["name"] for c in self.columns(schema, table)]
+            key = self.key(schema, table)
+        except Error:
+            return None
+        if not key or len(set(names)) != len(names) or any(n not in columns for n in names) \
+                or any(k not in names for k in key):
+            return None
+        return {"schema": schema, "table": table, "key": key}
+
+    def definition(self, schema, name, kind):
+        """{"sql": SQL that recreates the object, editable} for a view, function or trigger."""
+        raise Error("unsupported", f"{kind} definitions are not available for this engine")
+
+    def drop_object(self, schema, name, kind, table=None, signature=None):
+        raise Error("unsupported", f"dropping a {kind} is not available for this engine")
 
     def explain(self, sql, analyze=False):
         """The plan of one statement as an explain tree; analyze runs it."""

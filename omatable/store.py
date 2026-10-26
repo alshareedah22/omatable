@@ -111,6 +111,7 @@ def validate(conn):
     if not COLOR_RE.match(color):
         raise Error("invalid", "color must look like #rrggbb")
     out = {"name": name, "engine": engine, "tag": tag, "color": color,
+           "folder": _str(conn, "folder", 64), "readonly": bool(conn.get("readonly")),
            "host": "", "port": 0, "user": _str(conn, "user", 128), "database": _str(conn, "database", 128),
            "path": "", "tls": conn.get("tls") or "prefer", "ssh": None}
     if out["tls"] not in ("disable", "prefer", "require"):
