@@ -4,7 +4,7 @@ A TablePlus-style database GUI for [Omarchy](https://omarchy.org): connections, 
 SQL editor, structure editing, export and CSV import for PostgreSQL, MySQL/MariaDB and SQLite, a key browser for
 Redis/Valkey and a document browser for MongoDB.
 
-![OmaTable browsing a MongoDB collection](preview.png)
+![OmaTable: a TablePlus-style database client for the Omarchy desktop](preview.png)
 
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDBngin](https://github.com/alshareedah22/omadbngin) are listed automatically, with their credentials
