@@ -97,7 +97,8 @@ def migrate():
 def main():
     migrate()
     python = ensure_venv()
-    env = dict(os.environ, PYTHONPATH=HERE)
+    # No __pycache__ in the plugin folder: the shell reloads a plugin whose files change, which closes the window.
+    env = dict(os.environ, PYTHONPATH=HERE, PYTHONDONTWRITEBYTECODE="1")
     os.execve(python, [python, "-m", "omatableplus"], env)
 
 
