@@ -1,6 +1,6 @@
 """The MongoDB adapter against the OmaDBngin server zt-mg (user dev).
 
-Runs only with OMATABLE_TEST_DB=1. Uses the database zt_omatable and drops it.
+Runs only with OMATABLEPLUS_TEST_DB=1. Uses the database zt_omatable and drops it.
 """
 
 import datetime
@@ -11,14 +11,14 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, dump, omadb
-from omatable.protocol import Error
+from omatableplus import adapters, dump, omadb
+from omatableplus.protocol import Error
 
-LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
+LIVE = os.environ.get("OMATABLEPLUS_TEST_DB") == "1"
 DB = "zt_omatable"
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-mg running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-mg running")
 class MongoTest(unittest.TestCase):
     def setUp(self):
         from bson import ObjectId

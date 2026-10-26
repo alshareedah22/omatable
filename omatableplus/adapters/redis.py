@@ -102,7 +102,7 @@ class Redis:
         return redis.Redis(host=c.get("host") or "127.0.0.1", port=int(c.get("port") or 6379),
                            username=c.get("user") or None, password=c.get("password") or None,
                            db=db, ssl=c.get("tls") == "require", socket_timeout=15,
-                           socket_connect_timeout=10, client_name="OmaTable", decode_responses=False)
+                           socket_connect_timeout=10, client_name="OmaTablePlus", decode_responses=False)
 
     def connect(self):
         self._open(self.database)

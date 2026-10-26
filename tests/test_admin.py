@@ -1,4 +1,4 @@
-"""User and privilege SQL (always), and users/processes against zt-pg and zt-my (OMATABLE_TEST_DB=1)."""
+"""User and privilege SQL (always), and users/processes against zt-pg and zt-my (OMATABLEPLUS_TEST_DB=1)."""
 
 import os
 import sys
@@ -8,11 +8,11 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, admin, omadb, sqlgen
-from omatable.protocol import Error
+from omatableplus import adapters, admin, omadb, sqlgen
+from omatableplus.protocol import Error
 
 PG, MY, LITE = sqlgen.dialect("postgresql"), sqlgen.dialect("mysql"), sqlgen.dialect("sqlite")
-LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
+LIVE = os.environ.get("OMATABLEPLUS_TEST_DB") == "1"
 
 
 class SqlTest(unittest.TestCase):
@@ -71,7 +71,7 @@ def live(name, database):
     return {**omadb.server(name), "database": database}
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-pg and zt-my running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-pg and zt-my running")
 class LiveTest(unittest.TestCase):
     def check_processes(self, conn, slow):
         a, b = adapters.create(conn), adapters.create(conn)

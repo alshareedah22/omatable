@@ -1,7 +1,7 @@
 """Adapters against real databases.
 
 SQLite always runs. PostgreSQL and MySQL need the OmaDBngin servers zt-pg and
-zt-my and run only with OMATABLE_TEST_DB=1.
+zt-my and run only with OMATABLEPLUS_TEST_DB=1.
 """
 
 import json
@@ -15,10 +15,10 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, omadb, sqlsplit, transfer
-from omatable.protocol import Error
+from omatableplus import adapters, omadb, sqlsplit, transfer
+from omatableplus.protocol import Error
 
-LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
+LIVE = os.environ.get("OMATABLEPLUS_TEST_DB") == "1"
 
 DDL = {
     "sqlite": ["CREATE TABLE people (id INTEGER PRIMARY KEY, name TEXT NOT NULL, age INTEGER, data BLOB)",
@@ -242,7 +242,7 @@ class Flow:
         self.assertNotIn("error", out[-1], out[-1].get("error"))
 
     def test_views_functions_triggers(self):
-        from omatable import objects
+        from omatableplus import objects
         d = self.a.d
         # templates run as they are
         self.run_sql(objects.template(d, self.schema, "view", "people"))
@@ -386,7 +386,7 @@ def live_conn(name, database):
     return {**s, "database": database}
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-pg running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-pg running")
 class PostgresTest(Flow, unittest.TestCase):
     TEXT = "text"
     BLOB = "bytea"
@@ -474,7 +474,7 @@ class PostgresTest(Flow, unittest.TestCase):
         self.assertEqual(e.exception.code, "notfound")
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-my running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-my running")
 class MySQLTest(Flow, unittest.TestCase):
     TEXT = "varchar(40)"
     BLOB = "blob"

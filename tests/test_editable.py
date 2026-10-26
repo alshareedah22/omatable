@@ -6,9 +6,9 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import editable
-from omatable.__main__ import build
-from omatable.store import Keyring, Store
+from omatableplus import editable
+from omatableplus.__main__ import build
+from omatableplus.store import Keyring, Store
 
 
 class ParseTest(unittest.TestCase):
@@ -32,8 +32,8 @@ class SessionTest(unittest.TestCase):
     def test_sources_on_sqlite(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        os.environ["OMATABLE_DBCTL"] = os.path.join(tmp.name, "none")
-        self.addCleanup(os.environ.pop, "OMATABLE_DBCTL", None)
+        os.environ["OMATABLEPLUS_DBCTL"] = os.path.join(tmp.name, "none")
+        self.addCleanup(os.environ.pop, "OMATABLEPLUS_DBCTL", None)
         db = os.path.join(tmp.name, "t.db")
         with sqlite3.connect(db) as c:
             c.execute("CREATE TABLE p (id INTEGER PRIMARY KEY, name TEXT)")

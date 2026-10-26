@@ -1,5 +1,5 @@
 """Backup and restore. SQLite and the tool lookup always run; PostgreSQL and
-MariaDB need the OmaDBngin servers zt-pg and zt-my (OMATABLE_TEST_DB=1).
+MariaDB need the OmaDBngin servers zt-pg and zt-my (OMATABLEPLUS_TEST_DB=1).
 """
 
 import os
@@ -15,10 +15,10 @@ from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, dump, omadb
-from omatable.protocol import Error
+from omatableplus import adapters, dump, omadb
+from omatableplus.protocol import Error
 
-LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
+LIVE = os.environ.get("OMATABLEPLUS_TEST_DB") == "1"
 
 
 def live_conn(name, database):
@@ -111,7 +111,7 @@ class ToolTest(unittest.TestCase):
         self.assertEqual(e.exception.code, "exists")
         with self.assertRaises(Error):
             dump.restore(a, dump.Job(), out)
-        self.assertEqual([f for f in os.listdir(self.tmp.name) if f.startswith(".omatable-")], [])
+        self.assertEqual([f for f in os.listdir(self.tmp.name) if f.startswith(".omatableplus-")], [])
 
 
 class LiveMixin:
@@ -131,7 +131,7 @@ class LiveMixin:
         return out
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-pg running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-pg running")
 class PostgresDumpTest(LiveMixin, unittest.TestCase):
     def test_round_trip(self):
         admin = adapters.create(live_conn("zt-pg", "postgres"))
@@ -164,7 +164,7 @@ class PostgresDumpTest(LiveMixin, unittest.TestCase):
         return dump.backup(a, dump.Job(), os.path.join(tmp.name, "again.sql"))["path"]
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-my running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-my running")
 class MariaDBDumpTest(LiveMixin, unittest.TestCase):
     def test_round_trip(self):
         admin = adapters.create(live_conn("zt-my", ""))

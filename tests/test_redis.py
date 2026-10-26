@@ -1,6 +1,6 @@
 """The Redis/Valkey adapter against the OmaDBngin servers zt-vk and zt-rd.
 
-Runs only with OMATABLE_TEST_DB=1. Uses database 9 and empties it.
+Runs only with OMATABLEPLUS_TEST_DB=1. Uses database 9 and empties it.
 """
 
 import base64
@@ -10,10 +10,10 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, omadb
-from omatable.protocol import Error
+from omatableplus import adapters, omadb
+from omatableplus.protocol import Error
 
-LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
+LIVE = os.environ.get("OMATABLEPLUS_TEST_DB") == "1"
 
 
 def b(data):
@@ -205,13 +205,13 @@ class Flow:
         self.assertEqual(self.a.command("GET greeting")["reply"], None)
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-vk running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-vk running")
 class ValkeyTest(Flow, unittest.TestCase):
     server = "zt-vk"
     product = "Valkey 9"
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-rd running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-rd running")
 class RedisTest(Flow, unittest.TestCase):
     server = "zt-rd"
     product = "Redis 8"

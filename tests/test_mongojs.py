@@ -15,13 +15,13 @@ except ImportError:  # system python without the venv
 if bson is not None:
     from bson import Decimal128, Int64, ObjectId, Regex
 
-    from omatable import mongojs
-from omatable.protocol import Error
+    from omatableplus import mongojs
+from omatableplus.protocol import Error
 
 OID = "65a1b2c3d4e5f60718293a4b"
 
 
-@unittest.skipIf(bson is None, "needs pymongo (run with the OmaTable venv)")
+@unittest.skipIf(bson is None, "needs pymongo (run with the OmaTablePlus venv)")
 class ParseTest(unittest.TestCase):
     def test_empty_is_empty_filter(self):
         self.assertEqual(mongojs.parse(""), {})
@@ -63,7 +63,7 @@ class ParseTest(unittest.TestCase):
             self.assertTrue(cm.exception.message.startswith("filter"), cm.exception.message)
 
 
-@unittest.skipIf(bson is None, "needs pymongo (run with the OmaTable venv)")
+@unittest.skipIf(bson is None, "needs pymongo (run with the OmaTablePlus venv)")
 class CellTest(unittest.TestCase):
     def test_cells(self):
         self.assertEqual(mongojs.cell("x"), "x")

@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import safety
+from omatableplus import safety
 
 
 class SQLTest(unittest.TestCase):

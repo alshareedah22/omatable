@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable.protocol import Error, Server
+from omatableplus.protocol import Error, Server
 
 
 def run(lines, register):
@@ -81,13 +81,13 @@ ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 class EndToEndTest(unittest.TestCase):
     def test_conn_methods_over_stdio(self):
         with tempfile.TemporaryDirectory() as tmp:
-            env = {**os.environ, "PYTHONPATH": ROOT, "OMATABLE_CONFIG": tmp, "OMATABLE_NO_KEYRING": "1",
-                   "OMATABLE_DBCTL": os.path.join(tmp, "none")}
+            env = {**os.environ, "PYTHONPATH": ROOT, "OMATABLEPLUS_CONFIG": tmp, "OMATABLEPLUS_NO_KEYRING": "1",
+                   "OMATABLEPLUS_DBCTL": os.path.join(tmp, "none")}
             requests = [
                 {"id": 1, "method": "conn.save", "params": {"conn": {
                     "name": "PG", "engine": "postgresql", "host": "localhost", "password": "pw"}}},
             ]
-            out = subprocess.run([sys.executable, "-m", "omatable"], input="".join(json.dumps(r) + "\n" for r in requests),
+            out = subprocess.run([sys.executable, "-m", "omatableplus"], input="".join(json.dumps(r) + "\n" for r in requests),
                                  capture_output=True, text=True, env=env, timeout=30).stdout.splitlines()
             msgs = [json.loads(l) for l in out]
             self.assertEqual(msgs[0]["event"], "ready")
@@ -96,15 +96,15 @@ class EndToEndTest(unittest.TestCase):
             requests = [
                 {"id": 2, "method": "conn.duplicate", "params": {"id": saved["id"]}},
             ]
-            out = subprocess.run([sys.executable, "-m", "omatable"], input="".join(json.dumps(r) + "\n" for r in requests),
+            out = subprocess.run([sys.executable, "-m", "omatableplus"], input="".join(json.dumps(r) + "\n" for r in requests),
                                  capture_output=True, text=True, env=env, timeout=30).stdout.splitlines()
             copy = json.loads(out[1])["result"]
             requests = [
                 {"id": 3, "method": "conn.delete", "params": {"id": copy["id"]}},
             ]
-            subprocess.run([sys.executable, "-m", "omatable"], input="".join(json.dumps(r) + "\n" for r in requests),
+            subprocess.run([sys.executable, "-m", "omatableplus"], input="".join(json.dumps(r) + "\n" for r in requests),
                            capture_output=True, text=True, env=env, timeout=30)
-            out = subprocess.run([sys.executable, "-m", "omatable"], input=json.dumps({"id": 4, "method": "conn.list"}) + "\n",
+            out = subprocess.run([sys.executable, "-m", "omatableplus"], input=json.dumps({"id": 4, "method": "conn.list"}) + "\n",
                                  capture_output=True, text=True, env=env, timeout=30).stdout.splitlines()
             listing = json.loads(out[1])["result"]
             self.assertEqual([c["name"] for c in listing["connections"]], ["PG"])

@@ -6,8 +6,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable.history import History, Saved
-from omatable.protocol import Error
+from omatableplus.history import History, Saved
+from omatableplus.protocol import Error
 
 
 class HistoryTest(unittest.TestCase):

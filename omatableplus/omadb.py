@@ -15,7 +15,7 @@ PLUGIN_DIRS = ("~/.config/omarchy/plugins/blackcode.omadbngin", "~/.config/omarc
 
 
 def dbctl_path():
-    paths = [os.environ["OMATABLE_DBCTL"]] if os.environ.get("OMATABLE_DBCTL") else [
+    paths = [os.environ["OMATABLEPLUS_DBCTL"]] if os.environ.get("OMATABLEPLUS_DBCTL") else [
         os.path.expanduser(d + "/dbctl") for d in PLUGIN_DIRS]
     return next((p for p in paths if os.access(p, os.X_OK)), None)
 

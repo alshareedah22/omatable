@@ -56,7 +56,7 @@ class Tunnel:
                 "-p", str(ssh.get("port") or 22),
                 "-o", "ExitOnForwardFailure=yes", "-o", "ServerAliveInterval=30",
                 "-o", "StrictHostKeyChecking=accept-new", "-o", "ConnectTimeout=10"]
-        known = os.environ.get("OMATABLE_SSH_KNOWN_HOSTS")
+        known = os.environ.get("OMATABLEPLUS_SSH_KNOWN_HOSTS")
         if known:
             argv += ["-o", f"UserKnownHostsFile={known}"]
         auth = ssh.get("auth") or "agent"
@@ -89,10 +89,10 @@ class Tunnel:
         env = {k: v for k, v in os.environ.items() if not k.startswith("SSH_ASKPASS")}
         fifo = None
         if (self.ssh.get("auth") or "agent") == "password":
-            self._dir = tempfile.mkdtemp(prefix="omatable-")
+            self._dir = tempfile.mkdtemp(prefix="omatableplus-")
             fifo = os.path.join(self._dir, "pass")
             os.mkfifo(fifo, 0o600)
-            env.update(SSH_ASKPASS=ASKPASS, SSH_ASKPASS_REQUIRE="force", OMATABLE_ASKPASS_FIFO=fifo)
+            env.update(SSH_ASKPASS=ASKPASS, SSH_ASKPASS_REQUIRE="force", OMATABLEPLUS_ASKPASS_FIFO=fifo)
             threading.Thread(target=self._feed, args=(fifo,), daemon=True).start()
         try:
             self.proc = subprocess.Popen(self.command(port), stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,

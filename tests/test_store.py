@@ -8,8 +8,8 @@ import uuid
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable.protocol import Error
-from omatable.store import Keyring, Store
+from omatableplus.protocol import Error
+from omatableplus.store import Keyring, Store
 
 
 class MemoryKeyring:
@@ -40,7 +40,7 @@ PG = {"name": "Local PG", "engine": "postgresql", "host": "127.0.0.1", "port": 5
 class StoreTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.dir = os.path.join(self.tmp.name, "omatable")
+        self.dir = os.path.join(self.tmp.name, "omatableplus")
         self.ring = MemoryKeyring()
         self.store = Store(self.dir, self.ring)
 
@@ -155,6 +155,21 @@ class RealKeyringTest(unittest.TestCase):
         try:
             self.assertTrue(ring.set(cid, "db", "pa ss'\"$word"))
             self.assertEqual(ring.get(cid, "db"), "pa ss'\"$word")
+        finally:
+            ring.clear(cid, "db")
+        self.assertIsNone(ring.get(cid, "db"))
+
+    def test_moves_a_password_saved_before_the_rename(self):
+        ring = Keyring()
+        cid = "test" + uuid.uuid4().hex[:8]
+        legacy = ["app", "omatable", "conn", cid, "kind", "db"]
+        try:
+            ring._run(["store", "--label", "OmaTable test", *legacy], "old secret")
+            self.assertEqual(ring.get(cid, "db"), "old secret")
+            r = ring._run(["lookup", *legacy])
+            self.assertNotEqual(r.returncode, 0)                         # gone from the old name
+            r = ring._run(["lookup", "app", "omatableplus", "conn", cid, "kind", "db"])
+            self.assertEqual(r.stdout, "old secret")                     # and kept under the new one
         finally:
             ring.clear(cid, "db")
         self.assertIsNone(ring.get(cid, "db"))

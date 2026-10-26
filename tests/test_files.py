@@ -6,10 +6,10 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import files
-from omatable.__main__ import build
-from omatable.protocol import Error
-from omatable.store import Keyring, Store
+from omatableplus import files
+from omatableplus.__main__ import build
+from omatableplus.protocol import Error
+from omatableplus.store import Keyring, Store
 
 
 class FilesTest(unittest.TestCase):
@@ -55,8 +55,8 @@ class RunFileTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        os.environ["OMATABLE_DBCTL"] = os.path.join(self.tmp.name, "none")
-        self.addCleanup(os.environ.pop, "OMATABLE_DBCTL", None)
+        os.environ["OMATABLEPLUS_DBCTL"] = os.path.join(self.tmp.name, "none")
+        self.addCleanup(os.environ.pop, "OMATABLEPLUS_DBCTL", None)
         db = os.path.join(self.tmp.name, "t.db")
         open(db, "wb").close()
         self.store = Store(os.path.join(self.tmp.name, "cfg"), Keyring(False))

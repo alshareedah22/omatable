@@ -4,8 +4,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import ddl, sqlgen
-from omatable.protocol import Error
+from omatableplus import ddl, sqlgen
+from omatableplus.protocol import Error
 
 PG, MY, LITE = sqlgen.dialect("postgresql"), sqlgen.dialect("mysql"), sqlgen.dialect("sqlite")
 CURRENT = {

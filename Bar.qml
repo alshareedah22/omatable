@@ -3,10 +3,10 @@ import Quickshell
 import qs.Ui
 import qs.Commons
 
-// Bar icon: click opens or closes the OmaTable window (the panel half of this plugin).
+// Bar icon: click opens or closes the OmaTablePlus window (the panel half of this plugin).
 BarWidget {
   id: root
-  moduleName: "blackcode.omatable"
+  moduleName: "blackcode.omatableplus"
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
@@ -18,8 +18,8 @@ BarWidget {
     text: ""
     labelVisible: false
     fixedWidth: vertical ? -1 : icon.width + Style.spaceReal(horizontalMargin) * 2
-    tooltipText: "OmaTable"
-    onPressed: function() { Quickshell.execDetached(["omarchy-shell", "shell", "toggle", "blackcode.omatable", "{}"]) }
+    tooltipText: "OmaTablePlus"
+    onPressed: function() { Quickshell.execDetached(["omarchy-shell", "shell", "toggle", "blackcode.omatableplus", "{}"]) }
 
     Image {
       id: icon

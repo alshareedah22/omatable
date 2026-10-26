@@ -92,7 +92,7 @@ class SQLWriter:
         self.f, self.d, self.name = f, d, name
 
     def header(self, names):
-        self.f.write(f"-- Exported by OmaTable on {datetime.datetime.now().astimezone():%Y-%m-%d %H:%M %Z}\n")
+        self.f.write(f"-- Exported by OmaTablePlus on {datetime.datetime.now().astimezone():%Y-%m-%d %H:%M %Z}\n")
         self.cols = ", ".join(self.d.quote(n) for n in names)
 
     def rows(self, names, rows):
@@ -124,7 +124,7 @@ def export(adapter, target, fmt, path, overwrite=False, table_name=None):
                                         target.get("filters") or [], target.get("match") or "and")
         name = table_name or table
     path = target_path(path, overwrite)
-    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".omatable-", suffix=".part")
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".omatableplus-", suffix=".part")
     count = 0
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:

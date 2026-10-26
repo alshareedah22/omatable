@@ -6,8 +6,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import omadb
-from omatable.protocol import Error
+from omatableplus import omadb
+from omatableplus.protocol import Error
 
 STATE = {"services": [
     {"name": "app", "engine": "postgresql", "version": "17", "port": 5433, "mode": "native",
@@ -26,14 +26,14 @@ class OmaDBTest(unittest.TestCase):
         with open(self.ctl, "w") as f:
             f.write("#!/bin/sh\n[ \"$1\" = state ] && cat <<'EOF'\n" + json.dumps(STATE) + "\nEOF\n")
         os.chmod(self.ctl, 0o755)
-        os.environ["OMATABLE_DBCTL"] = self.ctl
+        os.environ["OMATABLEPLUS_DBCTL"] = self.ctl
 
     def tearDown(self):
-        os.environ.pop("OMATABLE_DBCTL", None)
+        os.environ.pop("OMATABLEPLUS_DBCTL", None)
         self.tmp.cleanup()
 
     def test_finds_dbctl_under_the_new_or_old_plugin_name(self):
-        os.environ.pop("OMATABLE_DBCTL")
+        os.environ.pop("OMATABLEPLUS_DBCTL")
         home = os.path.join(self.tmp.name, "home")
         old_home = os.environ.get("HOME")
         os.environ["HOME"] = home
@@ -69,7 +69,7 @@ class OmaDBTest(unittest.TestCase):
         self.assertEqual(e.exception.code, "notfound")
 
     def test_missing_dbctl_means_no_servers(self):
-        os.environ["OMATABLE_DBCTL"] = os.path.join(self.tmp.name, "nope")
+        os.environ["OMATABLEPLUS_DBCTL"] = os.path.join(self.tmp.name, "nope")
         self.assertEqual(omadb.servers(), [])
 
     def test_broken_output_means_no_servers(self):
@@ -80,8 +80,8 @@ class OmaDBTest(unittest.TestCase):
 
     def test_import_omadb_copies_password(self):
         import tempfile as tf
-        from omatable.__main__ import build
-        from omatable.store import Store
+        from omatableplus.__main__ import build
+        from omatableplus.store import Store
         from tests.test_store import MemoryKeyring
         with tf.TemporaryDirectory() as cfg:
             store = Store(cfg, MemoryKeyring())

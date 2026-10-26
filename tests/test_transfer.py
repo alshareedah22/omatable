@@ -9,8 +9,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import adapters, transfer
-from omatable.protocol import Error
+from omatableplus import adapters, transfer
+from omatableplus.protocol import Error
 
 
 class TransferTest(unittest.TestCase):

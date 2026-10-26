@@ -1,10 +1,10 @@
-# OmaTable
+# OmaTablePlus
 
 A TablePlus-style database GUI for [Omarchy](https://omarchy.org): connections, table browsing and editing, a
 SQL editor, structure editing, export and CSV import for PostgreSQL, MySQL/MariaDB and SQLite, a key browser for
 Redis/Valkey and a document browser for MongoDB.
 
-![OmaTable: a TablePlus-style database client for the Omarchy desktop](preview.png)
+![OmaTablePlus: a TablePlus-style database client for the Omarchy desktop](preview.png)
 
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDBngin](https://github.com/alshareedah22/omadbngin) are listed automatically, with their credentials
@@ -16,7 +16,7 @@ Redis/Valkey and a document browser for MongoDB.
 
 - Double-click a connection (or select it and press **Connect**). **Test** tries the form as typed.
 - **Folder** in a connection's form groups it in the list (click a folder to fold it). **Read-only** makes a
-  connection browse-and-query only: OmaTable refuses every change before it is sent, and the server session is
+  connection browse-and-query only: OmaTablePlus refuses every change before it is sent, and the server session is
   read-only too (PostgreSQL `default_transaction_read_only`, MySQL `SET SESSION TRANSACTION READ ONLY`, SQLite
   opened read-only). The title bar shows READ-ONLY.
 - Each open connection gets a tab along the top; **+** (Ctrl+Shift+N) goes back to the list to open another,
@@ -48,7 +48,7 @@ Redis/Valkey and a document browser for MongoDB.
 
 ### Safe mode
 
-Tag a connection **production** (in its form) and OmaTable asks before it changes anything there: committing
+Tag a connection **production** (in its form) and OmaTablePlus asks before it changes anything there: committing
 edits, statements other than `SELECT`/`SHOW`/`EXPLAIN`/plain `WITH` queries, structure changes, imports,
 new tables and databases, truncate and drop, killing other connections' queries, user and privilege changes, Redis commands the server marks as writes (`SET`, `DEL`, `FLUSHALL`, `CONFIG SET`, `EVAL`,
 …), and MongoDB inserts, edits, deletes, index changes, `$out`/`$merge` pipelines and commands that are not
@@ -176,12 +176,16 @@ Hiding the window ends the session, so commit before you hide it.
 
 ## Install
 
-Install OmaTable from the Omarchy plugin manager. Then add the **OmaTable** bar widget, or open the window with:
+Install OmaTablePlus from the Omarchy plugin manager. Then add the **OmaTablePlus** bar widget, or open the window with:
 
-    omarchy-shell shell summon blackcode.omatable '{}'
+    omarchy-shell shell summon blackcode.omatableplus '{}'
 
-The first launch installs the database drivers into `~/.local/share/omatable/venv`. Every wheel is pinned by
+The first launch installs the database drivers into `~/.local/share/omatableplus/venv`. Every wheel is pinned by
 version and SHA-256 in `requirements.lock`; anything that does not match is refused.
+
+OmaTablePlus was called OmaTable before 1.6. On its first launch it moves `~/.config/omatable` to
+`~/.config/omatableplus`, moves each saved keyring password the first time it is used, and removes the old driver
+venv in `~/.local/share/omatable`, but only when that venv's own stamp file shows OmaTable created it.
 
 ## Requirements
 
@@ -193,29 +197,29 @@ OmaDBngin's engines. Running the editor tests needs `node`.
 
 ## Remove
 
-    omarchy plugin remove blackcode.omatable
-    rm -rf ~/.config/omatable ~/.local/share/omatable   # saved connections, history and the drivers
+    omarchy plugin remove blackcode.omatableplus
+    rm -rf ~/.config/omatableplus ~/.local/share/omatableplus   # saved connections, history and the drivers
 
-Saved passwords live in your keyring as "OmaTable … password" items; delete a connection in the app first, or
-clear them all with `secret-tool clear app omatable`. OmaTable never changes your databases' files or OmaDBngin's servers.
+Saved passwords live in your keyring as "OmaTablePlus … password" items; delete a connection in the app first, or
+clear them all with `secret-tool clear app omatableplus`. OmaTablePlus never changes your databases' files or OmaDBngin's servers.
 
 ## Files
 
-- `~/.config/omatable/connections.json`: saved connections (mode 600)
-- `~/.config/omatable/history.jsonl`, `queries.json`: query history (last 1,000 runs) and saved queries
+- `~/.config/omatableplus/connections.json`: saved connections (mode 600)
+- `~/.config/omatableplus/history.jsonl`, `queries.json`: query history (last 1,000 runs) and saved queries
   (mode 600, since SQL can contain secrets)
-- `~/.local/share/omatable/venv`: the drivers
+- `~/.local/share/omatableplus/venv`: the drivers
 
 ## Development
 
     /usr/bin/python3 -m unittest discover -s tests -t . -v                     # unit tests
-    OMATABLE_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -t . -v # plus driver install
+    OMATABLEPLUS_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -t . -v # plus driver install
     tools/update-requirements-lock                                              # bump drivers
 
 Database tests need the OmaDBngin servers `zt-pg` (PostgreSQL 17), `zt-my` (MariaDB), `zt-vk` (Valkey 9),
 `zt-rd` (Redis 8) and `zt-mg` (MongoDB 8, user `dev`), and the drivers' venv:
 
-    OMATABLE_TEST_DB=1 ~/.local/share/omatable/venv/bin/python -m unittest discover -s tests -t . -v
+    OMATABLEPLUS_TEST_DB=1 ~/.local/share/omatableplus/venv/bin/python -m unittest discover -s tests -t . -v
 
 SSH tests start a private, unprivileged `sshd` on a free port when `/usr/bin/sshd` exists.
 

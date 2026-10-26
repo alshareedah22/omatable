@@ -58,7 +58,7 @@ def read_text(path, limit=MAX_EDITOR_BYTES):
 
 def write_text(path, text, overwrite=False):
     path = transfer.target_path(path, overwrite)
-    tmp = path + ".omatable-tmp"
+    tmp = path + ".omatableplus-tmp"
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:

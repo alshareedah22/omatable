@@ -4,7 +4,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable.sqlsplit import at, keyword, split
+from omatableplus.sqlsplit import at, keyword, split
 
 
 def sqls(text, engine="postgresql"):

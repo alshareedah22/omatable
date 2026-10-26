@@ -1,4 +1,4 @@
-"""Entry point: `python -m omatable` serves the protocol on stdin/stdout."""
+"""Entry point: `python -m omatableplus` serves the protocol on stdin/stdout."""
 
 import os
 import re
@@ -20,7 +20,7 @@ HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def palette():
-    path = os.environ.get("OMATABLE_THEME_COLORS") or os.path.join(
+    path = os.environ.get("OMATABLEPLUS_THEME_COLORS") or os.path.join(
         os.environ.get("XDG_STATE_HOME") or os.path.expanduser("~/.local/state"),
         "omarchy", "current", "theme", "colors.toml")
     try:

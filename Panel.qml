@@ -5,12 +5,12 @@ import qs.Commons
 import qs.Ui as Ui
 import "qml"
 
-// The OmaTable window. The shell loads this as a panel; summon/hide call
+// The OmaTablePlus window. The shell loads this as a panel; summon/hide call
 // open()/close(), and closing the window ourselves tells the shell.
 Item {
   id: root
 
-  readonly property string pluginId: "blackcode.omatable"
+  readonly property string pluginId: "blackcode.omatableplus"
   readonly property string ctl: decodeURIComponent(String(Qt.resolvedUrl("tablectl")).replace(/^file:\/\//, ""))
   readonly property bool opened: window.visible
   property bool closingFromHost: false
@@ -63,7 +63,7 @@ Item {
     active = -1
   }
 
-  // summon with {"connect": "<connection id>"} (OmaDBngin's Open in OmaTable sends "omadb:<name>")
+  // summon with {"connect": "<connection id>"} (OmaDBngin's Open in OmaTablePlus sends "omadb:<name>")
   property string pendingConnect: ""
   function open(payloadJson) {
     closingFromHost = false
@@ -106,7 +106,7 @@ Item {
 
   FloatingWindow {
     id: window
-    title: "OmaTable"
+    title: "OmaTablePlus"
     color: Qt.rgba(Color.background.r, Color.background.g, Color.background.b, 1)
     implicitWidth: 1100
     implicitHeight: 700
@@ -137,7 +137,7 @@ Item {
         Text {
           textFormat: Text.PlainText
           anchors.verticalCenter: parent.verticalCenter
-          text: "OmaTable"
+          text: "OmaTablePlus"
           color: Color.foreground
           font.family: Style.font.family
           font.pixelSize: Style.font.body * 2

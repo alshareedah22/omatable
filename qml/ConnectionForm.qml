@@ -187,7 +187,7 @@ Flickable {
       textFormat: Text.PlainText
       Layout.fillWidth: true
       visible: !form.keyring && form.engine !== "sqlite"
-      text: "No keyring is available: passwords are stored in ~/.config/omatable/connections.json (readable only by you)."
+      text: "No keyring is available: passwords are stored in ~/.config/omatableplus/connections.json (readable only by you)."
       color: Color.muted
       wrapMode: Text.Wrap
       font.family: Style.font.family
@@ -203,7 +203,7 @@ Flickable {
       id: readonlySwitch
       Layout.fillWidth: true
       label: "Read-only"
-      description: "Browse and query only: OmaTable refuses every change, and the server session is read-only too"
+      description: "Browse and query only: OmaTablePlus refuses every change, and the server session is read-only too"
       onClicked: checked = !checked
     }
 

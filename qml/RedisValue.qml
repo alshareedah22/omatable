@@ -268,7 +268,7 @@ Item {
       Layout.fillWidth: true
       visible: pane.entry !== null && (pane.entry.truncated || (pane.entry.type === "string" && pane.isBinary(pane.entry.value)) || pane.entry.value === null)
       wrapMode: Text.Wrap
-      text: !pane.entry ? "" : pane.entry.value === null ? "OmaTable cannot show " + pane.entry.type + " values yet; use the console."
+      text: !pane.entry ? "" : pane.entry.value === null ? "OmaTablePlus cannot show " + pane.entry.type + " values yet; use the console."
         : pane.entry.type === "string" && pane.entry.truncated ? "Showing the first 1 MB, read-only. Use the console for the rest."
         : pane.entry.type === "string" ? "Binary value, shown with \\xHH escapes and read-only. Use the console to change it."
         : "Showing the first " + pane.entry.value.length.toLocaleString(Qt.locale(), "f", 0) + " of " + pane.entry.size.toLocaleString(Qt.locale(), "f", 0) + " items."

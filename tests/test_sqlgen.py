@@ -6,8 +6,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import sqlgen
-from omatable.protocol import Error
+from omatableplus import sqlgen
+from omatableplus.protocol import Error
 
 PG = sqlgen.dialect("postgresql")
 MY = sqlgen.dialect("mariadb")

@@ -168,7 +168,7 @@ Popup {
       Text {
         textFormat: Text.PlainText
         Layout.fillWidth: true
-        text: "Click a row for the whole query. Your own OmaTable connection is not listed."
+        text: "Click a row for the whole query. Your own OmaTablePlus connection is not listed."
         color: Color.muted
         elide: Text.ElideRight
         font.family: Style.font.family

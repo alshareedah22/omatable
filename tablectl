@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-"""OmaTable helper launcher.
+"""OmaTablePlus helper launcher.
 
 Makes sure the database drivers in requirements.lock are installed, exactly
-and verified, in ~/.local/share/omatable/venv, then runs the helper server
-(`python -m omatable`) from that venv. Only the standard library is used here.
+and verified, in ~/.local/share/omatableplus/venv, then runs the helper server
+(`python -m omatableplus`) from that venv. Only the standard library is used here.
 
 The venv is rebuilt when the system Python's minor version or the lock
 changes; a failed install leaves nothing behind.
@@ -18,10 +18,10 @@ import sys
 import venv
 
 HERE = os.path.dirname(os.path.realpath(__file__))
-DATA = os.environ.get("OMATABLE_DATA") or os.path.join(
-    os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "omatable")
+DATA = os.environ.get("OMATABLEPLUS_DATA") or os.path.join(
+    os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "omatableplus")
 VENV = os.path.join(DATA, "venv")
-LOCK = os.environ.get("OMATABLE_LOCK") or os.path.join(HERE, "requirements.lock")
+LOCK = os.environ.get("OMATABLEPLUS_LOCK") or os.path.join(HERE, "requirements.lock")
 
 
 def emit(obj):
@@ -44,7 +44,7 @@ def ensure_venv():
     python = os.path.join(VENV, "bin", "python")
     want = stamp()
     try:
-        with open(os.path.join(VENV, ".omatable-stamp")) as f:
+        with open(os.path.join(VENV, ".omatableplus-stamp")) as f:
             if f.read().strip() == want and os.path.exists(python):
                 return python
     except OSError:
@@ -66,7 +66,7 @@ def ensure_venv():
         shutil.rmtree(tmp, ignore_errors=True)
         lines = [l for l in (r.stderr or r.stdout).splitlines() if l.strip()]
         fatal("installing drivers failed: " + " ".join(lines[-3:]))
-    with open(os.path.join(tmp, ".omatable-stamp"), "w") as f:
+    with open(os.path.join(tmp, ".omatableplus-stamp"), "w") as f:
         f.write(want + "\n")
     shutil.rmtree(VENV, ignore_errors=True)
     os.rename(tmp, VENV)
@@ -74,10 +74,31 @@ def ensure_venv():
     return python
 
 
+def migrate():
+    """Move what OmaTable (this plugin's name before 1.6) left behind to the OmaTablePlus paths."""
+    config = os.path.join(os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config"), "omatableplus")
+    legacy = os.path.join(os.path.dirname(config), "omatable")
+    if not os.environ.get("OMATABLEPLUS_CONFIG") and not os.path.exists(config) \
+            and os.path.isfile(os.path.join(legacy, "connections.json")):
+        try:
+            os.rename(legacy, config)
+        except OSError:
+            pass
+    # The old drivers cannot move (a venv records its own path); remove them only when the stamp shows they are ours.
+    legacy = os.path.join(os.path.dirname(DATA), "omatable")
+    if not os.environ.get("OMATABLEPLUS_DATA") and os.path.isfile(os.path.join(legacy, "venv", ".omatable-stamp")):
+        shutil.rmtree(os.path.join(legacy, "venv"), ignore_errors=True)
+        try:
+            os.rmdir(legacy)
+        except OSError:
+            pass
+
+
 def main():
+    migrate()
     python = ensure_venv()
     env = dict(os.environ, PYTHONPATH=HERE)
-    os.execve(python, [python, "-m", "omatable"], env)
+    os.execve(python, [python, "-m", "omatableplus"], env)
 
 
 if __name__ == "__main__":

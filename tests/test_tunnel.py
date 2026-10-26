@@ -10,8 +10,8 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import tunnel
-from omatable.protocol import Error
+from omatableplus import tunnel
+from omatableplus.protocol import Error
 
 SSHD = "/usr/bin/sshd"
 
@@ -67,10 +67,10 @@ class Sshd:
 class TunnelUnitTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        os.environ["OMATABLE_SSH_KNOWN_HOSTS"] = os.path.join(self.tmp.name, "known_hosts")
+        os.environ["OMATABLEPLUS_SSH_KNOWN_HOSTS"] = os.path.join(self.tmp.name, "known_hosts")
 
     def tearDown(self):
-        os.environ.pop("OMATABLE_SSH_KNOWN_HOSTS", None)
+        os.environ.pop("OMATABLEPLUS_SSH_KNOWN_HOSTS", None)
         self.tmp.cleanup()
 
     def test_free_port(self):
@@ -98,7 +98,7 @@ class TunnelUnitTest(unittest.TestCase):
                 f.write("pa ss\n")
         threading.Thread(target=feed, daemon=True).start()
         out = subprocess.run([tunnel.ASKPASS, "Password:"], capture_output=True, text=True, timeout=5,
-                             env={**os.environ, "OMATABLE_ASKPASS_FIFO": fifo})
+                             env={**os.environ, "OMATABLEPLUS_ASKPASS_FIFO": fifo})
         self.assertEqual(out.stdout, "pa ss\n")
 
     def test_failure_reports_stderr(self):
@@ -114,10 +114,10 @@ class TunnelUnitTest(unittest.TestCase):
 class TunnelSshdTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        os.environ["OMATABLE_SSH_KNOWN_HOSTS"] = os.path.join(self.tmp.name, "known_hosts")
+        os.environ["OMATABLEPLUS_SSH_KNOWN_HOSTS"] = os.path.join(self.tmp.name, "known_hosts")
 
     def tearDown(self):
-        os.environ.pop("OMATABLE_SSH_KNOWN_HOSTS", None)
+        os.environ.pop("OMATABLEPLUS_SSH_KNOWN_HOSTS", None)
         self.tmp.cleanup()
 
     def test_key_tunnel_forwards(self):

@@ -9,10 +9,10 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable import explain
-from omatable.__main__ import build
-from omatable.protocol import Error
-from omatable.store import Keyring, Store
+from omatableplus import explain
+from omatableplus.__main__ import build
+from omatableplus.protocol import Error
+from omatableplus.store import Keyring, Store
 
 PG = [{"Plan": {"Node Type": "Hash Join", "Join Type": "Inner", "Total Cost": 30.5, "Plan Rows": 12,
                 "Actual Total Time": 0.5, "Actual Rows": 10, "Actual Loops": 1, "Hash Cond": "(a.id = b.a_id)",
@@ -69,8 +69,8 @@ class QueryExplainTest(unittest.TestCase):
     def test_sqlite_session(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
-        os.environ["OMATABLE_DBCTL"] = os.path.join(tmp.name, "none")
-        self.addCleanup(os.environ.pop, "OMATABLE_DBCTL", None)
+        os.environ["OMATABLEPLUS_DBCTL"] = os.path.join(tmp.name, "none")
+        self.addCleanup(os.environ.pop, "OMATABLEPLUS_DBCTL", None)
         db = os.path.join(tmp.name, "t.db")
         with sqlite3.connect(db) as c:
             c.execute("CREATE TABLE p (id INTEGER PRIMARY KEY, name TEXT)")

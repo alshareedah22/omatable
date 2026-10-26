@@ -11,19 +11,19 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from omatable.__main__ import build
-from omatable.protocol import Error
-from omatable.store import Keyring, Store
+from omatableplus.__main__ import build
+from omatableplus.protocol import Error
+from omatableplus.store import Keyring, Store
 from tests.test_tunnel import SSHD, Sshd
 
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
-LIVE = os.environ.get("OMATABLE_TEST_DB") == "1"
+LIVE = os.environ.get("OMATABLEPLUS_TEST_DB") == "1"
 
 
 class SessionTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        os.environ["OMATABLE_DBCTL"] = os.path.join(self.tmp.name, "none")
+        os.environ["OMATABLEPLUS_DBCTL"] = os.path.join(self.tmp.name, "none")
         self.path = os.path.join(self.tmp.name, "app.db")
         db = sqlite3.connect(self.path)
         db.execute("CREATE TABLE notes (id INTEGER PRIMARY KEY, body TEXT)")
@@ -37,7 +37,7 @@ class SessionTest(unittest.TestCase):
 
     def tearDown(self):
         self.server.sessions.close_all()
-        os.environ.pop("OMATABLE_DBCTL", None)
+        os.environ.pop("OMATABLEPLUS_DBCTL", None)
         self.tmp.cleanup()
 
     def test_read_only_at_connect_time(self):
@@ -168,13 +168,13 @@ class SessionTest(unittest.TestCase):
         path = os.path.join(self.tmp.name, "colors.toml")
         with open(path, "w") as f:
             f.write('magenta = "#cba6f7"\ngreen = "#a6e3a1"\ncolor3 = "#f9e2af"\ncyan = "bad"\n')
-        os.environ["OMATABLE_THEME_COLORS"] = path
+        os.environ["OMATABLEPLUS_THEME_COLORS"] = path
         try:
             self.assertEqual(self.m["app.palette"](), {"keyword": "#cba6f7", "string": "#a6e3a1", "number": "#f9e2af"})
-            os.environ["OMATABLE_THEME_COLORS"] = path + ".missing"
+            os.environ["OMATABLEPLUS_THEME_COLORS"] = path + ".missing"
             self.assertEqual(self.m["app.palette"](), {})
         finally:
-            os.environ.pop("OMATABLE_THEME_COLORS", None)
+            os.environ.pop("OMATABLEPLUS_THEME_COLORS", None)
 
     def test_conn_test_with_form_data(self):
         ok = self.m["conn.test"](conn={"name": "x", "engine": "sqlite", "path": self.path})
@@ -216,7 +216,7 @@ class SessionTest(unittest.TestCase):
 
     def test_confirm_error_carries_detail_over_the_wire(self):
         import io
-        from omatable.protocol import Server
+        from omatableplus.protocol import Server
         out = io.StringIO()
         server = Server(out)
 
@@ -236,9 +236,9 @@ class SessionTest(unittest.TestCase):
             self.assertEqual(e.exception.code, "invalid")
 
     def test_sigterm_closes_cleanly(self):
-        env = {**os.environ, "PYTHONPATH": ROOT, "OMATABLE_CONFIG": os.path.join(self.tmp.name, "cfg"),
-               "OMATABLE_NO_KEYRING": "1"}
-        proc = subprocess.Popen([sys.executable, "-m", "omatable"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        env = {**os.environ, "PYTHONPATH": ROOT, "OMATABLEPLUS_CONFIG": os.path.join(self.tmp.name, "cfg"),
+               "OMATABLEPLUS_NO_KEYRING": "1"}
+        proc = subprocess.Popen([sys.executable, "-m", "omatableplus"], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                 text=True, env=env)
         self.assertEqual(json.loads(proc.stdout.readline())["event"], "ready")
         proc.stdin.write(json.dumps({"id": 1, "method": "session.open", "params": {"id": self.conn["id"]}}) + "\n")
@@ -250,7 +250,7 @@ class SessionTest(unittest.TestCase):
         proc.stdout.close()
 
 
-@unittest.skipUnless(LIVE, "set OMATABLE_TEST_DB=1 with zt-vk and zt-mg running")
+@unittest.skipUnless(LIVE, "set OMATABLEPLUS_TEST_DB=1 with zt-vk and zt-mg running")
 class KeyValueSessionTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -285,7 +285,7 @@ class KeyValueSessionTest(unittest.TestCase):
         self.m["query.history_clear"](conn="omadb:zt-vk")
 
     def production(self, name, **extra):
-        from omatable import omadb
+        from omatableplus import omadb
         src = omadb.server(name)
         conn = self.store.save({"name": "prod " + name, "engine": src["engine"], "host": "127.0.0.1", "port": src["port"],
                                 "user": src["user"], "password": src["password"], "tag": "production", **extra})
@@ -357,11 +357,11 @@ class KeyValueSessionTest(unittest.TestCase):
         self.m["query.history_clear"](conn="omadb:zt-mg")
 
 
-@unittest.skipUnless(LIVE and os.access(SSHD, os.X_OK), "set OMATABLE_TEST_DB=1 with zt-pg running")
+@unittest.skipUnless(LIVE and os.access(SSHD, os.X_OK), "set OMATABLEPLUS_TEST_DB=1 with zt-pg running")
 class TunnelSessionTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        os.environ["OMATABLE_SSH_KNOWN_HOSTS"] = os.path.join(self.tmp.name, "kh")
+        os.environ["OMATABLEPLUS_SSH_KNOWN_HOSTS"] = os.path.join(self.tmp.name, "kh")
         self.sshd = Sshd()
         self.store = Store(os.path.join(self.tmp.name, "cfg"), Keyring(False))
         self.server = build(self.store)
@@ -369,11 +369,11 @@ class TunnelSessionTest(unittest.TestCase):
     def tearDown(self):
         self.server.sessions.close_all()
         self.sshd.close()
-        os.environ.pop("OMATABLE_SSH_KNOWN_HOSTS", None)
+        os.environ.pop("OMATABLEPLUS_SSH_KNOWN_HOSTS", None)
         self.tmp.cleanup()
 
     def test_postgres_over_ssh(self):
-        from omatable import omadb
+        from omatableplus import omadb
         pg = omadb.server("zt-pg")
         conn = self.store.save({"name": "via ssh", "engine": "postgresql", "host": "127.0.0.1", "port": pg["port"],
                                 "user": pg["user"], "password": pg["password"], "database": "postgres",
@@ -390,7 +390,7 @@ class TunnelSessionTest(unittest.TestCase):
         self.assertFalse(tunnel.alive())
 
     def test_valkey_over_ssh(self):
-        from omatable import omadb
+        from omatableplus import omadb
         vk = omadb.server("zt-vk")
         conn = self.store.save({"name": "kv via ssh", "engine": "valkey", "host": "127.0.0.1", "port": vk["port"],
                                 "user": vk["user"], "password": vk["password"], "database": "9",

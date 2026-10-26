@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <!-- OmaTable: a database with a data table in front of it — browse and edit. -->
+  <!-- OmaTablePlus: a database with a data table in front of it — browse and edit. -->
   <defs>
     <linearGradient id="body" x1="0" x2="1" y1="0" y2="0">
       <stop offset="0" stop-color="#047857"/>

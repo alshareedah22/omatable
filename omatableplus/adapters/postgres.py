@@ -23,7 +23,7 @@ class Postgres(SQLAdapter):
             db = psycopg.connect(host=c.get("host") or "127.0.0.1", port=int(c.get("port") or 5432),
                                  user=c.get("user") or None, password=c.get("password") or None,
                                  dbname=dbname, sslmode=c.get("tls") or "prefer", connect_timeout=10,
-                                 application_name="OmaTable", autocommit=True,
+                                 application_name="OmaTablePlus", autocommit=True,
                                  # read-only connections are read-only on the server too
                                  options="-c default_transaction_read_only=on" if c.get("readonly") else None)
         self.close()

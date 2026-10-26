@@ -25,20 +25,21 @@ SSH_AUTH = ("agent", "key", "password")
 KINDS = ("db", "ssh")
 ID_RE = re.compile(r"^[0-9a-f]{12}$")
 COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+LEGACY_APP = "omatable"   # the keyring attribute before the rename to OmaTablePlus
 
 
 def default_dir():
-    if os.environ.get("OMATABLE_CONFIG"):
-        return os.environ["OMATABLE_CONFIG"]
+    if os.environ.get("OMATABLEPLUS_CONFIG"):
+        return os.environ["OMATABLEPLUS_CONFIG"]
     base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
-    return os.path.join(base, "omatable")
+    return os.path.join(base, "omatableplus")
 
 
 class Keyring:
     """The Secret Service through secret-tool; every call is best effort."""
 
     def __init__(self, enabled=True):
-        self.enabled = bool(enabled) and os.environ.get("OMATABLE_NO_KEYRING") != "1" \
+        self.enabled = bool(enabled) and os.environ.get("OMATABLEPLUS_NO_KEYRING") != "1" \
             and shutil.which("secret-tool") is not None
         self._available = None
 
@@ -53,8 +54,8 @@ class Keyring:
         if not self.enabled:
             return False
         if self._available is None:
-            probe = ["app", "omatable", "conn", "probe", "kind", "probe"]
-            ok = self._run(["store", "--label", "OmaTable probe", *probe], "probe")
+            probe = ["app", "omatableplus", "conn", "probe", "kind", "probe"]
+            ok = self._run(["store", "--label", "OmaTablePlus probe", *probe], "probe")
             self._available = bool(ok and ok.returncode == 0)
             if self._available:
                 self._run(["clear", *probe])
@@ -63,19 +64,28 @@ class Keyring:
     def set(self, conn_id, kind, secret):
         if not self.available():
             return False
-        r = self._run(["store", "--label", f"OmaTable {kind} password ({conn_id})",
-                       "app", "omatable", "conn", conn_id, "kind", kind], secret)
+        r = self._run(["store", "--label", f"OmaTablePlus {kind} password ({conn_id})",
+                       "app", "omatableplus", "conn", conn_id, "kind", kind], secret)
         return bool(r and r.returncode == 0)
 
     def get(self, conn_id, kind):
         if not self.available():
             return None
-        r = self._run(["lookup", "app", "omatable", "conn", conn_id, "kind", kind])
-        return r.stdout if r and r.returncode == 0 else None
+        r = self._run(["lookup", "app", "omatableplus", "conn", conn_id, "kind", kind])
+        if r and r.returncode == 0:
+            return r.stdout
+        # Saved before the rename to OmaTablePlus: move it across on first use.
+        r = self._run(["lookup", "app", LEGACY_APP, "conn", conn_id, "kind", kind])
+        if not (r and r.returncode == 0):
+            return None
+        if self.set(conn_id, kind, r.stdout):
+            self._run(["clear", "app", LEGACY_APP, "conn", conn_id, "kind", kind])
+        return r.stdout
 
     def clear(self, conn_id, kind):
         if self.available():
-            self._run(["clear", "app", "omatable", "conn", conn_id, "kind", kind])
+            self._run(["clear", "app", "omatableplus", "conn", conn_id, "kind", kind])
+            self._run(["clear", "app", LEGACY_APP, "conn", conn_id, "kind", kind])
 
 
 def _str(conn, key, limit=255):

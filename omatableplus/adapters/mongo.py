@@ -63,7 +63,7 @@ class Mongo:
         c = self.conn
         kwargs = {"host": c.get("host") or "127.0.0.1", "port": int(c.get("port") or 27017),
                   "directConnection": True, "serverSelectionTimeoutMS": 8000, "connectTimeoutMS": 10000,
-                  "appname": "OmaTable", "tls": c.get("tls") == "require", "tz_aware": False}
+                  "appname": "OmaTablePlus", "tls": c.get("tls") == "require", "tz_aware": False}
         if c.get("user"):
             kwargs.update(username=c["user"], password=c.get("password") or "",
                           authSource=c.get("auth_source") or "admin")

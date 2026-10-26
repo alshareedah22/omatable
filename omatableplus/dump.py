@@ -99,7 +99,7 @@ class Job:
 def _output(path, overwrite):
     """A temporary path next to path, renamed onto it when the block succeeds."""
     path = transfer.target_path(path, overwrite)
-    fd, tmp = tempfile.mkstemp(prefix=".omatable-", dir=os.path.dirname(path))
+    fd, tmp = tempfile.mkstemp(prefix=".omatableplus-", dir=os.path.dirname(path))
     os.close(fd)
     os.chmod(tmp, 0o600)
     try:
@@ -141,7 +141,7 @@ def _pg_env(c, database):
     return {"PGHOST": c.get("host") or "127.0.0.1", "PGPORT": str(c.get("port") or 5432),
             "PGUSER": c.get("user") or "postgres", "PGDATABASE": database,
             "PGPASSWORD": c.get("password") or "", "PGSSLMODE": c.get("tls") or "prefer",
-            "PGAPPNAME": "OmaTable", "PGCONNECT_TIMEOUT": "10",
+            "PGAPPNAME": "OmaTablePlus", "PGCONNECT_TIMEOUT": "10",
             # inherited ones that would take precedence over the host above
             "PGHOSTADDR": None, "PGSERVICE": None, "PGSERVICEFILE": None}
 
@@ -163,7 +163,7 @@ def _my_options(c, engine):
         lines.append("skip-ssl" if engine == "mariadb" else "ssl-mode=DISABLED")
     elif tls == "prefer" and engine == "mariadb":
         lines.append("skip-ssl-verify-server-cert")
-    fd, path = tempfile.mkstemp(prefix=".omatable-my-", suffix=".cnf")
+    fd, path = tempfile.mkstemp(prefix=".omatableplus-my-", suffix=".cnf")
     try:
         with os.fdopen(fd, "w") as f:
             f.write("\n".join(lines) + "\n")
