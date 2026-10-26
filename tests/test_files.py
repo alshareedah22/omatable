@@ -50,6 +50,23 @@ class FilesTest(unittest.TestCase):
         files.write_text(out["path"], "again", overwrite=True)
         self.assertEqual(open(out["path"]).read(), "again")
 
+    def test_write_never_follows_a_planted_temporary_name(self):
+        # In a folder others can write to, a link at a guessable temporary name must not
+        # redirect the save onto another file.
+        private = os.path.join(self.d, "private.txt")
+        with open(private, "w") as f:
+            f.write("secret")
+        target = os.path.join(self.d, "query.sql")
+        for name in ("query.sql.omatableplus-tmp", "query.sql.tmp", ".query.sql.tmp"):
+            os.symlink(private, os.path.join(self.d, name))
+        files.write_text(target, "select 3;")
+        self.assertEqual(open(private).read(), "secret")
+        self.assertEqual(open(target).read(), "select 3;")
+        self.assertFalse(os.path.islink(target))
+        self.assertEqual(stat.S_IMODE(os.stat(target).st_mode), 0o600)
+        leftovers = [n for n in os.listdir(self.d) if n.startswith(".omatableplus-")]
+        self.assertEqual(leftovers, [])
+
 
 class RunFileTest(unittest.TestCase):
     def setUp(self):

@@ -3,6 +3,7 @@ files read into or written from the editor.
 """
 
 import os
+import tempfile
 
 from . import transfer
 from .protocol import Error
@@ -58,14 +59,15 @@ def read_text(path, limit=MAX_EDITOR_BYTES):
 
 def write_text(path, text, overwrite=False):
     path = transfer.target_path(path, overwrite)
-    tmp = path + ".omatableplus-tmp"
-    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    # A fresh, exclusively created name (mode 600): in a folder others can write to, a
+    # guessable one could be planted as a link to another file.
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".omatableplus-", suffix=".part")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(str(text))
         os.replace(tmp, path)
     except BaseException:
-        if os.path.exists(tmp):
+        if os.path.lexists(tmp):
             os.unlink(tmp)
         raise
     return {"path": path, "bytes": os.path.getsize(path)}
