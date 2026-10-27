@@ -166,9 +166,15 @@ Hiding the window ends the session, so commit before you hide it.
 | Ctrl+C | Copy cell |
 | Ctrl+W, Ctrl+Tab | Close / cycle tabs |
 | Ctrl+T | New query tab |
+| Ctrl+Shift+N | Back to the connection list |
+| Ctrl+PgUp / Ctrl+PgDown | Previous / next connection |
+| Ctrl+Shift+Tab | Cycle tabs backwards |
 | Ctrl+Enter | Run statement at cursor (or selection) |
 | Ctrl+Shift+Enter | Run all statements |
 | Ctrl+. | Cancel the running query |
+| Ctrl+E | Explain the statement at the cursor |
+| Ctrl+Shift+F | Format the SQL |
+| Ctrl+Space | Ask for autocomplete suggestions |
 | Ctrl+S (query tab) | Save the query |
 | Ctrl+H | History and saved queries |
 | Ctrl+` | Redis / MongoDB console |
@@ -180,12 +186,20 @@ Install OmaTablePlus from the Omarchy plugin manager. Then add the **OmaTablePlu
 
     omarchy-shell shell summon blackcode.omatableplus '{}'
 
+The bar widget toggles the window. Summoning with `'{"connect": "<connection id>"}'` opens that saved connection
+(OmaDBngin's **Open in OmaTablePlus** sends `omadb:<name>`).
+
 The first launch installs the database drivers into `~/.local/share/omatableplus/venv`. Every wheel is pinned by
 version and SHA-256 in `requirements.lock`; anything that does not match is refused.
 
 OmaTablePlus was called OmaTable before 1.6. On its first launch it moves `~/.config/omatable` to
 `~/.config/omatableplus`, moves each saved keyring password the first time it is used, and removes the old driver
 venv in `~/.local/share/omatable`, but only when that venv's own stamp file shows OmaTable created it.
+
+## Update
+
+Update from the Omarchy plugin manager. The drivers are reinstalled on the next launch only when
+`requirements.lock` or the system Python's minor version changed. Your connections and history stay as they are.
 
 ## Requirements
 
