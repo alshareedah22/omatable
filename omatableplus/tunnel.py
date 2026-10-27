@@ -7,6 +7,7 @@ in argv or the environment, and the FIFO is written exactly once.
 
 import ctypes
 import os
+import re
 import shutil
 import signal
 import socket
@@ -16,6 +17,26 @@ import threading
 import time
 
 from .protocol import Error
+
+_HOST_RE = re.compile(r"^[A-Za-z0-9._:%\-\[\]]+$")
+_USER_RE = re.compile(r"^[A-Za-z0-9._][A-Za-z0-9._@+\-]*$")
+
+
+def check_target(ssh):
+    """Refuse SSH settings that ssh would read as options or that hold control characters."""
+    host = str(ssh.get("host") or "")
+    user = str(ssh.get("user") or "")
+    if not host or host.startswith("-") or not _HOST_RE.match(host):
+        raise Error("tunnel", "invalid SSH host: use a host name or IP address that does not start with '-' "
+                              "and has no spaces or control characters")
+    if not user or user.startswith("-") or not _USER_RE.match(user):
+        raise Error("tunnel", "invalid SSH user: use a user name that does not start with '-' "
+                              "and has no spaces or control characters")
+    if (ssh.get("auth") or "agent") == "key":
+        key = str(ssh.get("key_path") or "")
+        if not key or key.startswith("-") or any(ord(c) < 32 or ord(c) == 127 for c in key):
+            raise Error("tunnel", "invalid SSH key path: it must be set, must not start with '-' "
+                                  "and must have no control characters")
 
 ASKPASS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "askpass")
 PR_SET_PDEATHSIG = 1
@@ -52,6 +73,7 @@ class Tunnel:
 
     def command(self, local_port):
         ssh = self.ssh
+        check_target(ssh)
         argv = ["ssh", "-N", "-L", f"127.0.0.1:{local_port}:{self.target_host}:{self.target_port}",
                 "-p", str(ssh.get("port") or 22),
                 "-o", "ExitOnForwardFailure=yes", "-o", "ServerAliveInterval=30",
@@ -66,8 +88,8 @@ class Tunnel:
         else:
             argv += ["-o", "BatchMode=yes"]
             if auth == "key":
-                argv += ["-i", ssh.get("key_path") or "", "-o", "IdentitiesOnly=yes"]
-        argv.append(f"{ssh.get('user')}@{ssh.get('host')}")
+                argv += ["-i", os.path.abspath(os.path.expanduser(ssh["key_path"])), "-o", "IdentitiesOnly=yes"]
+        argv += ["--", f"{ssh.get('user')}@{ssh.get('host')}"]
         return argv
 
     def _feed(self, fifo):
@@ -85,6 +107,7 @@ class Tunnel:
         pipe.close()
 
     def start(self, timeout=20):
+        check_target(self.ssh)
         port = free_port()
         env = {k: v for k, v in os.environ.items() if not k.startswith("SSH_ASKPASS")}
         fifo = None

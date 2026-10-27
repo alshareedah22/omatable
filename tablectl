@@ -21,6 +21,7 @@ HERE = os.path.dirname(os.path.realpath(__file__))
 DATA = os.environ.get("OMATABLEPLUS_DATA") or os.path.join(
     os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"), "omatableplus")
 VENV = os.path.join(DATA, "venv")
+PIP_TIMEOUT = 600
 LOCK = os.environ.get("OMATABLEPLUS_LOCK") or os.path.join(HERE, "requirements.lock")
 
 
@@ -60,16 +61,26 @@ def ensure_venv():
         fatal(f"could not create {tmp}: {e}")
     emit({"event": "progress", "text": "Installing database drivers…", "pct": 40})
     pip = [os.path.join(tmp, "bin", "python"), "-m", "pip", "install", "--disable-pip-version-check",
-           "--no-input", "--require-hashes", "--no-deps", "--only-binary", ":all:", "-r", LOCK]
-    r = subprocess.run(pip, capture_output=True, text=True)
+           "--no-input", "--require-hashes", "--no-deps", "--only-binary", ":all:", "--timeout", "60", "--retries", "2", "-r", LOCK]
+    try:
+        r = subprocess.run(pip, capture_output=True, text=True, timeout=PIP_TIMEOUT)
+    except subprocess.TimeoutExpired:
+        shutil.rmtree(tmp, ignore_errors=True)
+        fatal(f"installing drivers timed out after {PIP_TIMEOUT} s; check your network and try again")
     if r.returncode != 0:
         shutil.rmtree(tmp, ignore_errors=True)
         lines = [l for l in (r.stderr or r.stdout).splitlines() if l.strip()]
         fatal("installing drivers failed: " + " ".join(lines[-3:]))
     with open(os.path.join(tmp, ".omatableplus-stamp"), "w") as f:
         f.write(want + "\n")
-    shutil.rmtree(VENV, ignore_errors=True)
+    old = VENV + ".old"
+    shutil.rmtree(old, ignore_errors=True)
+    had_old = os.path.exists(VENV)
+    if had_old:
+        os.rename(VENV, old)
     os.rename(tmp, VENV)
+    if had_old:
+        shutil.rmtree(old, ignore_errors=True)
     emit({"event": "progress", "text": "Drivers ready", "pct": 100})
     return python
 

@@ -7,6 +7,7 @@ hold secrets (ALTER USER … PASSWORD), so it is treated like the passwords file
 import datetime
 import json
 import os
+import tempfile
 import threading
 import uuid
 
@@ -16,6 +17,21 @@ from .protocol import Error
 def _private_open(path, mode):
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | (os.O_APPEND if mode == "a" else os.O_TRUNC), 0o600)
     return os.fdopen(fd, mode)
+
+
+def _atomic_write(path, write):
+    """Write through a private temp file in the same directory, then replace `path`."""
+    fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path) or ".", prefix=".tmp-", suffix=".part")  # mode 600
+    try:
+        with os.fdopen(fd, "w") as f:
+            write(f)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
 
 
 def _ensure_dir(directory):
@@ -48,11 +64,11 @@ class History:
 
     def _rewrite(self, items):
         _ensure_dir(self.dir)
-        tmp = self.path + ".tmp"
-        with _private_open(tmp, "w") as f:
+
+        def write(f):
             for item in items:
                 f.write(json.dumps(item, ensure_ascii=False) + "\n")
-        os.replace(tmp, self.path)
+        _atomic_write(self.path, write)
 
     def add(self, entry):
         item = {"id": uuid.uuid4().hex[:12],
@@ -105,10 +121,7 @@ class Saved:
 
     def _write(self, items):
         _ensure_dir(self.dir)
-        tmp = self.path + ".tmp"
-        with _private_open(tmp, "w") as f:
-            json.dump(items, f, indent=2, ensure_ascii=False)
-        os.replace(tmp, self.path)
+        _atomic_write(self.path, lambda f: json.dump(items, f, indent=2, ensure_ascii=False))
 
     def list(self):
         with self.lock:

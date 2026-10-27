@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import threading
 import uuid
 
@@ -171,11 +172,17 @@ class Store:
     def _write(self, conns):
         os.makedirs(self.dir, mode=0o700, exist_ok=True)
         os.chmod(self.dir, 0o700)
-        tmp = self.path + ".tmp"
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as f:
-            json.dump(conns, f, indent=2)
-        os.replace(tmp, self.path)
+        fd, tmp = tempfile.mkstemp(dir=self.dir, prefix=".connections-", suffix=".tmp")  # mode 600
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(conns, f, indent=2)
+            os.replace(tmp, self.path)
+        except BaseException:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise
 
     def _secret(self, conn, kind):
         file_secret = (conn.get("secrets") or {}).get(kind)

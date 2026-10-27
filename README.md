@@ -9,7 +9,8 @@ Redis/Valkey and a document browser for MongoDB.
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDBngin](https://github.com/alshareedah22/omadbngin) are listed automatically, with their credentials
 - Passwords are kept in your keyring (Secret Service), never in plain files when a keyring is available
-- SSH tunnels with agent, key or password login
+- SSH tunnels with agent, key or password login (new host keys are accepted on first use,
+  `StrictHostKeyChecking=accept-new`; a changed key is refused)
 - Safe mode: connections tagged **production** ask before anything that changes data
 
 ## Using it
@@ -203,7 +204,8 @@ Update from the Omarchy plugin manager. The drivers are reinstalled on the next 
 
 ## Requirements
 
-Omarchy with Python 3 (for the helper and its venv), `wl-copy` for copying, `ssh` for tunnels, and a Secret
+Omarchy with Python 3 including `venv` and `ensurepip` (for the helper and its venv; on Arch they are part of
+`python`, and without them the first launch fails with "could not create … venv" or "No module named ensurepip"), `wl-copy` for copying, `ssh` for tunnels, and a Secret
 Service keyring (GNOME Keyring or KeePassXC) to keep passwords out of plain files. The drivers (psycopg, PyMySQL,
 redis-py, pymongo) come from PyPI on first launch, pinned by hash. [OmaDBngin](https://github.com/alshareedah22/omadbngin)
 is optional. Backups use `pg_dump`/`psql` or `mysqldump`/`mysql` (or the MariaDB versions), from PATH or
@@ -212,10 +214,12 @@ OmaDBngin's engines. Running the editor tests needs `node`.
 ## Remove
 
     omarchy plugin remove blackcode.omatableplus
-    rm -rf ~/.config/omatableplus ~/.local/share/omatableplus   # saved connections, history and the drivers
+    rm -rf ~/.config/omatableplus ~/.local/share/omatableplus
+    secret-tool clear app omatableplus
 
-Saved passwords live in your keyring as "OmaTablePlus … password" items; delete a connection in the app first, or
-clear them all with `secret-tool clear app omatableplus`. OmaTablePlus never changes your databases' files or OmaDBngin's servers.
+The first command removes the plugin. The other two are optional: they delete your saved connections, query
+history, the drivers and the saved passwords in your keyring ("OmaTablePlus … password" items). OmaTablePlus never
+changes your databases' files or OmaDBngin's servers.
 
 ## Files
 
