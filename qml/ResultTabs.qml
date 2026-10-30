@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // One tab per statement of the last run: a grid for rows, a line for
@@ -88,19 +89,19 @@ Item {
             required property var modelData
             implicitWidth: label.implicitWidth + 20
             implicitHeight: Math.round(Style.font.body * 2.1)
-            color: index === rt.current ? Color.background : Qt.lighter(Color.background, 1.1)
-            Rectangle { visible: index === rt.current; width: parent.width; height: 2; color: modelData.error ? Color.urgent : Color.accent }
+            color: index === rt.current ? Commons.Color.background : Qt.lighter(Commons.Color.background, 1.1)
+            Rectangle { visible: index === rt.current; width: parent.width; height: 2; color: modelData.error ? Commons.Color.urgent : Commons.Color.accent }
             Text {
               id: label
               textFormat: Text.PlainText
               anchors.centerIn: parent
               text: (index + 1) + " · " + rt.summary(modelData)
-              color: modelData.error ? Color.urgent : index === rt.current ? Color.foreground : Color.muted
+              color: modelData.error ? Commons.Color.urgent : index === rt.current ? Commons.Color.foreground : Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
             }
             MouseArea { anchors.fill: parent; onClicked: { if (model.dirty && index !== rt.current) rt.notify("Commit or discard the edits first"); else rt.current = index } }
-            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Color.background, 1.4) }
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Commons.Color.background, 1.4) }
           }
         }
       }
@@ -128,7 +129,7 @@ Item {
           text: !rt.shown ? rt.placeholder
             : rt.shown.error ? rt.shown.error.message
             : rt.summary(rt.shown)
-          color: rt.shown && rt.shown.error && rt.shown.error.code !== "cancelled" ? Color.urgent : Color.muted
+          color: rt.shown && rt.shown.error && rt.shown.error.code !== "cancelled" ? Commons.Color.urgent : Commons.Color.muted
           wrapMode: Text.Wrap
           // monospace keeps PostgreSQL's ^ under the right character
           font.family: rt.shown && rt.shown.error ? "monospace" : Style.font.family
@@ -139,7 +140,7 @@ Item {
           visible: rt.shown !== null
           width: parent.width
           text: rt.shown ? rt.shown.sql : ""
-          color: Color.muted
+          color: Commons.Color.muted
           wrapMode: Text.Wrap
           maximumLineCount: 6
           elide: Text.ElideRight
@@ -153,7 +154,7 @@ Item {
       Layout.fillWidth: true
       visible: rt.shown !== null
       implicitHeight: statusText.implicitHeight + 10
-      color: Qt.lighter(Color.background, 1.08)
+      color: Qt.lighter(Commons.Color.background, 1.08)
       Row {
         id: editBar
         anchors.right: exportBtn.left
@@ -162,7 +163,7 @@ Item {
         spacing: 6
         visible: model.dirty
         Ui.Button { bordered: true; text: "Discard"; fontSize: Style.font.bodySmall; onClicked: model.discardAll() }
-        Ui.Button { bordered: true; foreground: Color.accent; fontSize: Style.font.bodySmall
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; fontSize: Style.font.bodySmall
                     text: "Commit " + model.changeCount + (model.changeCount === 1 ? " change" : " changes"); onClicked: rt.commit() }
       }
       Text {
@@ -172,7 +173,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         visible: !model.dirty && model.editable
         text: "editable · " + (model.source ? model.source.table : "")
-        color: Color.accent
+        color: Commons.Color.accent
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -197,7 +198,7 @@ Item {
         text: !rt.shown ? "" : rt.summary(rt.shown) + " · " + rt.shown.ms + " ms"
           + (rt.shown.truncated ? " · first " + rt.shown.rows.length.toLocaleString(Qt.locale(), "f", 0) + " rows shown" : "")
           + "   " + rt.shown.sql.replace(/\s+/g, " ")
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }

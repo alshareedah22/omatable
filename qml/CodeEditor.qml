@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.Commons
+import qs.Commons as Commons
 import "SqlHighlight.js" as Hl
 import "Complete.js" as Cmp
 import "Format.js" as Fmt
@@ -22,11 +23,11 @@ FocusScope {
   readonly property int fontSize: Style.font.body
   readonly property real lineHeight: input.lineCount > 0 ? input.contentHeight / input.lineCount : fontSize * 1.3
   readonly property var colors: ({
-    keyword: String(palette.keyword || Color.accent),
-    string: String(palette.string || Qt.tint(Color.foreground, "#9000c060")),
-    number: String(palette.number || Qt.tint(Color.foreground, "#90e0a000")),
-    comment: String(palette.comment || Color.muted),
-    identifier: String(palette.identifier || Qt.tint(Color.foreground, "#7000b0c0"))
+    keyword: String(palette.keyword || Commons.Color.accent),
+    string: String(palette.string || Qt.tint(Commons.Color.foreground, "#9000c060")),
+    number: String(palette.number || Qt.tint(Commons.Color.foreground, "#90e0a000")),
+    comment: String(palette.comment || Commons.Color.muted),
+    identifier: String(palette.identifier || Qt.tint(Commons.Color.foreground, "#7000b0c0"))
   })
   signal runCurrent()
   signal runAll()
@@ -85,14 +86,14 @@ FocusScope {
     else if (rect.x + 2 > flick.contentX + flick.width) flick.contentX = rect.x + 40 - flick.width
   }
 
-  Rectangle { anchors.fill: parent; color: Qt.darker(Color.background, 1.15) }
+  Rectangle { anchors.fill: parent; color: Qt.darker(Commons.Color.background, 1.15) }
 
   // ---- line numbers ----
   Rectangle {
     id: gutter
     width: String(Math.max(input.lineCount, 10)).length * ed.fontSize * 0.62 + 20
     height: parent.height
-    color: Qt.darker(Color.background, 1.05)
+    color: Qt.darker(Commons.Color.background, 1.05)
     clip: true
     Repeater {
       // only the lines in view
@@ -109,7 +110,7 @@ FocusScope {
         horizontalAlignment: Text.AlignRight
         verticalAlignment: Text.AlignVCenter
         text: line + 1
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: "monospace"
         font.pixelSize: ed.fontSize * 0.85
       }
@@ -150,7 +151,7 @@ FocusScope {
       wrapMode: TextEdit.NoWrap
       tabStopDistance: input.tabStopDistance
       font: input.font
-      color: Color.foreground
+      color: Commons.Color.foreground
       text: Hl.html(input.text, ed.engine, ed.colors)
     }
 
@@ -166,13 +167,13 @@ FocusScope {
       persistentSelection: true
       color: "transparent"
       selectedTextColor: "transparent"
-      selectionColor: Qt.alpha(Color.accent, 0.3)
+      selectionColor: Qt.alpha(Commons.Color.accent, 0.3)
       font.family: "monospace"
       font.pixelSize: ed.fontSize
       tabStopDistance: ed.fontSize * 0.62 * 4
       cursorDelegate: Rectangle {
         width: 2
-        color: Color.foreground
+        color: Commons.Color.foreground
         visible: input.activeFocus && blink.on
         Timer { id: blink; property bool on: true; interval: 530; repeat: true; running: input.activeFocus; onTriggered: on = !on }
         Connections { target: input; function onCursorPositionChanged() { blink.on = true; blink.restart() } }
@@ -231,8 +232,8 @@ FocusScope {
     x: Math.max(4, Math.min(cx - 6, ed.width - width - 4))
     y: below + height <= ed.height ? below : Math.max(0, input.cursorRectangle.y - flick.contentY - height - 2)
     radius: 4
-    color: Color.menu.background
-    border.color: Color.menu.border
+    color: Commons.Color.menu.background
+    border.color: Commons.Color.menu.border
     ListView {
       id: completionView
       anchors.fill: parent
@@ -248,7 +249,7 @@ FocusScope {
         width: completionView.width
         height: completionList.rowHeight
         radius: 3
-        color: index === ed.pick ? Qt.alpha(Color.accent, 0.3) : "transparent"
+        color: index === ed.pick ? Qt.alpha(Commons.Color.accent, 0.3) : "transparent"
         Text {
           id: kindIcon
           textFormat: Text.PlainText
@@ -256,7 +257,7 @@ FocusScope {
           anchors.verticalCenter: parent.verticalCenter
           width: ed.fontSize * 1.3
           text: ({ column: "\uf0db", table: "\uf0ce", view: "\uf06e", schema: "\uf1c0", keyword: "\uf121" })[modelData.kind] || ""
-          color: modelData.kind === "keyword" ? Color.muted : Color.accent
+          color: modelData.kind === "keyword" ? Commons.Color.muted : Commons.Color.accent
           font.family: Style.font.family
           font.pixelSize: ed.fontSize * 0.85
         }
@@ -268,7 +269,7 @@ FocusScope {
           width: parent.width * 0.55
           elide: Text.ElideRight
           text: modelData.label
-          color: Color.foreground
+          color: Commons.Color.foreground
           font.family: "monospace"
           font.pixelSize: ed.fontSize * 0.9
         }
@@ -281,7 +282,7 @@ FocusScope {
           horizontalAlignment: Text.AlignRight
           elide: Text.ElideRight
           text: modelData.detail
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: "monospace"
           font.pixelSize: ed.fontSize * 0.75
         }

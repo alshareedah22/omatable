@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // The tables of a schema as boxes, with a line for each foreign key from its
@@ -126,7 +127,7 @@ Item {
     Rectangle {
       Layout.fillWidth: true
       implicitHeight: bar.implicitHeight + 10
-      color: Qt.lighter(Color.background, 1.08)
+      color: Qt.lighter(Commons.Color.background, 1.08)
       RowLayout {
         id: bar
         x: 8
@@ -146,12 +147,12 @@ Item {
           Layout.fillWidth: true
           text: dg.loading ? "Loading…" : dg.tables.length + " tables · " + dg.links.length + " links"
             + (dg.truncated ? " · the first " + dg.tables.length + " only" : "")
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
         }
         Ui.Button { bordered: true; text: "−"; tooltipText: "Zoom out (Ctrl+wheel)"; onClicked: dg.setZoom(dg.zoom / 1.2) }
-        Text { textFormat: Text.PlainText; text: Math.round(dg.zoom * 100) + "%"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: Math.round(dg.zoom * 100) + "%"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Button { bordered: true; text: "+"; tooltipText: "Zoom in (Ctrl+wheel)"; onClicked: dg.setZoom(dg.zoom * 1.2) }
         Ui.Button { bordered: true; text: "Fit"; onClicked: dg.fit() }
         Ui.Button { bordered: true; text: "Arrange"; tooltipText: "Lay the boxes out again"; onClicked: dg.layout() }
@@ -164,7 +165,7 @@ Item {
       Layout.margins: 8
       visible: dg.error !== ""
       text: dg.error
-      color: Color.urgent
+      color: Commons.Color.urgent
       wrapMode: Text.Wrap
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
@@ -206,7 +207,7 @@ Item {
               const a = dg.pos[l.a], b = dg.pos[l.b]
               if (!a || !b) continue
               const lit = dg.hover === l.a || dg.hover === l.b
-              ctx.strokeStyle = lit ? String(Color.accent) : Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, dg.hover >= 0 ? 0.15 : 0.45)
+              ctx.strokeStyle = lit ? String(Commons.Color.accent) : Qt.rgba(Commons.Color.foreground.r, Commons.Color.foreground.g, Commons.Color.foreground.b, dg.hover >= 0 ? 0.15 : 0.45)
               ctx.fillStyle = ctx.strokeStyle
               const y1 = dg.rowY(l.a, l.ac), y2 = dg.rowY(l.b, l.bc)
               let x1, x2, d
@@ -244,8 +245,8 @@ Item {
             width: dg.boxW
             height: dg.boxH(t)
             radius: 6
-            color: Qt.lighter(Color.background, 1.12)
-            border.color: dg.hover === index ? Color.accent : Qt.lighter(Color.background, 1.6)
+            color: Qt.lighter(Commons.Color.background, 1.12)
+            border.color: dg.hover === index ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.6)
             border.width: dg.hover === index ? 2 : 1
             HoverHandler { onHoveredChanged: dg.hover = hovered ? box.index : (dg.hover === box.index ? -1 : dg.hover) }
 
@@ -254,7 +255,7 @@ Item {
               width: parent.width
               height: dg.headH
               radius: 6
-              color: Qt.alpha(Color.accent, 0.25)
+              color: Qt.alpha(Commons.Color.accent, 0.25)
               Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 6; color: parent.color }
               Text {
                 textFormat: Text.PlainText
@@ -263,7 +264,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 elide: Text.ElideRight
                 text: (dg.schemas.length > 1 && !dg.schema ? box.t.schema + "." : "") + box.t.name
-                color: Color.foreground
+                color: Commons.Color.foreground
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
                 font.bold: true
@@ -299,7 +300,7 @@ Item {
                     width: parent.width * 0.58
                     elide: Text.ElideRight
                     text: (modelData.pk ? " " : "") + modelData.name
-                    color: modelData.pk ? Color.accent : Color.foreground
+                    color: modelData.pk ? Commons.Color.accent : Commons.Color.foreground
                     font.family: "monospace"
                     font.pixelSize: Style.font.bodySmall * 0.95
                   }
@@ -311,7 +312,7 @@ Item {
                     horizontalAlignment: Text.AlignRight
                     elide: Text.ElideRight
                     text: modelData.type
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: "monospace"
                     font.pixelSize: Style.font.bodySmall * 0.85
                   }
@@ -322,7 +323,7 @@ Item {
                 visible: box.t.columns.length > dg.maxRows
                 height: dg.rowH
                 text: "+ " + (box.t.columns.length - dg.maxRows) + " more"
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall * 0.9
               }
@@ -335,7 +336,7 @@ Item {
         anchors.centerIn: parent
         visible: !dg.loading && dg.tables.length === 0 && dg.error === ""
         text: "No tables here"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
       }

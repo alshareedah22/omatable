@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // The strip above every browser: back to the connections, the connection's
@@ -19,7 +20,7 @@ Rectangle {
   function resetDatabase() { dbBox.value = Qt.binding(function() { return bar.info ? bar.info.database : "" }) }
 
   implicitHeight: titleRow.implicitHeight + 12
-  color: Qt.lighter(Color.background, 1.12)
+  color: Qt.lighter(Commons.Color.background, 1.12)
   Rectangle { width: parent.width; height: 3; color: bar.info ? bar.info.color : "transparent" }
   RowLayout {
     id: titleRow
@@ -31,7 +32,7 @@ Rectangle {
     Text {
       textFormat: Text.PlainText
       text: bar.info ? bar.info.name : ""
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -41,8 +42,8 @@ Rectangle {
       implicitWidth: roText.implicitWidth + 12
       implicitHeight: roText.implicitHeight + 4
       radius: 3
-      color: Qt.lighter(Color.background, 1.6)
-      Text { textFormat: Text.PlainText; id: roText; anchors.centerIn: parent; text: "READ-ONLY"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+      color: Qt.lighter(Commons.Color.background, 1.6)
+      Text { textFormat: Text.PlainText; id: roText; anchors.centerIn: parent; text: "READ-ONLY"; color: Commons.Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
     }
     Rectangle {
       visible: bar.info && bar.info.tag === "production"
@@ -57,7 +58,7 @@ Rectangle {
       Layout.fillWidth: true
       elide: Text.ElideRight
       text: bar.info ? bar.info.version + (bar.info.ssh ? "  ·   SSH" : "") : ""
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -66,7 +67,7 @@ Rectangle {
       textFormat: Text.PlainText
       visible: bar.showDatabases
       text: "Database"
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }

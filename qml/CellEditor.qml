@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import "Values.js" as Values
 
@@ -58,7 +59,7 @@ Popup {
   modal: true
   focus: true
   closePolicy: Popup.CloseOnEscape
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   ColumnLayout {
     anchors.fill: parent
@@ -68,7 +69,7 @@ Popup {
       Text {
         textFormat: Text.PlainText
         text: dlg.column ? dlg.column.name : ""
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.body
         font.bold: true
@@ -79,7 +80,7 @@ Popup {
         elide: Text.ElideRight
         text: !dlg.column ? "" : (dlg.column.type || "") + (dlg.column.nullable === false ? "  NOT NULL" : "")
           + (dlg.column.default !== null && dlg.column.default !== undefined ? "  DEFAULT " + dlg.column.default : "")
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: "monospace"
         font.pixelSize: Style.font.bodySmall
       }
@@ -87,7 +88,7 @@ Popup {
         id: nullNote
         textFormat: Text.PlainText
         text: "currently NULL"
-        color: Color.muted
+        color: Commons.Color.muted
         font.italic: true
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
@@ -100,10 +101,10 @@ Popup {
         id: area
         selectByMouse: true
         wrapMode: TextEdit.Wrap
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.body
-        background: Rectangle { color: Qt.lighter(Color.background, 1.1); border.color: area.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.5); radius: 4 }
+        background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.1); border.color: area.activeFocus ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.5); radius: 4 }
         onTextChanged: nullNote.visible = false
         Keys.onPressed: function(event) {
           const ctrl = event.modifiers & Qt.ControlModifier
@@ -117,7 +118,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -137,14 +138,14 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Ctrl+S applies · Esc cancels · saved with the other changes"
-        color: Color.muted
+        color: Commons.Color.muted
         elide: Text.ElideRight
         horizontalAlignment: Text.AlignRight
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
       Ui.Button { text: "Cancel"; onClicked: dlg.close() }
-      Ui.Button { bordered: true; foreground: Color.accent; text: "Apply"; onClicked: dlg.apply() }
+      Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Apply"; onClicked: dlg.apply() }
     }
   }
 }

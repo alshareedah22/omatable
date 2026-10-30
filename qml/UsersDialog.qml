@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Users (PostgreSQL roles, MySQL accounts): list them, create and drop them,
@@ -122,9 +123,9 @@ Popup {
   modal: true
   focus: true
   closePolicy: Popup.CloseOnEscape
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
-  component Label: Text { textFormat: Text.PlainText; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+  component Label: Text { textFormat: Text.PlainText; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
   component Check: Ui.Button { property bool on: false; bordered: true; selected: on; fontSize: Style.font.bodySmall }
 
   ColumnLayout {
@@ -136,12 +137,12 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: dlg.mysql ? "Users" : "Roles and users"
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         font.bold: true
       }
-      Ui.Button { bordered: true; foreground: Color.accent; text: "+ New user"; onClicked: { dlg.mode = "new"; dlg.current = null; dlg.error = ""; newName.focusInput() } }
+      Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "+ New user"; onClicked: { dlg.mode = "new"; dlg.current = null; dlg.error = ""; newName.focusInput() } }
     }
     Text {
       textFormat: Text.PlainText
@@ -149,7 +150,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -162,7 +163,7 @@ Popup {
       Rectangle {
         Layout.preferredWidth: 240
         Layout.fillHeight: true
-        color: Qt.lighter(Color.background, 1.08)
+        color: Qt.lighter(Commons.Color.background, 1.08)
         radius: 4
         ListView {
           id: userList
@@ -177,8 +178,8 @@ Popup {
             width: userList.width
             height: Math.round(Style.font.body * 2)
             radius: 3
-            color: dlg.current && dlg.key(dlg.current) === dlg.key(modelData) ? Qt.alpha(Color.accent, 0.3)
-              : uhover.hovered ? Qt.lighter(Color.background, 1.3) : "transparent"
+            color: dlg.current && dlg.key(dlg.current) === dlg.key(modelData) ? Qt.alpha(Commons.Color.accent, 0.3)
+              : uhover.hovered ? Qt.lighter(Commons.Color.background, 1.3) : "transparent"
             HoverHandler { id: uhover }
             TapHandler { onTapped: dlg.pick(urow.modelData) }
             Text {
@@ -189,7 +190,7 @@ Popup {
               elide: Text.ElideRight
               text: (urow.modelData.superuser ? "★ " : urow.modelData.login === false ? "◇ " : "") + urow.modelData.name
                 + (dlg.mysql ? "@" + urow.modelData.host : "")
-              color: urow.modelData.login === false ? Color.muted : Color.foreground
+              color: urow.modelData.login === false ? Commons.Color.muted : Commons.Color.foreground
               font.family: "monospace"
               font.pixelSize: Style.font.bodySmall
             }
@@ -203,7 +204,7 @@ Popup {
         Layout.fillHeight: true
         visible: dlg.mode === "new"
         spacing: 10
-        Text { textFormat: Text.PlainText; text: "New user"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+        Text { textFormat: Text.PlainText; text: "New user"; color: Commons.Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
         RowLayout {
           Layout.fillWidth: true
           Field { id: newName; Layout.fillWidth: true; label: "Name" }
@@ -215,12 +216,12 @@ Popup {
           spacing: 6
           Check { id: newLogin; on: true; text: "Can log in"; onClicked: on = !on }
           Check { id: newCreatedb; text: "Create databases"; onClicked: on = !on }
-          Check { id: newSuper; text: "Superuser"; foreground: on ? Color.urgent : Color.foreground; onClicked: on = !on }
+          Check { id: newSuper; text: "Superuser"; foreground: on ? Commons.Color.urgent : Commons.Color.foreground; onClicked: on = !on }
         }
         RowLayout {
           Item { Layout.fillWidth: true }
           Ui.Button { text: "Cancel"; onClicked: dlg.mode = "view" }
-          Ui.Button { bordered: true; foreground: Color.accent; text: "Create"; enabled: newName.text.trim() !== ""; onClicked: dlg.createUser() }
+          Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Create"; enabled: newName.text.trim() !== ""; onClicked: dlg.createUser() }
         }
         Item { Layout.fillHeight: true }
       }
@@ -237,18 +238,18 @@ Popup {
             textFormat: Text.PlainText
             Layout.fillWidth: true
             text: dlg.current ? dlg.key(dlg.current) : ""
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: "monospace"
             font.pixelSize: Style.font.body
             font.bold: true
           }
-          Ui.Button { text: "Drop…"; foreground: Color.urgent; onClicked: dlg.dropUser() }
+          Ui.Button { text: "Drop…"; foreground: Commons.Color.urgent; onClicked: dlg.dropUser() }
         }
         Text {
           textFormat: Text.PlainText
           visible: !dlg.mysql && dlg.current && dlg.current.member_of && dlg.current.member_of.length > 0
           text: dlg.current && dlg.current.member_of ? "member of " + dlg.current.member_of.join(", ") : ""
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
         }
@@ -278,7 +279,7 @@ Popup {
           Layout.fillWidth: true
           Layout.fillHeight: true
           Layout.minimumHeight: 80
-          color: Qt.lighter(Color.background, 1.08)
+          color: Qt.lighter(Commons.Color.background, 1.08)
           radius: 4
           ListView {
             id: grantList
@@ -293,11 +294,11 @@ Popup {
               width: grantList.width
               wrapMode: Text.Wrap
               text: modelData
-              color: Color.foreground
+              color: Commons.Color.foreground
               font.family: "monospace"
               font.pixelSize: Style.font.bodySmall
             }
-            Text { textFormat: Text.PlainText; visible: grantList.count === 0; text: "No privileges"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+            Text { textFormat: Text.PlainText; visible: grantList.count === 0; text: "No privileges"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
           }
         }
 
@@ -330,8 +331,8 @@ Popup {
           Layout.fillWidth: true
           Check { id: future; visible: !dlg.mysql && dlg.scope === "tables"; text: "Also tables created later"; onClicked: on = !on }
           Item { Layout.fillWidth: true }
-          Ui.Button { bordered: true; text: "Revoke"; enabled: dlg.picked.length > 0; foreground: Color.urgent; onClicked: dlg.grantOrRevoke(true) }
-          Ui.Button { bordered: true; text: "Grant"; enabled: dlg.picked.length > 0; foreground: Color.accent; onClicked: dlg.grantOrRevoke(false) }
+          Ui.Button { bordered: true; text: "Revoke"; enabled: dlg.picked.length > 0; foreground: Commons.Color.urgent; onClicked: dlg.grantOrRevoke(true) }
+          Ui.Button { bordered: true; text: "Grant"; enabled: dlg.picked.length > 0; foreground: Commons.Color.accent; onClicked: dlg.grantOrRevoke(false) }
         }
       }
       Text {
@@ -342,7 +343,7 @@ Popup {
         horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         text: "Pick a user on the left, or + New user"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
       }

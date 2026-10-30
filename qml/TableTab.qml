@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import "Values.js" as Values
 
@@ -370,7 +371,7 @@ Item {
       Layout.margins: 8
       visible: tab.error !== ""
       text: tab.error
-      color: Color.urgent
+      color: Commons.Color.urgent
       wrapMode: Text.Wrap
       font.family: Style.font.family
       font.pixelSize: Style.font.body
@@ -380,7 +381,7 @@ Item {
     Rectangle {
       Layout.fillWidth: true
       implicitHeight: status.implicitHeight + 10
-      color: Qt.lighter(Color.background, 1.08)
+      color: Qt.lighter(Commons.Color.background, 1.08)
       RowLayout {
         id: status
         x: 8
@@ -394,7 +395,7 @@ Item {
           text: tab.loading ? "Loading…"
             : (tab.rows.length ? (tab.offset + 1) + "–" + (tab.offset + tab.rows.length) : "0")
               + (tab.total >= 0 ? " of " + tab.total.toLocaleString(Qt.locale(), "f", 0) : "") + " rows · " + tab.ms + " ms"
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
         }
@@ -409,7 +410,7 @@ Item {
           textFormat: Text.PlainText
           visible: !tab.editable && tab.columns.length > 0
           text: "read-only"
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
         }
@@ -421,7 +422,7 @@ Item {
         Ui.Button {
           visible: tab.dirty
           bordered: true
-          foreground: Color.accent
+          foreground: Commons.Color.accent
           text: "Commit " + tab.changeCount + (tab.changeCount === 1 ? " change" : " changes")
           tooltipText: "Ctrl+S"
           enabled: !tab.loading
@@ -437,7 +438,7 @@ Item {
     anchors.right: parent.right
     anchors.bottom: parent.bottom
     height: switchRow.implicitHeight + 8
-    color: Qt.lighter(Color.background, 1.12)
+    color: Qt.lighter(Commons.Color.background, 1.12)
     Row {
       id: switchRow
       x: 8
@@ -455,11 +456,11 @@ Item {
     height: Math.min(parent.height - 80, 500)
     padding: 16
     modal: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Text { textFormat: Text.PlainText; text: "SQL to run on commit"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+      Text { textFormat: Text.PlainText; text: "SQL to run on commit"; color: Commons.Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
       ScrollView {
         Layout.fillWidth: true
         Layout.fillHeight: true
@@ -468,10 +469,10 @@ Item {
           selectByMouse: true
           text: tab.statements
           wrapMode: TextEdit.Wrap
-          color: Color.foreground
+          color: Commons.Color.foreground
           font.family: "monospace"
           font.pixelSize: Style.font.body
-          background: Rectangle { color: Qt.lighter(Color.background, 1.1) }
+          background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.1) }
         }
       }
       RowLayout {

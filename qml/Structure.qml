@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // A table's columns, indexes, foreign keys and DDL. Changes are staged like
@@ -212,7 +213,7 @@ Item {
   }
   component HeadText: Text {
     textFormat: Text.PlainText
-    color: Color.muted
+    color: Commons.Color.muted
     font.family: Style.font.family
     font.pixelSize: Style.font.bodySmall
     font.bold: true
@@ -231,7 +232,7 @@ Item {
     Rectangle {
       Layout.fillWidth: true
       implicitHeight: bar.implicitHeight + 10
-      color: Qt.lighter(Color.background, 1.08)
+      color: Qt.lighter(Commons.Color.background, 1.08)
       clip: true
       RowLayout {
         id: bar
@@ -256,7 +257,7 @@ Item {
         Ui.Button {
           visible: st.dirty
           bordered: true
-          foreground: Color.accent
+          foreground: Commons.Color.accent
           text: "Review " + st.changeCount + (st.changeCount === 1 ? " change" : " changes")
           tooltipText: "Show the SQL and apply it (Ctrl+S)"
           onClicked: st.review()
@@ -270,7 +271,7 @@ Item {
       Layout.margins: 8
       visible: st.error !== ""
       text: st.error
-      color: Color.urgent
+      color: Commons.Color.urgent
       wrapMode: Text.Wrap
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
@@ -330,7 +331,7 @@ Item {
                 textFormat: Text.PlainText
                 Layout.preferredWidth: 20
                 text: colRow.existing && st.columns[colRow.index].pk ? "" : ""
-                color: Color.accent
+                color: Commons.Color.accent
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
               }
@@ -386,7 +387,7 @@ Item {
             y: 12
             visible: st.loading
             text: "Loading…"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.body
           }
@@ -397,7 +398,7 @@ Item {
           Layout.margins: 8
           visible: st.sqlite
           text: "SQLite can rename, add and drop columns. To change a type, NULL rule or default, recreate the table."
-          color: Color.muted
+          color: Commons.Color.muted
           wrapMode: Text.Wrap
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
@@ -435,7 +436,7 @@ Item {
                 Layout.preferredWidth: 220
                 text: ixRow.modelData.name
                 elide: Text.ElideRight
-                color: Color.foreground
+                color: Commons.Color.foreground
                 font.strikeout: ixRow.gone
                 font.family: "monospace"
                 font.pixelSize: Style.font.bodySmall
@@ -446,7 +447,7 @@ Item {
                 text: "(" + ixRow.modelData.columns.join(", ") + ")"
                   + (ixRow.modelData.primary ? "   PRIMARY KEY" : ixRow.modelData.unique ? "   UNIQUE" : "")
                 elide: Text.ElideRight
-                color: ixRow.modelData.primary ? Color.accent : Color.muted
+                color: ixRow.modelData.primary ? Commons.Color.accent : Commons.Color.muted
                 font.family: "monospace"
                 font.pixelSize: Style.font.bodySmall
               }
@@ -512,7 +513,7 @@ Item {
                 + fkRow.modelData.ref_table + " (" + fkRow.modelData.ref_columns.join(", ") + ")"
                 + "   ON DELETE " + fkRow.modelData.on_delete + "   ON UPDATE " + fkRow.modelData.on_update
               elide: Text.ElideRight
-              color: Color.foreground
+              color: Commons.Color.foreground
               font.strikeout: fkRow.gone
               font.family: "monospace"
               font.pixelSize: Style.font.bodySmall
@@ -534,7 +535,7 @@ Item {
           y: 12
           visible: fkList.count === 0
           text: "No foreign keys"
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.body
         }
@@ -545,7 +546,7 @@ Item {
           Layout.margins: 8
           visible: st.sqlite
           text: "SQLite cannot add a foreign key to an existing table; recreate the table to do that."
-          color: Color.muted
+          color: Commons.Color.muted
           wrapMode: Text.Wrap
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
@@ -559,7 +560,7 @@ Item {
           rowSpacing: 6
           Cell { id: fkName; Layout.preferredWidth: 150; placeholderText: "name (optional)" }
           Cell { id: fkCols; Layout.fillWidth: true; Layout.minimumWidth: 100; placeholderText: "column(s), e.g. " + (st.columns.length > 1 ? st.columns[1].name : "id") }
-          Text { textFormat: Text.PlainText; text: "→"; color: Color.muted; font.pixelSize: Style.font.body }
+          Text { textFormat: Text.PlainText; text: "→"; color: Commons.Color.muted; font.pixelSize: Style.font.body }
           Cell { id: fkRef; Layout.fillWidth: true; Layout.minimumWidth: 100; placeholderText: "references table" }
           Cell { id: fkRefCols; Layout.preferredWidth: 110; placeholderText: "id" }
           Ui.Dropdown { id: fkDel; Layout.columnSpan: 2; Layout.fillWidth: true; showLabel: false; value: "NO ACTION"; options: st.fkActions.map(function(a) { return { value: a, label: "on delete: " + a } }) }
@@ -593,7 +594,7 @@ Item {
             required property var modelData
             width: trigList.width
             height: tlay.implicitHeight + 12
-            color: Qt.lighter(Color.background, 1.06)
+            color: Qt.lighter(Commons.Color.background, 1.06)
             radius: 4
             ColumnLayout {
               id: tlay
@@ -607,13 +608,13 @@ Item {
                   textFormat: Text.PlainText
                   Layout.fillWidth: true
                   text: trow.modelData.name
-                  color: Color.foreground
+                  color: Commons.Color.foreground
                   font.family: "monospace"
                   font.pixelSize: Style.font.bodySmall
                   font.bold: true
                 }
                 Ui.Button { text: "Edit"; tooltipText: "Open its definition in a query tab"; onClicked: st.editTrigger(trow.modelData.name) }
-                Ui.Button { text: "Drop…"; foreground: Color.urgent; onClicked: st.dropTrigger(trow.modelData.name) }
+                Ui.Button { text: "Drop…"; foreground: Commons.Color.urgent; onClicked: st.dropTrigger(trow.modelData.name) }
               }
               Text {
                 textFormat: Text.PlainText
@@ -622,7 +623,7 @@ Item {
                 wrapMode: Text.Wrap
                 maximumLineCount: 6
                 elide: Text.ElideRight
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: "monospace"
                 font.pixelSize: Style.font.bodySmall
               }
@@ -634,7 +635,7 @@ Item {
             y: 12
             visible: trigList.count === 0
             text: "No triggers on " + st.table
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.body
           }
@@ -659,10 +660,10 @@ Item {
             selectByMouse: true
             text: st.info ? st.info.ddl : ""
             wrapMode: TextEdit.NoWrap
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: "monospace"
             font.pixelSize: Style.font.body
-            background: Rectangle { color: Qt.darker(Color.background, 1.15) }
+            background: Rectangle { color: Qt.darker(Commons.Color.background, 1.15) }
           }
         }
         RowLayout {

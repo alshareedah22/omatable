@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.Commons
+import qs.Commons as Commons
 
 // A label above a single-line input, in the Omarchy theme.
 Item {
@@ -27,7 +28,7 @@ Item {
     Text {
       textFormat: Text.PlainText
       text: field.label
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -35,14 +36,14 @@ Item {
       id: input
       width: column.width
       echoMode: field.secret ? TextInput.Password : TextInput.Normal
-      color: Color.foreground
-      placeholderTextColor: Color.muted
+      color: Commons.Color.foreground
+      placeholderTextColor: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       onTextEdited: field.dirty = true
       background: Rectangle {
-        color: Qt.lighter(Color.background, 1.25)
-        border.color: input.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.6)
+        color: Qt.lighter(Commons.Color.background, 1.25)
+        border.color: input.activeFocus ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.6)
         radius: 4
       }
     }

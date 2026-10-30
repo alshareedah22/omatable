@@ -1,0 +1,132 @@
+#!/bin/bash
+
+# OmaTablePlus launcher: runs the app as its own Quickshell process, one instance.
+#
+#   app/omatableplus                    open the app (or bring it forward)
+#   app/omatableplus open <connection>  open a saved connection (an id, or omadb:<server>)
+#   app/omatableplus new-window         open another window
+#   app/omatableplus setup              first run only (the bar widget runs it): launcher entry,
+#                                       database drivers, SUPER+ALT+T if free
+#   app/omatableplus uninstall          remove what setup added (entry, shortcut, runtime folder)
+#
+# The app runs from a runtime folder, ~/.local/state/omatableplus/app, that links the app's
+# QML, tablectl and icon from this plugin and Omarchy's Commons and Ui (so it wears the theme).
+
+set -euo pipefail
+
+ROOT=$(cd "$(dirname "$(readlink -f "$0")")/.." && pwd)
+SELF="$ROOT/app/omatableplus"
+OMARCHY_SHELL="${OMARCHY_PATH:-/usr/share/omarchy}/shell"
+STATE="${XDG_STATE_HOME:-$HOME/.local/state}/omatableplus"
+RUNTIME="$STATE/app"
+DESKTOP="${XDG_DATA_HOME:-$HOME/.local/share}/applications/omatableplus.desktop"
+BINDINGS="${OMATABLEPLUS_BINDINGS:-$HOME/.config/hypr/bindings.lua}"
+KEYS="SUPER + ALT + T"
+MARK="-- OmaTablePlus (omatableplus uninstall removes these two lines)"
+BIND="o.bind(\"$KEYS\", \"OmaTablePlus\", \"$SELF\")"
+
+fail() { echo "omatableplus: $*" >&2; exit 1; }
+
+# (Re)links the runtime folder when the plugin or Omarchy moved, or the links are missing.
+runtime() {
+  local want="$ROOT|$OMARCHY_SHELL"
+  if [[ -f $RUNTIME/.source && $(<"$RUNTIME/.source") == "$want" && -e $RUNTIME/shell.qml ]]; then return 0; fi
+  [[ -d $OMARCHY_SHELL/Commons && -d $OMARCHY_SHELL/Ui ]] || fail "Omarchy's shell is not at $OMARCHY_SHELL"
+  mkdir -p "$RUNTIME"
+  ln -sfn "$ROOT/app/shell.qml" "$RUNTIME/shell.qml"
+  local name
+  for name in qml tablectl icon.svg; do ln -sfn "$ROOT/$name" "$RUNTIME/$name"; done
+  ln -sfn "$OMARCHY_SHELL/Commons" "$RUNTIME/Commons"
+  ln -sfn "$OMARCHY_SHELL/Ui" "$RUNTIME/Ui"
+  printf '%s' "$want" >"$RUNTIME/.source"
+}
+
+ipc() { qs -p "$RUNTIME" ipc call omatableplus "$@" >/dev/null 2>&1; }
+running() { ipc ping; }
+
+launch() {
+  local ask=${1:-}
+  runtime
+  if running; then
+    case $ask in
+    "") ipc focus ;;
+    new-window) ipc newWindow ;;
+    *) ipc open "$ask" ;;
+    esac
+    return 0
+  fi
+  OMATABLEPLUS_OPEN="$ask" setsid -f quickshell -p "$RUNTIME" -n >/dev/null 2>&1 </dev/null
+}
+
+desktop_entry() {
+  mkdir -p "$(dirname "$DESKTOP")"
+  local tmp="$DESKTOP.tmp-$$"
+  cat >"$tmp" <<EOF
+[Desktop Entry]
+Type=Application
+Name=OmaTablePlus
+GenericName=Database client
+Comment=Browse, edit and query PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
+Exec=$SELF
+Icon=$ROOT/icon.svg
+Terminal=false
+Categories=Development;Database;
+Keywords=database;sql;postgres;mysql;redis;mongodb;tableplus;
+StartupWMClass=omatableplus
+Actions=new-window;
+
+[Desktop Action new-window]
+Name=New window
+Exec=$SELF new-window
+EOF
+  mv "$tmp" "$DESKTOP"
+}
+
+bind_key() {
+  [[ -f $BINDINGS ]] || { echo "no $BINDINGS: no shortcut added"; return 0; }
+  grep -qxF "$BIND" "$BINDINGS" && return 0
+  if grep -qF "\"$KEYS\"" "$BINDINGS"; then echo "$KEYS is taken: no shortcut added"; return 0; fi
+  local text
+  text=$(<"$BINDINGS")
+  { [[ -z $text ]] || printf '%s\n' "$text"; printf '%s\n%s\n' "$MARK" "$BIND"; } >"$BINDINGS.tmp-$$" && mv "$BINDINGS.tmp-$$" "$BINDINGS"
+  hyprctl reload >/dev/null 2>&1 || true
+  echo "SUPER+ALT+T opens OmaTablePlus"
+}
+
+setup() {
+  local marker="$STATE/setup-done"
+  [[ -e $marker ]] && { echo "already set up"; return 0; }
+  mkdir -p "$STATE"
+  exec 9>"${XDG_RUNTIME_DIR:-$STATE}/omatableplus-setup.lock"
+  flock 9
+  [[ -e $marker ]] && { echo "already set up"; return 0; }
+  runtime
+  desktop_entry
+  echo "OmaTablePlus is in the app launcher"
+  bind_key
+  # the drivers now, instead of on the first open (tablectl exits once they are ready)
+  if [[ ${OMATABLEPLUS_SKIP_DRIVERS:-} == 1 ]]; then :
+  elif "$ROOT/tablectl" </dev/null >/dev/null 2>&1; then echo "database drivers ready"; else echo "database drivers: will install on first open" >&2; fi
+  : >"$marker"
+}
+
+uninstall() {
+  if [[ -f $BINDINGS ]] && grep -qxF "$BIND" "$BINDINGS"; then
+    grep -vxF -e "$MARK" -e "$BIND" "$BINDINGS" >"$BINDINGS.tmp-$$" || true
+    mv "$BINDINGS.tmp-$$" "$BINDINGS"
+    hyprctl reload >/dev/null 2>&1 || true
+  fi
+  if running; then pkill -f "quickshell -p $RUNTIME" || true; fi
+  rm -rf "$DESKTOP" "$RUNTIME" "$STATE/setup-done"
+  echo "removed the launcher entry, the shortcut and the runtime folder (connections and history are kept)"
+}
+
+case "${1:-}" in
+"") launch "" ;;
+open) launch "${2:-}" ;;
+new-window) launch new-window ;;
+setup) setup ;;
+uninstall) uninstall ;;
+-h | --help | help) sed -n '3,13p' "$0" | sed 's/^# \{0,1\}//' ;;
+*) fail "unknown command: $1 (open, new-window, setup, uninstall)" ;;
+esac

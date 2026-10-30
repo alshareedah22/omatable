@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // A SQL query: editor on top, one result tab per statement below, and a
@@ -195,7 +196,7 @@ Item {
       Rectangle {
         Layout.fillWidth: true
         implicitHeight: bar.implicitHeight + 10
-        color: Qt.lighter(Color.background, 1.08)
+        color: Qt.lighter(Commons.Color.background, 1.08)
         clip: true
         RowLayout {
           id: bar
@@ -203,16 +204,16 @@ Item {
           width: parent.width - 16
           anchors.verticalCenter: parent.verticalCenter
           spacing: 6
-          Ui.Button { bordered: true; foreground: Color.accent; text: "▶ Run"; tooltipText: "Run the statement at the cursor, or the selection (Ctrl+Enter)"; enabled: !q.running; onClicked: q.run(false) }
+          Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "▶ Run"; tooltipText: "Run the statement at the cursor, or the selection (Ctrl+Enter)"; enabled: !q.running; onClicked: q.run(false) }
           Ui.Button { bordered: true; text: "Run all"; tooltipText: "Ctrl+Shift+Enter"; enabled: !q.running; onClicked: q.run(true) }
-          Ui.Button { visible: q.running; bordered: true; foreground: Color.urgent; text: "■ Cancel"; tooltipText: "Ctrl+."; onClicked: q.cancel() }
+          Ui.Button { visible: q.running; bordered: true; foreground: Commons.Color.urgent; text: "■ Cancel"; tooltipText: "Ctrl+."; onClicked: q.cancel() }
           Ui.Button { bordered: true; text: "Explain"; tooltipText: "Show how the server runs the statement at the cursor (Ctrl+E)"; onClicked: q.explain() }
           Ui.Button { bordered: true; text: "Format"; tooltipText: "Tidy the SQL, or the selection (Ctrl+Shift+F)"; onClicked: { editor.format(); editor.focusEditor() } }
           Text {
             textFormat: Text.PlainText
             visible: q.running
             text: "Running… " + q.elapsed.toFixed(1) + " s"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
           }
@@ -221,7 +222,7 @@ Item {
             textFormat: Text.PlainText
             visible: q.savedName !== ""
             text: q.savedName
-            color: Color.muted
+            color: Commons.Color.muted
             elide: Text.ElideRight
             Layout.fillWidth: true
             Layout.maximumWidth: implicitWidth
@@ -252,7 +253,7 @@ Item {
         orientation: Qt.Vertical
         handle: Rectangle {
           implicitHeight: 5
-          color: SplitHandle.pressed || SplitHandle.hovered ? Qt.alpha(Color.accent, 0.5) : Qt.lighter(Color.background, 1.3)
+          color: SplitHandle.pressed || SplitHandle.hovered ? Qt.alpha(Commons.Color.accent, 0.5) : Qt.lighter(Commons.Color.background, 1.3)
         }
 
         CodeEditor {
@@ -286,8 +287,8 @@ Item {
       Layout.fillHeight: true
       Layout.preferredWidth: Math.min(300, q.width * 0.4)
       visible: q.drawerOpen
-      color: Qt.lighter(Color.background, 1.05)
-      Rectangle { width: 1; height: parent.height; color: Qt.lighter(Color.background, 1.5) }
+      color: Qt.lighter(Commons.Color.background, 1.05)
+      Rectangle { width: 1; height: parent.height; color: Qt.lighter(Commons.Color.background, 1.5) }
 
       ColumnLayout {
         anchors.fill: parent
@@ -334,7 +335,7 @@ Item {
             width: drawerList.width
             implicitHeight: entryCol.implicitHeight + 10
             radius: 4
-            color: entryHover.hovered ? Qt.lighter(Color.background, 1.25) : "transparent"
+            color: entryHover.hovered ? Qt.lighter(Commons.Color.background, 1.25) : "transparent"
             HoverHandler { id: entryHover }
             Column {
               id: entryCol
@@ -347,7 +348,7 @@ Item {
                 visible: q.drawerPage === "saved"
                 width: parent.width
                 text: entry.modelData.name || ""
-                color: Color.foreground
+                color: Commons.Color.foreground
                 elide: Text.ElideRight
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
@@ -356,7 +357,7 @@ Item {
                 textFormat: Text.PlainText
                 width: parent.width
                 text: String(entry.modelData.sql || "").replace(/\s+/g, " ")
-                color: q.drawerPage === "saved" ? Color.muted : Color.foreground
+                color: q.drawerPage === "saved" ? Commons.Color.muted : Commons.Color.foreground
                 elide: Text.ElideRight
                 maximumLineCount: q.drawerPage === "history" ? 2 : 1
                 wrapMode: Text.WrapAnywhere
@@ -370,7 +371,7 @@ Item {
                 text: q.drawerPage !== "history" ? ""
                   : (entry.modelData.ok ? "✓ " : "✗ ") + q.when(entry.modelData.ts)
                     + (entry.modelData.database ? " · " + entry.modelData.database : "") + " · " + entry.modelData.ms + " ms"
-                color: entry.modelData.ok ? Color.muted : Color.urgent
+                color: entry.modelData.ok ? Commons.Color.muted : Commons.Color.urgent
                 elide: Text.ElideRight
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
@@ -401,7 +402,7 @@ Item {
             width: parent.width
             wrapMode: Text.Wrap
             text: q.drawerPage === "history" ? "Queries you run on this connection show up here." : "Save a query with Ctrl+S to keep it here."
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
           }
@@ -414,7 +415,7 @@ Item {
     id: fileMenu
     padding: 4
     width: 200
-    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.menu.background; border.color: Commons.Color.menu.border; border.width: 1 }
     Column {
       width: parent.width
       Repeater {
@@ -447,13 +448,13 @@ Item {
     padding: 16
     modal: true
     focus: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     onOpened: { nameField.text = q.savedName; nameField.forceActiveFocus(); nameField.selectAll() }
     onClosed: editor.focusEditor()
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Text { textFormat: Text.PlainText; text: q.savedId ? "Save query" : "Save query as"; color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+      Text { textFormat: Text.PlainText; text: q.savedId ? "Save query" : "Save query as"; color: Commons.Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
       Ui.TextField {
         id: nameField
         Layout.fillWidth: true
@@ -464,7 +465,7 @@ Item {
       RowLayout {
         Item { Layout.fillWidth: true }
         Ui.Button { text: "Cancel"; onClicked: savePopup.close() }
-        Ui.Button { bordered: true; foreground: Color.accent; text: "Save"; enabled: nameField.text.trim() !== ""; onClicked: q.save(nameField.text.trim()) }
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Save"; enabled: nameField.text.trim() !== ""; onClicked: q.save(nameField.text.trim()) }
       }
     }
   }

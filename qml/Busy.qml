@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // "Working…" over the window while a long job runs, with a Cancel button.
@@ -30,7 +31,7 @@ Popup {
   padding: 18
   modal: true
   closePolicy: Popup.NoAutoClose
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   Timer { interval: 200; repeat: true; running: dlg.opened; onTriggered: dlg.elapsed = (Date.now() - dlg.startedAt) / 1000 }
 
@@ -42,7 +43,7 @@ Popup {
       Layout.fillWidth: true
       text: dlg.text
       wrapMode: Text.Wrap
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
     }
@@ -52,7 +53,7 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: (dlg.cancelling ? "Stopping… " : "") + dlg.elapsed.toFixed(0) + " s"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -60,7 +61,7 @@ Popup {
         visible: dlg.onCancel !== null
         enabled: !dlg.cancelling
         bordered: true
-        foreground: Color.urgent
+        foreground: Commons.Color.urgent
         text: "Cancel"
         onClicked: { dlg.cancelling = true; dlg.onCancel() }
       }

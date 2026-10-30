@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Export a table (with its current filters and sort) or one query's rows to
@@ -59,7 +60,7 @@ Popup {
   modal: true
   focus: true
   closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   ColumnLayout {
     anchors.fill: parent
@@ -67,7 +68,7 @@ Popup {
     Text {
       textFormat: Text.PlainText
       text: dlg.target.sql !== undefined ? "Export query results" : "Export " + dlg.baseName
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -77,7 +78,7 @@ Popup {
       Layout.fillWidth: true
       visible: dlg.target.sql === undefined && dlg.target.filters !== undefined && dlg.target.filters.length > 0
       text: "Only rows matching the current filters are exported."
-      color: Color.muted
+      color: Commons.Color.muted
       wrapMode: Text.Wrap
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
@@ -113,7 +114,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: dlg.confirmReplace ? Color.foreground : Color.urgent
+      color: dlg.confirmReplace ? Commons.Color.foreground : Commons.Color.urgent
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -123,7 +124,7 @@ Popup {
       Ui.Button { text: "Cancel"; enabled: !dlg.busy; onClicked: dlg.close() }
       Ui.Button {
         bordered: true
-        foreground: dlg.confirmReplace ? Color.urgent : Color.accent
+        foreground: dlg.confirmReplace ? Commons.Color.urgent : Commons.Color.accent
         text: dlg.busy ? "Exporting…" : dlg.confirmReplace ? "Replace" : "Export"
         enabled: !dlg.busy && pathField.text.trim() !== ""
         onClicked: dlg.run(dlg.confirmReplace)

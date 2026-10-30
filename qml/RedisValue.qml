@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import "Values.js" as Values
 
@@ -178,7 +179,7 @@ Item {
     anchors.centerIn: parent
     visible: pane.key === null
     text: "Pick a key on the left"
-    color: Color.muted
+    color: Commons.Color.muted
     font.family: Style.font.family
     font.pixelSize: Style.font.body
   }
@@ -206,7 +207,7 @@ Item {
         readOnly: true
         selectByMouse: true
         text: pane.key === null ? "" : pane.keyLabel(pane.key)
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.body
         font.bold: true
@@ -214,7 +215,7 @@ Item {
       }
       Ui.Button { text: "Rename"; enabled: pane.entry !== null && !pane.isBinary(pane.key); onClicked: { renameField.text = pane.keyLabel(pane.key); renameDlg.err = ""; renameDlg.open() } }
       Ui.Button { text: ""; tooltipText: "Reload"; onClicked: pane.load(false) }
-      Ui.Button { text: "Delete"; foreground: Color.urgent; enabled: pane.entry !== null; onClicked: pane.deleteKey() }
+      Ui.Button { text: "Delete"; foreground: Commons.Color.urgent; enabled: pane.entry !== null; onClicked: pane.deleteKey() }
     }
     RowLayout {
       Layout.fillWidth: true
@@ -224,14 +225,14 @@ Item {
         textFormat: Text.PlainText
         text: !pane.entry ? "" : pane.entry.type === "string" ? pane.entry.size.toLocaleString(Qt.locale(), "f", 0) + " bytes"
           : pane.entry.size.toLocaleString(Qt.locale(), "f", 0) + (pane.entry.size === 1 ? " item" : " items")
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
       Text {
         textFormat: Text.PlainText
         text: pane.entry ? "TTL: " + pane.ttlText(pane.entry.ttl) : ""
-        color: pane.entry && pane.entry.ttl >= 0 ? Color.foreground : Color.muted
+        color: pane.entry && pane.entry.ttl >= 0 ? Commons.Color.foreground : Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -259,7 +260,7 @@ Item {
       visible: pane.error !== ""
       text: pane.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -272,7 +273,7 @@ Item {
         : pane.entry.type === "string" && pane.entry.truncated ? "Showing the first 1 MB, read-only. Use the console for the rest."
         : pane.entry.type === "string" ? "Binary value, shown with \\xHH escapes and read-only. Use the console to change it."
         : "Showing the first " + pane.entry.value.length.toLocaleString(Qt.locale(), "f", 0) + " of " + pane.entry.size.toLocaleString(Qt.locale(), "f", 0) + " items."
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -287,10 +288,10 @@ Item {
         readOnly: !pane.entry || !pane.entry.editable || pane.isBinary(pane.entry.value)
         selectByMouse: true
         wrapMode: TextEdit.WrapAnywhere
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.body
-        background: Rectangle { color: Qt.lighter(Color.background, 1.1); border.color: stringArea.activeFocus ? Color.accent : "transparent"; radius: 4 }
+        background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.1); border.color: stringArea.activeFocus ? Commons.Color.accent : "transparent"; radius: 4 }
         onTextChanged: if (activeFocus) pane.stringDirty = true
       }
     }
@@ -299,9 +300,9 @@ Item {
       visible: pane.entry !== null && pane.entry.type === "string" && !stringArea.readOnly
       Ui.Button { text: "Format JSON"; onClicked: pane.formatJson() }
       Item { Layout.fillWidth: true }
-      Text { textFormat: Text.PlainText; visible: pane.stringDirty; text: "Unsaved"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; visible: pane.stringDirty; text: "Unsaved"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       Ui.Button { text: "Revert"; enabled: pane.stringDirty; onClicked: { pane.stringDirty = false; pane.load(false) } }
-      Ui.Button { bordered: true; foreground: Color.accent; text: "Save (Ctrl+S)"; enabled: pane.stringDirty; onClicked: pane.saveString() }
+      Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Save (Ctrl+S)"; enabled: pane.stringDirty; onClicked: pane.saveString() }
     }
 
     // ---- collections ----
@@ -309,14 +310,14 @@ Item {
       Layout.fillWidth: true
       implicitHeight: headRow.implicitHeight + 8
       visible: pane.entry !== null && pane.entry.type !== "string" && pane.entry.value !== null
-      color: Qt.lighter(Color.background, 1.12)
+      color: Qt.lighter(Commons.Color.background, 1.12)
       RowLayout {
         id: headRow
         x: 8
         width: parent.width - 16
         anchors.verticalCenter: parent.verticalCenter
-        Text { textFormat: Text.PlainText; Layout.preferredWidth: Math.round(itemList.width * (pane.entry && pane.entry.type === "set" ? 0.85 : 0.32)); text: pane.headers[0]; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
-        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: pane.headers[1]; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+        Text { textFormat: Text.PlainText; Layout.preferredWidth: Math.round(itemList.width * (pane.entry && pane.entry.type === "set" ? 0.85 : 0.32)); text: pane.headers[0]; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: pane.headers[1]; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
       }
     }
     ListView {
@@ -334,7 +335,7 @@ Item {
         required property int index
         width: itemList.width
         height: Math.max(Math.round(Style.font.body * 2), bText.implicitHeight + 10)
-        color: rowHover.hovered ? Qt.lighter(Color.background, 1.2) : index % 2 ? Qt.lighter(Color.background, 1.04) : "transparent"
+        color: rowHover.hovered ? Qt.lighter(Commons.Color.background, 1.2) : index % 2 ? Qt.lighter(Commons.Color.background, 1.04) : "transparent"
         HoverHandler { id: rowHover }
         MouseArea { anchors.fill: parent; onDoubleClicked: if (pane.entry.type !== "stream") pane.openItem(itemRow.modelData) }
         RowLayout {
@@ -347,7 +348,7 @@ Item {
             Layout.preferredWidth: Math.round(itemList.width * (pane.entry.type === "set" ? 0.85 : 0.32))
             text: Values.display(itemRow.modelData.a)
             elide: Text.ElideRight
-            color: pane.entry.type === "list" || pane.entry.type === "zset" || pane.entry.type === "stream" ? Color.muted : Color.foreground
+            color: pane.entry.type === "list" || pane.entry.type === "zset" || pane.entry.type === "stream" ? Commons.Color.muted : Commons.Color.foreground
             font.family: "monospace"
             font.pixelSize: Style.font.bodySmall
           }
@@ -359,12 +360,12 @@ Item {
             maximumLineCount: 3
             wrapMode: Text.WrapAnywhere
             elide: Text.ElideRight
-            color: Color.foreground
+            color: Commons.Color.foreground
             font.family: "monospace"
             font.pixelSize: Style.font.bodySmall
           }
           Ui.Button { visible: rowHover.hovered && pane.entry.type !== "stream"; text: "✎"; fontSize: Style.font.bodySmall; tooltipText: "Edit"; onClicked: pane.openItem(itemRow.modelData) }
-          Ui.Button { visible: rowHover.hovered; text: "✕"; fontSize: Style.font.bodySmall; foreground: Color.urgent; tooltipText: "Remove"; onClicked: pane.deleteItem(itemRow.modelData) }
+          Ui.Button { visible: rowHover.hovered; text: "✕"; fontSize: Style.font.bodySmall; foreground: Commons.Color.urgent; tooltipText: "Remove"; onClicked: pane.deleteItem(itemRow.modelData) }
         }
       }
       Text {
@@ -373,7 +374,7 @@ Item {
         x: 8
         visible: pane.rows.length === 0
         text: pane.loading ? "Loading…" : "No items match"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
       }
@@ -395,7 +396,7 @@ Item {
     padding: 16
     modal: true
     focus: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     onOpened: (itemDlg.type === "hash" && !itemDlg.row ? firstField : secondArea).forceActiveFocus()
     ColumnLayout {
       anchors.fill: parent
@@ -403,7 +404,7 @@ Item {
       Text {
         textFormat: Text.PlainText
         text: (itemDlg.row ? "Edit " : "Add to ") + (pane.key === null ? "" : pane.keyLabel(pane.key))
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         font.bold: true
@@ -418,7 +419,7 @@ Item {
       Text {
         textFormat: Text.PlainText
         text: itemDlg.type === "hash" || itemDlg.type === "list" ? "Value" : itemDlg.type === "stream" ? "Fields, one field=value per line" : "Member"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -429,10 +430,10 @@ Item {
           id: secondArea
           selectByMouse: true
           wrapMode: TextEdit.WrapAnywhere
-          color: Color.foreground
+          color: Commons.Color.foreground
           font.family: "monospace"
           font.pixelSize: Style.font.body
-          background: Rectangle { color: Qt.lighter(Color.background, 1.2); border.color: secondArea.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.6); radius: 4 }
+          background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.2); border.color: secondArea.activeFocus ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.6); radius: 4 }
           Keys.onPressed: function(event) {
             if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_S)) { pane.saveItem(); event.accepted = true }
           }
@@ -444,7 +445,7 @@ Item {
         visible: itemDlg.err !== ""
         text: itemDlg.err
         wrapMode: Text.Wrap
-        color: Color.urgent
+        color: Commons.Color.urgent
         font.family: "monospace"
         font.pixelSize: Style.font.bodySmall
       }
@@ -452,7 +453,7 @@ Item {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
         Ui.Button { text: "Cancel"; onClicked: itemDlg.close() }
-        Ui.Button { bordered: true; foreground: Color.accent; text: "Save (Ctrl+Enter)"; onClicked: pane.saveItem() }
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Save (Ctrl+Enter)"; onClicked: pane.saveItem() }
       }
     }
   }
@@ -466,7 +467,7 @@ Item {
     padding: 16
     modal: true
     focus: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     onOpened: renameField.focusInput()
     function apply() {
       const to = renameField.text
@@ -481,12 +482,12 @@ Item {
       anchors.fill: parent
       spacing: 10
       Field { id: renameField; Layout.fillWidth: true; label: "New key name"; Keys.onReturnPressed: renameDlg.apply() }
-      Text { textFormat: Text.PlainText; visible: renameDlg.err !== ""; text: renameDlg.err; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; visible: renameDlg.err !== ""; text: renameDlg.err; color: Commons.Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
         Ui.Button { text: "Cancel"; onClicked: renameDlg.close() }
-        Ui.Button { bordered: true; foreground: Color.accent; text: "Rename"; onClicked: renameDlg.apply() }
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Rename"; onClicked: renameDlg.apply() }
       }
     }
   }
@@ -500,7 +501,7 @@ Item {
     padding: 16
     modal: true
     focus: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     onOpened: ttlField.focusInput()
     function apply(ttl) {
       if (ttl !== null && !/^\d+$/.test(ttl)) { err = "Seconds must be a whole number"; return }
@@ -515,13 +516,13 @@ Item {
       anchors.fill: parent
       spacing: 10
       Field { id: ttlField; Layout.fillWidth: true; label: "Expire after (seconds)"; placeholder: "e.g. 3600"; Keys.onReturnPressed: ttlDlg.apply(ttlField.text.trim()) }
-      Text { textFormat: Text.PlainText; visible: ttlDlg.err !== ""; text: ttlDlg.err; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; visible: ttlDlg.err !== ""; text: ttlDlg.err; color: Commons.Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Ui.Button { text: "Remove expiry"; onClicked: ttlDlg.apply(null) }
         Item { Layout.fillWidth: true }
         Ui.Button { text: "Cancel"; onClicked: ttlDlg.close() }
-        Ui.Button { bordered: true; foreground: Color.accent; text: "Set"; onClicked: ttlDlg.apply(ttlField.text.trim()) }
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Set"; onClicked: ttlDlg.apply(ttlField.text.trim()) }
       }
     }
   }

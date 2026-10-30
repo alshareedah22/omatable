@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 import "Values.js" as Values
 
@@ -170,7 +171,7 @@ Item {
         Rectangle {
           Layout.preferredWidth: 320
           Layout.fillHeight: true
-          color: Qt.lighter(Color.background, 1.05)
+          color: Qt.lighter(Commons.Color.background, 1.05)
           ColumnLayout {
             anchors.fill: parent
             anchors.margins: 8
@@ -210,8 +211,8 @@ Item {
                 width: keyList.width
                 height: Math.round(Style.font.body * 1.9)
                 radius: 4
-                color: rb.same(modelData.key, rb.selected) ? Qt.lighter(Color.background, 1.5)
-                  : keyHover.hovered ? Qt.lighter(Color.background, 1.25) : "transparent"
+                color: rb.same(modelData.key, rb.selected) ? Qt.lighter(Commons.Color.background, 1.5)
+                  : keyHover.hovered ? Qt.lighter(Commons.Color.background, 1.25) : "transparent"
                 HoverHandler { id: keyHover }
                 MouseArea { anchors.fill: parent; onClicked: rb.select(keyRow.modelData.key) }
                 RowLayout {
@@ -231,14 +232,14 @@ Item {
                     Layout.fillWidth: true
                     text: Values.escaped(keyRow.modelData.key)
                     elide: Text.ElideMiddle
-                    color: Color.foreground
+                    color: Commons.Color.foreground
                     font.family: "monospace"
                     font.pixelSize: Style.font.bodySmall
                   }
                   Text {
                     textFormat: Text.PlainText
                     text: rb.ttlShort(keyRow.modelData.ttl)
-                    color: Color.muted
+                    color: Commons.Color.muted
                     font.family: Style.font.family
                     font.pixelSize: Style.font.bodySmall
                   }
@@ -251,7 +252,7 @@ Item {
                 visible: rb.keys.length === 0
                 wrapMode: Text.Wrap
                 text: rb.loading ? "Scanning…" : rb.cursor !== "0" ? "No matches yet; load more to keep scanning" : "No keys"
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
               }
@@ -263,7 +264,7 @@ Item {
                 Layout.fillWidth: true
                 text: rb.keys.length.toLocaleString(Qt.locale(), "f", 0) + " shown · " + rb.total.toLocaleString(Qt.locale(), "f", 0) + " in db" + (rb.info ? rb.info.database : "")
                 elide: Text.ElideRight
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
               }
@@ -271,7 +272,7 @@ Item {
             }
           }
         }
-        Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
+        Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Commons.Color.background, 1.5) }
 
         RedisValue {
           id: value
@@ -348,12 +349,12 @@ Item {
     padding: 16
     modal: true
     focus: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     onOpened: nameField.focusInput()
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
-      Text { textFormat: Text.PlainText; text: "New key in db" + (rb.info ? rb.info.database : ""); color: Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
+      Text { textFormat: Text.PlainText; text: "New key in db" + (rb.info ? rb.info.database : ""); color: Commons.Color.foreground; font.family: Style.font.family; font.pixelSize: Style.font.body; font.bold: true }
       RowLayout {
         Layout.fillWidth: true
         spacing: 8
@@ -378,7 +379,7 @@ Item {
       Text {
         textFormat: Text.PlainText
         text: newKey.type === "string" ? "Value" : newKey.type === "set" || newKey.type === "zset" ? "First member" : "First value"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -389,10 +390,10 @@ Item {
           id: valueArea
           selectByMouse: true
           wrapMode: TextEdit.WrapAnywhere
-          color: Color.foreground
+          color: Commons.Color.foreground
           font.family: "monospace"
           font.pixelSize: Style.font.body
-          background: Rectangle { color: Qt.lighter(Color.background, 1.2); border.color: valueArea.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.6); radius: 4 }
+          background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.2); border.color: valueArea.activeFocus ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.6); radius: 4 }
         }
       }
       Text {
@@ -400,16 +401,16 @@ Item {
         Layout.fillWidth: true
         visible: newKey.type !== "string"
         text: "Add more items after creating the key."
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
-      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newKey.err !== ""; text: newKey.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newKey.err !== ""; text: newKey.err; wrapMode: Text.Wrap; color: Commons.Color.urgent; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
         Ui.Button { text: "Cancel"; onClicked: newKey.close() }
-        Ui.Button { bordered: true; foreground: Color.accent; text: "Create"; enabled: nameField.text !== ""; onClicked: newKey.create() }
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Create"; enabled: nameField.text !== ""; onClicked: newKey.create() }
       }
     }
   }

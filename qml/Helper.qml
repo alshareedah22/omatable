@@ -11,6 +11,7 @@ Item {
   property string progressText: ""
   property int progressPct: 0
   property string fatalText: ""
+  property string version: ""
   property string lastStderr: ""
   property int nextId: 1
   property var callbacks: ({})
@@ -45,7 +46,7 @@ Item {
     let msg
     try { msg = JSON.parse(line) } catch (e) { return }
     if (msg.event !== undefined) {
-      if (msg.event === "ready") status = "ready"
+      if (msg.event === "ready") { status = "ready"; version = msg.version || "" }
       else if (msg.event === "progress") { status = "installing"; progressText = msg.text; progressPct = msg.pct || 0 }
       else if (msg.event === "fatal") fatalText = msg.message
       helper.message(msg)

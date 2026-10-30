@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // What is running on the server: one row per connection or operation, with
@@ -55,10 +56,10 @@ Popup {
   modal: true
   focus: true
   closePolicy: Popup.CloseOnEscape
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
-  component Head: Text { textFormat: Text.PlainText; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight }
-  component Cell: Text { textFormat: Text.PlainText; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight }
+  component Head: Text { textFormat: Text.PlainText; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true; elide: Text.ElideRight }
+  component Cell: Text { textFormat: Text.PlainText; color: Commons.Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight }
 
   ColumnLayout {
     anchors.fill: parent
@@ -69,7 +70,7 @@ Popup {
       Text {
         textFormat: Text.PlainText
         text: dlg.mongo ? "Running operations" : "Running queries"
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         font.bold: true
@@ -78,7 +79,7 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: dlg.shown.length + " of " + dlg.items.length + (dlg.live ? " · refreshing every 2 s" : "")
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -92,7 +93,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -121,7 +122,7 @@ Popup {
         readonly property bool open_: !!dlg.expanded[p.id]
         width: list.width
         height: (open_ ? Math.max(lay.implicitHeight, full.implicitHeight + lay.implicitHeight + 6) : lay.implicitHeight) + 8
-        color: hover.hovered ? Qt.lighter(Color.background, 1.15) : "transparent"
+        color: hover.hovered ? Qt.lighter(Commons.Color.background, 1.15) : "transparent"
         HoverHandler { id: hover }
         TapHandler { onTapped: { const o = Object.assign({}, dlg.expanded); o[row.p.id] = !o[row.p.id]; dlg.expanded = o } }
         RowLayout {
@@ -133,11 +134,11 @@ Popup {
           Cell { Layout.preferredWidth: 80; text: String(row.p.id) }
           Cell { Layout.preferredWidth: 90; text: row.p.user }
           Cell { Layout.preferredWidth: 90; text: row.p.database }
-          Cell { Layout.preferredWidth: 80; text: row.p.state + (row.p.wait ? " · " + row.p.wait : ""); color: /active|Query|query|update|insert|remove|command/.test(row.p.state) ? Color.accent : Color.muted }
-          Cell { Layout.preferredWidth: 60; text: dlg.secs(row.p.seconds); color: row.p.seconds > 10 && /active|Query/.test(row.p.state) ? Color.urgent : Color.foreground }
-          Cell { Layout.fillWidth: true; text: row.p.query.replace(/\s+/g, " "); color: Color.muted }
+          Cell { Layout.preferredWidth: 80; text: row.p.state + (row.p.wait ? " · " + row.p.wait : ""); color: /active|Query|query|update|insert|remove|command/.test(row.p.state) ? Commons.Color.accent : Commons.Color.muted }
+          Cell { Layout.preferredWidth: 60; text: dlg.secs(row.p.seconds); color: row.p.seconds > 10 && /active|Query/.test(row.p.state) ? Commons.Color.urgent : Commons.Color.foreground }
+          Cell { Layout.fillWidth: true; text: row.p.query.replace(/\s+/g, " "); color: Commons.Color.muted }
           Ui.Button { text: "Stop"; tooltipText: "Cancel the running query; the connection stays"; onClicked: dlg.stop(row.p, false) }
-          Ui.Button { visible: !dlg.mongo; text: "Kill"; foreground: Color.urgent; tooltipText: "Close the connection"; onClicked: dlg.stop(row.p, true) }
+          Ui.Button { visible: !dlg.mongo; text: "Kill"; foreground: Commons.Color.urgent; tooltipText: "Close the connection"; onClicked: dlg.stop(row.p, true) }
         }
         Text {
           id: full
@@ -148,7 +149,7 @@ Popup {
           width: parent.width - 16
           wrapMode: Text.Wrap
           text: (row.p.client ? "client " + row.p.client + (row.p.app ? " · " + row.p.app : "") + "\n" : "") + row.p.query
-          color: Color.foreground
+          color: Commons.Color.foreground
           font.family: "monospace"
           font.pixelSize: Style.font.bodySmall
         }
@@ -158,7 +159,7 @@ Popup {
         anchors.centerIn: parent
         visible: list.count === 0
         text: dlg.items.length ? "Only idle connections" : "Nothing else is running"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
       }
@@ -169,7 +170,7 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Click a row for the whole query. Your own OmaTablePlus connection is not listed."
-        color: Color.muted
+        color: Commons.Color.muted
         elide: Text.ElideRight
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall

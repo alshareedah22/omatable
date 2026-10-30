@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // A query plan as a tree: each step with its estimated cost and rows, and
@@ -84,11 +85,11 @@ Popup {
   modal: true
   focus: true
   closePolicy: Popup.CloseOnEscape
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   component Cell: Text {
     textFormat: Text.PlainText
-    color: Color.muted
+    color: Commons.Color.muted
     font.family: "monospace"
     font.pixelSize: Style.font.bodySmall
     horizontalAlignment: Text.AlignRight
@@ -104,7 +105,7 @@ Popup {
       Text {
         textFormat: Text.PlainText
         text: dlg.plan && dlg.plan.analyze ? "Query plan · analyzed" : "Query plan"
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: Style.font.family
         font.pixelSize: Style.font.body
         font.bold: true
@@ -116,7 +117,7 @@ Popup {
         text: !dlg.plan ? "" : [dlg.plan.summary && dlg.plan.summary.planning_ms != null ? "planning " + dlg.ms(dlg.plan.summary.planning_ms) : "",
                                 dlg.plan.summary && dlg.plan.summary.execution_ms != null ? "execution " + dlg.ms(dlg.plan.summary.execution_ms) : ""]
                                 .filter(function(x) { return x }).join("  ·  ")
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -143,7 +144,7 @@ Popup {
       visible: dlg.plan !== null
       text: dlg.plan ? dlg.plan.sql.replace(/\s+/g, " ") : ""
       elide: Text.ElideRight
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -153,7 +154,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -163,7 +164,7 @@ Popup {
       Layout.fillWidth: true
       visible: !dlg.raw && dlg.plan !== null
       spacing: 8
-      Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "Step"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "Step"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
       Cell { Layout.preferredWidth: 70; text: "cost"; font.bold: true }
       Cell { Layout.preferredWidth: 70; text: "rows"; font.bold: true }
       Cell { Layout.preferredWidth: 70; visible: dlg.timed; text: "actual"; font.bold: true }
@@ -188,7 +189,7 @@ Popup {
         readonly property real share: dlg.top > 0 ? modelData.self / dlg.top : 0
         width: list.width
         height: line.implicitHeight + (shown ? details.implicitHeight + 6 : 0) + 8
-        color: hover.hovered ? Qt.lighter(Color.background, 1.15) : "transparent"
+        color: hover.hovered ? Qt.lighter(Commons.Color.background, 1.15) : "transparent"
         HoverHandler { id: hover }
         TapHandler { onTapped: { const o = Object.assign({}, dlg.open_); o[row.index] = !o[row.index]; dlg.open_ = o } }
         RowLayout {
@@ -203,7 +204,7 @@ Popup {
             leftPadding: row.modelData.depth * 18
             elide: Text.ElideRight
             text: (row.n.children.length ? "└ " : "· ") + row.n.label
-            color: row.share > 0.5 ? Color.urgent : Color.foreground
+            color: row.share > 0.5 ? Commons.Color.urgent : Commons.Color.foreground
             font.family: "monospace"
             font.pixelSize: Style.font.bodySmall
             font.bold: row.share > 0.5
@@ -216,15 +217,15 @@ Popup {
             text: dlg.num(row.n.actual_rows) + (row.n.loops > 1 ? " ×" + row.n.loops : "")
             // estimates off by 10× or more are worth a look
             color: row.n.rows && row.n.actual_rows !== null && (row.n.actual_rows > row.n.rows * 10 || row.n.actual_rows * 10 < row.n.rows)
-              ? Color.urgent : Color.muted
+              ? Commons.Color.urgent : Commons.Color.muted
           }
           Cell { Layout.preferredWidth: 80; visible: dlg.timed; text: dlg.ms(row.n.time_ms) }
           Rectangle {
             Layout.preferredWidth: 90
             implicitHeight: 6
             radius: 3
-            color: Qt.lighter(Color.background, 1.4)
-            Rectangle { width: parent.width * Math.min(1, row.share); height: parent.height; radius: 3; color: row.share > 0.5 ? Color.urgent : Color.accent }
+            color: Qt.lighter(Commons.Color.background, 1.4)
+            Rectangle { width: parent.width * Math.min(1, row.share); height: parent.height; radius: 3; color: row.share > 0.5 ? Commons.Color.urgent : Commons.Color.accent }
           }
         }
         Column {
@@ -241,7 +242,7 @@ Popup {
               width: details.width
               wrapMode: Text.Wrap
               text: (modelData[0] ? modelData[0] + ": " : "") + modelData[1]
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: "monospace"
               font.pixelSize: Style.font.bodySmall
             }
@@ -250,7 +251,7 @@ Popup {
             textFormat: Text.PlainText
             visible: row.n.detail.length === 0
             text: "No more details"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
           }
@@ -261,7 +262,7 @@ Popup {
         anchors.centerIn: parent
         visible: dlg.busy
         text: "Working…"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
       }
@@ -275,10 +276,10 @@ Popup {
         selectByMouse: true
         text: dlg.plan ? dlg.plan.raw : ""
         wrapMode: TextEdit.NoWrap
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.bodySmall
-        background: Rectangle { color: Qt.darker(Color.background, 1.15) }
+        background: Rectangle { color: Qt.darker(Commons.Color.background, 1.15) }
       }
     }
     RowLayout {
@@ -287,7 +288,7 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Click a step for its details. Red: the most expensive steps, and row estimates off by 10× or more."
-        color: Color.muted
+        color: Commons.Color.muted
         elide: Text.ElideRight
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall

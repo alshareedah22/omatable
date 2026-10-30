@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // A MongoDB connection: collections on the left; on the right the selected
@@ -333,7 +334,7 @@ Item {
         Rectangle {
           Layout.preferredWidth: 260
           Layout.fillHeight: true
-          color: Qt.lighter(Color.background, 1.05)
+          color: Qt.lighter(Commons.Color.background, 1.05)
           ColumnLayout {
             anchors.fill: parent
             anchors.margins: 8
@@ -374,8 +375,8 @@ Item {
                 width: collList.width
                 height: Math.round(Style.font.body * 1.9)
                 radius: 4
-                color: modelData.name === mb.collection ? Qt.lighter(Color.background, 1.5)
-                  : collHover.hovered && !modelData.head ? Qt.lighter(Color.background, 1.25) : "transparent"
+                color: modelData.name === mb.collection ? Qt.lighter(Commons.Color.background, 1.5)
+                  : collHover.hovered && !modelData.head ? Qt.lighter(Commons.Color.background, 1.25) : "transparent"
                 HoverHandler { id: collHover }
                 Text {
                   textFormat: Text.PlainText
@@ -384,7 +385,7 @@ Item {
                   width: parent.width - 12
                   elide: Text.ElideRight
                   text: collRow.modelData.head ? collRow.modelData.head : (collRow.modelData.view ? "  " : "  ") + collRow.modelData.name
-                  color: collRow.modelData.head ? Color.muted : Color.foreground
+                  color: collRow.modelData.head ? Commons.Color.muted : Commons.Color.foreground
                   font.family: Style.font.family
                   font.pixelSize: collRow.modelData.head ? Style.font.bodySmall : Style.font.body
                 }
@@ -411,14 +412,14 @@ Item {
                 visible: collList.count === 0
                 wrapMode: Text.Wrap
                 text: mb.treeLoading ? "Loading…" : mb.search ? "No matches" : "No collections in " + (mb.info ? mb.info.database : "") + ". Press + to create one."
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
               }
             }
           }
         }
-        Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
+        Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Commons.Color.background, 1.5) }
 
         // ---- documents ----
         Item {
@@ -430,7 +431,7 @@ Item {
             anchors.centerIn: parent
             visible: mb.collection === ""
             text: "Pick a collection on the left"
-            color: Color.muted
+            color: Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.body
           }
@@ -443,7 +444,7 @@ Item {
             Rectangle {
               Layout.fillWidth: true
               implicitHeight: bar.implicitHeight + 16
-              color: Qt.lighter(Color.background, 1.08)
+              color: Qt.lighter(Commons.Color.background, 1.08)
               ColumnLayout {
                 id: bar
                 x: 8
@@ -492,7 +493,7 @@ Item {
                     Keys.onEnterPressed: mb.run(true)
                   }
                   Item { visible: mb.mode !== "find"; Layout.fillWidth: true }
-                  Ui.Button { bordered: true; foreground: Color.accent; text: mb.running ? "Running…" : "Run"; tooltipText: "Run (Enter, Ctrl+R)"; enabled: !mb.running; onClicked: mb.run(true) }
+                  Ui.Button { bordered: true; foreground: Commons.Color.accent; text: mb.running ? "Running…" : "Run"; tooltipText: "Run (Enter, Ctrl+R)"; enabled: !mb.running; onClicked: mb.run(true) }
                 }
                 ScrollView {
                   Layout.fillWidth: true
@@ -503,11 +504,11 @@ Item {
                     placeholderText: "[{$match: {...}}, {$group: {...}}]"
                     selectByMouse: true
                     wrapMode: TextEdit.Wrap
-                    color: Color.foreground
-                    placeholderTextColor: Color.muted
+                    color: Commons.Color.foreground
+                    placeholderTextColor: Commons.Color.muted
                     font.family: "monospace"
                     font.pixelSize: Style.font.body
-                    background: Rectangle { color: Qt.lighter(Color.background, 1.2); border.color: pipeArea.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.6); radius: 4 }
+                    background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.2); border.color: pipeArea.activeFocus ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.6); radius: 4 }
                     Keys.onPressed: function(event) {
                       if ((event.modifiers & Qt.ControlModifier) && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) { mb.run(true); event.accepted = true }
                     }
@@ -522,7 +523,7 @@ Item {
                   Item { Layout.fillWidth: true }
                   Ui.Button { visible: mb.canWrite; text: "+ Insert"; tooltipText: "Insert documents (Ctrl+I)"; onClicked: mb.insertDoc("") }
                   Ui.Button { visible: mb.canWrite && mb.page !== "indexes"; text: "Edit"; enabled: docsModel.selRow >= 0; onClicked: mb.editDoc(docsModel.selRow) }
-                  Ui.Button { visible: mb.canWrite && mb.page !== "indexes"; text: "Delete"; foreground: Color.urgent; enabled: docsModel.selRow >= 0; onClicked: mb.deleteDoc(docsModel.selRow) }
+                  Ui.Button { visible: mb.canWrite && mb.page !== "indexes"; text: "Delete"; foreground: Commons.Color.urgent; enabled: docsModel.selRow >= 0; onClicked: mb.deleteDoc(docsModel.selRow) }
                 }
               }
             }
@@ -534,7 +535,7 @@ Item {
               visible: mb.error !== ""
               text: mb.error
               wrapMode: Text.Wrap
-              color: Color.urgent
+              color: Commons.Color.urgent
               font.family: "monospace"
               font.pixelSize: Style.font.bodySmall
             }
@@ -563,8 +564,8 @@ Item {
                 x: 8
                 height: docText.implicitHeight + 16
                 radius: 4
-                color: index === docsModel.selRow ? Qt.lighter(Color.background, 1.3) : Qt.lighter(Color.background, 1.08)
-                border.color: index === docsModel.selRow ? Color.accent : "transparent"
+                color: index === docsModel.selRow ? Qt.lighter(Commons.Color.background, 1.3) : Qt.lighter(Commons.Color.background, 1.08)
+                border.color: index === docsModel.selRow ? Commons.Color.accent : "transparent"
                 TextEdit {
                   id: docText
                   x: 8
@@ -574,7 +575,7 @@ Item {
                   selectByMouse: true
                   wrapMode: TextEdit.Wrap
                   text: docItem.modelData
-                  color: Color.foreground
+                  color: Commons.Color.foreground
                   font.family: "monospace"
                   font.pixelSize: Style.font.bodySmall
                 }
@@ -589,7 +590,7 @@ Item {
                 x: 8
                 visible: jsonList.count === 0
                 text: mb.running ? "Loading…" : "No documents"
-                color: Color.muted
+                color: Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
               }
@@ -613,24 +614,24 @@ Item {
                   required property int index
                   width: ixList.width
                   height: Math.round(Style.font.body * 2.2)
-                  color: index % 2 ? Qt.lighter(Color.background, 1.05) : "transparent"
+                  color: index % 2 ? Qt.lighter(Commons.Color.background, 1.05) : "transparent"
                   RowLayout {
                     x: 8
                     width: parent.width - 16
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: 12
-                    Text { textFormat: Text.PlainText; Layout.preferredWidth: 200; text: ixRow.modelData.name; elide: Text.ElideRight; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
-                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: ixRow.modelData.keys; elide: Text.ElideRight; color: Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
+                    Text { textFormat: Text.PlainText; Layout.preferredWidth: 200; text: ixRow.modelData.name; elide: Text.ElideRight; color: Commons.Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
+                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: ixRow.modelData.keys; elide: Text.ElideRight; color: Commons.Color.foreground; font.family: "monospace"; font.pixelSize: Style.font.bodySmall }
                     Text {
                       textFormat: Text.PlainText
                       text: [ixRow.modelData.unique ? "unique" : "", ixRow.modelData.sparse ? "sparse" : "",
                              ixRow.modelData.ttl !== null && ixRow.modelData.ttl !== undefined ? "TTL " + ixRow.modelData.ttl + " s" : "",
                              ixRow.modelData.partial ? "partial" : ""].filter(function(x) { return x }).join(" · ")
-                      color: Color.muted
+                      color: Commons.Color.muted
                       font.family: Style.font.family
                       font.pixelSize: Style.font.bodySmall
                     }
-                    Ui.Button { visible: ixRow.modelData.name !== "_id_"; text: "Drop"; foreground: Color.urgent; fontSize: Style.font.bodySmall; onClicked: mb.dropIndex(ixRow.modelData.name) }
+                    Ui.Button { visible: ixRow.modelData.name !== "_id_"; text: "Drop"; foreground: Commons.Color.urgent; fontSize: Style.font.bodySmall; onClicked: mb.dropIndex(ixRow.modelData.name) }
                   }
                 }
               }
@@ -640,7 +641,7 @@ Item {
                 Ui.TextField { id: ixKeys; Layout.fillWidth: true; placeholderText: "Keys, e.g. {email: 1} or {name: 1, age: -1}"; font.family: "monospace"; Keys.onReturnPressed: mb.createIndex() }
                 Ui.TextField { id: ixName; Layout.preferredWidth: 160; placeholderText: "Name (optional)"; font.family: Style.font.family }
                 Ui.Button { bordered: mb.uniqueIndex; text: mb.uniqueIndex ? "Unique" : "Not unique"; onClicked: mb.uniqueIndex = !mb.uniqueIndex }
-                Ui.Button { bordered: true; foreground: Color.accent; text: "Create index"; enabled: ixKeys.text.trim() !== ""; onClicked: mb.createIndex() }
+                Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Create index"; enabled: ixKeys.text.trim() !== ""; onClicked: mb.createIndex() }
               }
             }
 
@@ -648,7 +649,7 @@ Item {
               Layout.fillWidth: true
               visible: mb.page !== "indexes"
               implicitHeight: pageRow.implicitHeight + 8
-              color: Qt.lighter(Color.background, 1.08)
+              color: Qt.lighter(Commons.Color.background, 1.08)
               RowLayout {
                 id: pageRow
                 x: 8
@@ -664,13 +665,13 @@ Item {
                     return range + (mb.count ? " of " + (mb.count.estimated ? "~" : "") + mb.count.count.toLocaleString(Qt.locale(), "f", 0) : "")
                       + (docsModel.result ? "  ·  " + docsModel.result.ms + " ms" : "")
                   }
-                  color: Color.muted
+                  color: Commons.Color.muted
                   font.family: Style.font.family
                   font.pixelSize: Style.font.bodySmall
                 }
                 Ui.Button { visible: mb.mode === "find"; text: "‹"; enabled: mb.skip > 0 && !mb.running; onClicked: { mb.skip = Math.max(0, mb.skip - mb.limit); mb.run(false) } }
                 Ui.Button { visible: mb.mode === "find"; text: "›"; enabled: docsModel.rowCount >= mb.limit && !mb.running; onClicked: { mb.skip += mb.limit; mb.run(false) } }
-                Text { textFormat: Text.PlainText; text: "per page"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+                Text { textFormat: Text.PlainText; text: "per page"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
                 Ui.Dropdown {
                   Layout.preferredWidth: 90
                   showLabel: false
@@ -706,7 +707,7 @@ Item {
     property var item: null
     padding: 4
     width: 190
-    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.menu.background; border.color: Commons.Color.menu.border; border.width: 1 }
     Column {
       width: parent.width
       Repeater {
@@ -716,7 +717,7 @@ Item {
           width: collMenu.width - 8
           leftAlign: true
           text: modelData.label
-          foreground: modelData.danger ? Color.urgent : Color.foreground
+          foreground: modelData.danger ? Commons.Color.urgent : Commons.Color.foreground
           onClicked: {
             const d = collMenu.item
             collMenu.close()
@@ -747,18 +748,18 @@ Item {
     padding: 16
     modal: true
     focus: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     onOpened: newCollName.focusInput()
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
       Field { id: newCollName; Layout.fillWidth: true; label: "New collection in " + (mb.info ? mb.info.database : ""); Keys.onReturnPressed: newColl.create(); Keys.onEnterPressed: newColl.create() }
-      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newColl.err !== ""; text: newColl.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newColl.err !== ""; text: newColl.err; wrapMode: Text.Wrap; color: Commons.Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
         Ui.Button { text: "Cancel"; onClicked: newColl.close() }
-        Ui.Button { bordered: true; foreground: Color.accent; text: "Create"; enabled: newCollName.text.trim() !== ""; onClicked: newColl.create() }
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Create"; enabled: newCollName.text.trim() !== ""; onClicked: newColl.create() }
       }
     }
   }
@@ -772,7 +773,7 @@ Item {
     id: dbMenu
     padding: 4
     width: 230
-    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.menu.background; border.color: Commons.Color.menu.border; border.width: 1 }
     Column {
       width: parent.width
       Repeater {
@@ -785,7 +786,7 @@ Item {
           width: dbMenu.width - 8
           leftAlign: true
           text: modelData.label
-          foreground: modelData.danger ? Color.urgent : Color.foreground
+          foreground: modelData.danger ? Commons.Color.urgent : Commons.Color.foreground
           enabled: modelData.act !== "drop" || ["admin", "config", "local"].indexOf(mb.info.database) < 0
           onClicked: {
             dbMenu.close()
@@ -819,19 +820,19 @@ Item {
     padding: 16
     modal: true
     focus: true
-    background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
     onOpened: newDbName.focusInput()
     ColumnLayout {
       anchors.fill: parent
       spacing: 10
       Field { id: newDbName; Layout.fillWidth: true; label: "New database"; Keys.onReturnPressed: newDb.create(); Keys.onEnterPressed: newDb.create() }
       Field { id: newDbColl; Layout.fillWidth: true; label: "Its first collection (MongoDB keeps a database once it holds one)"; placeholder: "items"; Keys.onReturnPressed: newDb.create(); Keys.onEnterPressed: newDb.create() }
-      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newDb.err !== ""; text: newDb.err; wrapMode: Text.Wrap; color: Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+      Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: newDb.err !== ""; text: newDb.err; wrapMode: Text.Wrap; color: Commons.Color.urgent; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
       RowLayout {
         Layout.fillWidth: true
         Item { Layout.fillWidth: true }
         Ui.Button { text: "Cancel"; onClicked: newDb.close() }
-        Ui.Button { bordered: true; foreground: Color.accent; text: "Create"; enabled: newDbName.text.trim() !== ""; onClicked: newDb.create() }
+        Ui.Button { bordered: true; foreground: Commons.Color.accent; text: "Create"; enabled: newDbName.text.trim() !== ""; onClicked: newDb.create() }
       }
     }
   }

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // TablePlus-style start screen: connections on the left, the form on the right.
@@ -90,7 +91,7 @@ Item {
     Rectangle {
       Layout.preferredWidth: 340
       Layout.fillHeight: true
-      color: Qt.darker(Color.background, 1.15)
+      color: Qt.darker(Commons.Color.background, 1.15)
 
       ColumnLayout {
         anchors.fill: parent
@@ -128,7 +129,7 @@ Item {
             width: list.width
             visible: welcome.rows.length === 0
             text: welcome.search ? "No matches" : "No connections yet. Press + to add one."
-            color: Color.muted
+            color: Commons.Color.muted
             wrapMode: Text.Wrap
             font.family: Style.font.family
             font.pixelSize: Style.font.body
@@ -146,7 +147,7 @@ Item {
               anchors.bottom: parent.bottom
               anchors.bottomMargin: 4
               text: modelData.header || ""
-              color: modelData.folder ? Color.foreground : Color.muted
+              color: modelData.folder ? Commons.Color.foreground : Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
               font.bold: true
@@ -164,7 +165,7 @@ Item {
               anchors.bottomMargin: 2
               radius: 6
               color: modelData.conn && modelData.conn.id === welcome.selectedId
-                ? Qt.lighter(Color.background, 1.5) : hover.containsMouse ? Qt.lighter(Color.background, 1.25) : "transparent"
+                ? Qt.lighter(Commons.Color.background, 1.5) : hover.containsMouse ? Qt.lighter(Commons.Color.background, 1.25) : "transparent"
 
               Rectangle { width: 4; height: parent.height - 12; anchors.verticalCenter: parent.verticalCenter; x: 4; radius: 2
                 color: modelData.conn ? modelData.conn.color : "transparent" }
@@ -175,7 +176,7 @@ Item {
                 x: 16
                 anchors.verticalCenter: parent.verticalCenter
                 text: modelData.conn ? (welcome.engineIcons[modelData.conn.engine] || "") : ""
-                color: Color.foreground
+                color: Commons.Color.foreground
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body * 1.6
               }
@@ -190,7 +191,7 @@ Item {
                   width: parent.width
                   elide: Text.ElideRight
                   text: modelData.conn ? modelData.conn.name : ""
-                  color: Color.foreground
+                  color: Commons.Color.foreground
                   font.family: Style.font.family
                   font.pixelSize: Style.font.body
                 }
@@ -199,7 +200,7 @@ Item {
                   width: parent.width
                   elide: Text.ElideRight
                   text: modelData.conn ? welcome.subtitle(modelData.conn) : ""
-                  color: Color.muted
+                  color: Commons.Color.muted
                   font.family: Style.font.family
                   font.pixelSize: Style.font.bodySmall
                 }
@@ -212,7 +213,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: !modelData.conn ? "" : modelData.conn.source === "omadb" ? (modelData.conn.running ? "●" : "○")
                   : (modelData.conn.readonly ? "\uf023 " : "") + (modelData.conn.ssh ? "" : "")
-                color: modelData.conn && modelData.conn.source === "omadb" && modelData.conn.running ? "#5fb85f" : Color.muted
+                color: modelData.conn && modelData.conn.source === "omadb" && modelData.conn.running ? "#5fb85f" : Commons.Color.muted
                 font.family: Style.font.family
                 font.pixelSize: Style.font.body
               }
@@ -249,7 +250,7 @@ Item {
           opacity: 0.85
         }
         Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: "Select a connection, or press + to create one"
-          color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
+          color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
       }
 
       ConnectionForm {
@@ -276,8 +277,8 @@ Item {
     width: toastText.implicitWidth + 24
     height: toastText.implicitHeight + 12
     radius: 6
-    color: Qt.lighter(Color.background, 1.6)
-    Text { textFormat: Text.PlainText; id: toastText; anchors.centerIn: parent; text: welcome.toast; color: Color.foreground
+    color: Qt.lighter(Commons.Color.background, 1.6)
+    Text { textFormat: Text.PlainText; id: toastText; anchors.centerIn: parent; text: welcome.toast; color: Commons.Color.foreground
       font.family: Style.font.family; font.pixelSize: Style.font.body }
     Timer { running: welcome.toast !== ""; interval: 3000; onTriggered: welcome.toast = "" }
   }

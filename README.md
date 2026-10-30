@@ -6,6 +6,20 @@ Redis/Valkey and a document browser for MongoDB.
 
 ![OmaTablePlus: a TablePlus-style database client for the Omarchy desktop](preview.png)
 
+## What's new in 2.0.0
+
+- **Its own app.** OmaTablePlus runs in its own window and process, not inside the Omarchy
+  shell: it tiles, floats and moves between workspaces like any app, and a crash closes only it.
+- **In the app launcher** (SUPER+SPACE → Apps), with a *New window* action, and on **SUPER+ALT+T**.
+- **Menu bar**: File, Edit, View, Database and Help, in the Omarchy theme.
+- **System file dialogs** for opening and saving SQL files, backups, exports and imports.
+- **Several windows**: *File → New window* (Ctrl+Alt+N) or *Open this connection in a new window*.
+- **Restores your last session**: the connections each window had open come back next time.
+- **Zero configuration**: install with `--enable` and it is ready; the launcher entry, the
+  shortcut and the database drivers are set up on the plugin's first start.
+- **Light**: nothing runs while the app is closed; idle with a window open it used 0.03 % of a
+  core here. The bar icon shows a dot while the app runs.
+
 - PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB
 - Servers from [OmaDBngin](https://github.com/alshareedah22/omadbngin) are listed automatically, with their credentials
 - Passwords are kept in your keyring (Secret Service), never in plain files when a keyring is available
@@ -183,15 +197,29 @@ Hiding the window ends the session, so commit before you hide it.
 
 ## Install
 
-Install OmaTablePlus from the Omarchy plugin manager. Then add the **OmaTablePlus** bar widget, or open the window with:
+```bash
+omarchy plugin add https://github.com/alshareedah22/omatableplus.git --enable
+```
 
-    omarchy-shell shell summon blackcode.omatableplus '{}'
+That is all. The bar icon appears, and on the plugin's first start (`app/omatableplus setup`,
+once) it:
 
-The bar widget toggles the window. Summoning with `'{"connect": "<connection id>"}'` opens that saved connection
-(OmaDBngin's **Open in OmaTablePlus** sends `omadb:<name>`).
+- adds **OmaTablePlus** to the app launcher (`~/.local/share/applications/omatableplus.desktop`);
+- binds **SUPER+ALT+T** in `~/.config/hypr/bindings.lua`, only if that key is free;
+- installs the database drivers into `~/.local/share/omatableplus/venv`, so the first open is
+  instant. Every wheel is pinned by version and SHA-256 in `requirements.lock`; anything that
+  does not match is refused.
 
-The first launch installs the database drivers into `~/.local/share/omatableplus/venv`. Every wheel is pinned by
-version and SHA-256 in `requirements.lock`; anything that does not match is refused.
+Open it from the launcher, the bar icon (right-click: new window), SUPER+ALT+T, or
+`~/.config/omarchy/plugins/blackcode.omatableplus/app/omatableplus [open <connection> | new-window]`.
+A second launch brings the running app forward. OmaDBngin's **Open in OmaTablePlus** opens that
+server in it (`omarchy-shell shell summon blackcode.omatableplus '{"connect": "omadb:<name>"}'`
+still works).
+
+How it runs: the launcher starts `quickshell` on a runtime folder,
+`~/.local/state/omatableplus/app`, that links the app's QML from this plugin and Omarchy's own
+`Commons` and `Ui` from `$OMARCHY_PATH/shell`, so the app wears your Omarchy theme and follows
+theme changes. The window's class is `omatableplus` for window rules.
 
 OmaTablePlus was called OmaTable before 1.6. On its first launch it moves `~/.config/omatable` to
 `~/.config/omatableplus`, moves each saved keyring password the first time it is used, and removes the old driver
@@ -199,7 +227,13 @@ venv in `~/.local/share/omatable`, but only when that venv's own stamp file show
 
 ## Update
 
-Update from the Omarchy plugin manager. The drivers are reinstalled on the next launch only when
+```bash
+omarchy plugin update blackcode.omatableplus
+omarchy restart shell
+```
+
+Coming from 1.x: the next shell start sets the app up (launcher entry, SUPER+ALT+T, drivers); the
+window that used to open inside the shell now opens as the app. The drivers are reinstalled only when
 `requirements.lock` or the system Python's minor version changed. Your connections and history stay as they are.
 
 ## Requirements
@@ -213,11 +247,13 @@ OmaDBngin's engines. Running the editor tests needs `node`.
 
 ## Remove
 
+    ~/.config/omarchy/plugins/blackcode.omatableplus/app/omatableplus uninstall
     omarchy plugin remove blackcode.omatableplus
-    rm -rf ~/.config/omatableplus ~/.local/share/omatableplus
+    rm -rf ~/.config/omatableplus ~/.local/share/omatableplus ~/.local/state/omatableplus
     secret-tool clear app omatableplus
 
-The first command removes the plugin. The other two are optional: they delete your saved connections, query
+The first command removes the launcher entry, the SUPER+ALT+T line and the runtime folder; the
+second removes the plugin. The other two are optional: they delete your saved connections, query
 history, the drivers and the saved passwords in your keyring ("OmaTablePlus … password" items). OmaTablePlus never
 changes your databases' files or OmaDBngin's servers.
 
@@ -233,6 +269,7 @@ changes your databases' files or OmaDBngin's servers.
     /usr/bin/python3 -m unittest discover -s tests -t . -v                     # unit tests
     OMATABLEPLUS_TEST_NET=1 /usr/bin/python3 -m unittest discover -s tests -t . -v # plus driver install
     tools/update-requirements-lock                                              # bump drivers
+    tests/test-launcher.sh                                                      # app launcher, setup, uninstall
 
 Database tests need the OmaDBngin servers `zt-pg` (PostgreSQL 17), `zt-my` (MariaDB), `zt-vk` (Valkey 9),
 `zt-rd` (Redis 8) and `zt-mg` (MongoDB 8, user `dev`), and the drivers' venv:

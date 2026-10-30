@@ -1,7 +1,10 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
+import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Pick a file to open, or a folder and name to save as. Lists one folder at a
@@ -21,8 +24,35 @@ Popup {
   property string error: ""
   property var onPick: null      // function(path)
 
+  // The system file dialog when the app runs on its own (2.0), the in-app list otherwise.
+  property bool useNative: true
+  property var nativeDone: null
+  property FileDialog nativeDialog: FileDialog {
+    onAccepted: {
+      const f = decodeURIComponent(String(selectedFile).replace(/^file:\/\//, ""))
+      if (dlg.nativeDone && f) dlg.nativeDone(f)
+    }
+  }
+  function expand(p) {
+    const home = Quickshell.env("HOME")
+    return !p || p === "~" ? home : String(p).replace(/^~(?=\/)/, home)
+  }
+
   // opts: { title, save, extensions, folder, name, confirm }
   function pick(opts, done) {
+    if (useNative) {
+      const exts = opts.extensions || []
+      nativeDialog.title = opts.title || (opts.save ? "Save as" : "Open")
+      nativeDialog.fileMode = opts.save ? FileDialog.SaveFile : FileDialog.OpenFile
+      nativeDialog.nameFilters = exts.length ? [exts.map(function(e) { return "*" + e }).join(" ") + " files (" + exts.map(function(e) { return "*" + e }).join(" ") + ")", "All files (*)"] : ["All files (*)"]
+      nativeDialog.acceptLabel = opts.confirm || (opts.save ? "Save" : "Open")
+      const folder = expand(opts.folder || dir || "~")
+      nativeDialog.currentFolder = "file://" + folder
+      nativeDialog.selectedFile = opts.save && opts.name ? "file://" + folder + "/" + opts.name : ""
+      nativeDone = done
+      nativeDialog.open()
+      return
+    }
     title = opts.title || (opts.save ? "Save as" : "Open")
     saving = !!opts.save
     extensions = opts.extensions || []
@@ -77,7 +107,7 @@ Popup {
   modal: true
   focus: true
   closePolicy: Popup.CloseOnEscape
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   ColumnLayout {
     anchors.fill: parent
@@ -86,7 +116,7 @@ Popup {
     Text {
       textFormat: Text.PlainText
       text: dlg.title
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -107,7 +137,7 @@ Popup {
     Rectangle {
       Layout.fillWidth: true
       Layout.fillHeight: true
-      color: Qt.lighter(Color.background, 1.08)
+      color: Qt.lighter(Commons.Color.background, 1.08)
       radius: 4
       ListView {
         id: list
@@ -122,7 +152,7 @@ Popup {
           width: list.width
           height: Math.round(Style.font.body * 2)
           radius: 3
-          color: row.modelData.name === dlg.selected ? Qt.alpha(Color.accent, 0.3) : hover.hovered ? Qt.lighter(Color.background, 1.3) : "transparent"
+          color: row.modelData.name === dlg.selected ? Qt.alpha(Commons.Color.accent, 0.3) : hover.hovered ? Qt.lighter(Commons.Color.background, 1.3) : "transparent"
           HoverHandler { id: hover }
           RowLayout {
             anchors.fill: parent
@@ -132,7 +162,7 @@ Popup {
             Text {
               textFormat: Text.PlainText
               text: row.modelData.dir ? "" : ""
-              color: row.modelData.dir ? Color.accent : Color.muted
+              color: row.modelData.dir ? Commons.Color.accent : Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.body
             }
@@ -141,7 +171,7 @@ Popup {
               Layout.fillWidth: true
               elide: Text.ElideMiddle
               text: row.modelData.name
-              color: Color.foreground
+              color: Commons.Color.foreground
               font.family: Style.font.family
               font.pixelSize: Style.font.body
             }
@@ -149,7 +179,7 @@ Popup {
               textFormat: Text.PlainText
               visible: !row.modelData.dir
               text: dlg.size(row.modelData.size)
-              color: Color.muted
+              color: Commons.Color.muted
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
             }
@@ -168,7 +198,7 @@ Popup {
           anchors.centerIn: parent
           visible: list.count === 0
           text: dlg.extensions.length ? "No " + dlg.extensions.join(" / ") + " files here" : "Empty folder"
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.body
         }
@@ -188,7 +218,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -196,7 +226,7 @@ Popup {
       Layout.fillWidth: true
       Item { Layout.fillWidth: true }
       Ui.Button { text: "Cancel"; onClicked: dlg.close() }
-      Ui.Button { bordered: true; foreground: Color.accent; text: dlg.confirmText; onClicked: dlg.choose() }
+      Ui.Button { bordered: true; foreground: Commons.Color.accent; text: dlg.confirmText; onClicked: dlg.choose() }
     }
   }
 }

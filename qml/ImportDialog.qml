@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Import a CSV file into a table: pick the file, map each CSV column to a
@@ -74,7 +75,7 @@ Popup {
   modal: true
   focus: true
   closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   ColumnLayout {
     anchors.fill: parent
@@ -82,7 +83,7 @@ Popup {
     Text {
       textFormat: Text.PlainText
       text: "Import CSV into " + dlg.table
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -102,7 +103,7 @@ Popup {
       Text {
         textFormat: Text.PlainText
         text: dlg.preview ? (dlg.preview.count + (dlg.header ? 0 : 1)).toLocaleString(Qt.locale(), "f", 0) + " rows" : ""
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -111,7 +112,7 @@ Popup {
       textFormat: Text.PlainText
       visible: dlg.preview !== null
       text: "Map each CSV column to a table column"
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -134,7 +135,7 @@ Popup {
           Layout.preferredWidth: 180
           text: dlg.header ? dlg.preview.header[mapRow.index] : "column " + (mapRow.index + 1)
           elide: Text.ElideRight
-          color: Color.foreground
+          color: Commons.Color.foreground
           font.family: "monospace"
           font.pixelSize: Style.font.bodySmall
         }
@@ -146,11 +147,11 @@ Popup {
             return first && first[mapRow.index] !== undefined ? "e.g. " + first[mapRow.index] : ""
           }
           elide: Text.ElideRight
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: "monospace"
           font.pixelSize: Style.font.bodySmall
         }
-        Text { textFormat: Text.PlainText; text: "→"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
+        Text { textFormat: Text.PlainText; text: "→"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.body }
         Ui.Dropdown {
           Layout.fillWidth: true
           showLabel: false
@@ -166,7 +167,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -176,7 +177,7 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "All rows go in one transaction: one bad row and nothing is imported."
-        color: Color.muted
+        color: Commons.Color.muted
         wrapMode: Text.Wrap
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
@@ -184,7 +185,7 @@ Popup {
       Ui.Button { text: "Cancel"; enabled: !dlg.busy; onClicked: dlg.close() }
       Ui.Button {
         bordered: true
-        foreground: Color.accent
+        foreground: Commons.Color.accent
         text: dlg.busy ? "Importing…" : "Import"
         enabled: !dlg.busy && dlg.preview !== null && dlg.mapping.some(function(m) { return m })
         onClicked: dlg.run()

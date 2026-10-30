@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // A command console under a browser: a log of commands and replies and an
@@ -56,8 +57,8 @@ Rectangle {
 
   onVisibleChanged: if (visible) { loadPast(); focusInput() }
 
-  color: Qt.lighter(Color.background, 1.04)
-  Rectangle { width: parent.width; height: 1; color: Qt.lighter(Color.background, 1.5) }
+  color: Qt.lighter(Commons.Color.background, 1.04)
+  Rectangle { width: parent.width; height: 1; color: Qt.lighter(Commons.Color.background, 1.5) }
 
   ColumnLayout {
     anchors.fill: parent
@@ -65,7 +66,7 @@ Rectangle {
     spacing: 6
     RowLayout {
       Layout.fillWidth: true
-      Text { textFormat: Text.PlainText; text: "Console"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
+      Text { textFormat: Text.PlainText; text: "Console"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall; font.bold: true }
       Item { Layout.fillWidth: true }
       Ui.Button { text: "Clear"; fontSize: Style.font.bodySmall; onClicked: con.log = [] }
       Ui.Button { text: "✕"; fontSize: Style.font.bodySmall; tooltipText: "Hide the console"; onClicked: con.closeRequested() }
@@ -88,7 +89,7 @@ Rectangle {
           selectByMouse: true
           wrapMode: TextEdit.Wrap
           text: "› " + modelData.cmd + (modelData.ms ? "    " + modelData.ms + " ms" : "")
-          color: Color.accent
+          color: Commons.Color.accent
           font.family: "monospace"
           font.pixelSize: Style.font.bodySmall
         }
@@ -98,7 +99,7 @@ Rectangle {
           selectByMouse: true
           wrapMode: TextEdit.Wrap
           text: modelData.out
-          color: modelData.error ? Color.urgent : Color.foreground
+          color: modelData.error ? Commons.Color.urgent : Commons.Color.foreground
           font.family: "monospace"
           font.pixelSize: Style.font.bodySmall
         }
@@ -107,7 +108,7 @@ Rectangle {
         textFormat: Text.PlainText
         visible: con.log.length === 0
         text: con.multiline ? "Run a database command, e.g. {ping: 1} or {dbStats: 1}. Ctrl+Enter runs it." : "Type a command, e.g. INFO memory or HGETALL key, and press Enter."
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -133,12 +134,12 @@ Rectangle {
         TextArea {
           id: area
           placeholderText: con.placeholder
-          color: Color.foreground
-          placeholderTextColor: Color.muted
+          color: Commons.Color.foreground
+          placeholderTextColor: Commons.Color.muted
           font.family: "monospace"
           font.pixelSize: Style.font.body
           wrapMode: TextEdit.Wrap
-          background: Rectangle { color: Qt.lighter(Color.background, 1.2); border.color: area.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.6); radius: 4 }
+          background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.2); border.color: area.activeFocus ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.6); radius: 4 }
           Keys.onPressed: function(event) {
             const ctrl = event.modifiers & Qt.ControlModifier
             if (ctrl && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) { con.run(); event.accepted = true }

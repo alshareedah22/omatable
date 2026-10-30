@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Schema tree: schemas → tables, views, functions, sequences, with search.
@@ -20,7 +21,7 @@ Rectangle {
   signal refreshRequested()
   signal newTableRequested(string schema)
 
-  color: Qt.lighter(Color.background, 1.05)
+  color: Qt.lighter(Commons.Color.background, 1.05)
 
   readonly property var groups: [
     { key: "tables", label: "Tables", icon: "", open: true },
@@ -107,8 +108,8 @@ Rectangle {
         width: list.width
         height: Math.round(Style.font.body * 1.9)
         radius: 4
-        color: modelData.id === side.selected ? Qt.lighter(Color.background, 1.5)
-          : rowHover.hovered ? Qt.lighter(Color.background, 1.25) : "transparent"
+        color: modelData.id === side.selected ? Qt.lighter(Commons.Color.background, 1.5)
+          : rowHover.hovered ? Qt.lighter(Commons.Color.background, 1.25) : "transparent"
 
         Text {
           textFormat: Text.PlainText
@@ -119,7 +120,7 @@ Rectangle {
           text: modelData.kind === "schema" ? (side.collapsed[modelData.id] ? "▸ " : "▾ ") + "  " + modelData.name
             : modelData.kind === "group" ? (modelData.shut ? "▸ " : "▾ ") + modelData.name
             : modelData.icon + "  " + modelData.name
-          color: modelData.kind === "group" ? Color.muted : (parent.openable || modelData.kind === "schema") ? Color.foreground : Color.muted
+          color: modelData.kind === "group" ? Commons.Color.muted : (parent.openable || modelData.kind === "schema") ? Commons.Color.foreground : Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: modelData.kind === "group" ? Style.font.bodySmall : Style.font.body
           font.bold: modelData.kind === "schema"
@@ -153,7 +154,7 @@ Rectangle {
         width: list.width
         visible: side.rows.length === 0
         text: side.loading ? "Loading…" : side.filter ? "No matches" : "No tables"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.body
       }
@@ -182,7 +183,7 @@ Rectangle {
       : [{ act: "copy", label: "Copy name" }]
     padding: 4
     width: 180
-    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.menu.background; border.color: Commons.Color.menu.border; border.width: 1 }
     Column {
       width: parent.width
       Repeater {
@@ -192,7 +193,7 @@ Rectangle {
           width: menu.width - 8
           leftAlign: true
           text: modelData.label
-          foreground: modelData.danger ? Color.urgent : Color.foreground
+          foreground: modelData.danger ? Commons.Color.urgent : Commons.Color.foreground
           onClicked: {
             const d = menu.item
             menu.close()

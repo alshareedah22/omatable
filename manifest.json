@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "blackcode.omatableplus",
   "name": "OmaTablePlus",
-  "version": "1.6.1",
+  "version": "2.0.0",
   "author": "BlackCode",
   "license": "MIT",
-  "description": "OmaTablePlus: a TablePlus-style database GUI for Omarchy. Browse, edit and query PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB, directly or through SSH, with your OmaDBngin servers listed automatically",
+  "description": "OmaTablePlus: a TablePlus-style database app for Omarchy, in its own window with a launcher entry. Browse, edit and query PostgreSQL, MySQL, MariaDB, SQLite, Redis, Valkey and MongoDB, directly or through SSH, with your OmaDBngin servers listed automatically",
   "kinds": [
     "bar-widget",
     "panel"
@@ -16,7 +16,7 @@
   },
   "barWidget": {
     "displayName": "OmaTablePlus",
-    "description": "Open the OmaTablePlus database client",
+    "description": "Opens the OmaTablePlus app; a dot shows while it runs. Right-click: new window",
     "category": "Development",
     "allowMultiple": false,
     "defaultSection": "right",

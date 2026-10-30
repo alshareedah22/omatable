@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Edit one document (or a list of them, when inserting) as Extended JSON.
@@ -43,7 +44,7 @@ Popup {
   modal: true
   focus: true
   closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
   onOpened: { area.forceActiveFocus(); area.cursorPosition = 0 }
 
   ColumnLayout {
@@ -52,7 +53,7 @@ Popup {
     Text {
       textFormat: Text.PlainText
       text: dlg.title
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -63,7 +64,7 @@ Popup {
       visible: dlg.hint !== ""
       text: dlg.hint
       wrapMode: Text.Wrap
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
     }
@@ -74,11 +75,11 @@ Popup {
         id: area
         selectByMouse: true
         wrapMode: TextEdit.Wrap
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.body
         tabStopDistance: Style.font.body * 1.4
-        background: Rectangle { color: Qt.lighter(Color.background, 1.1); border.color: area.activeFocus ? Color.accent : Qt.lighter(Color.background, 1.5); radius: 4 }
+        background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.1); border.color: area.activeFocus ? Commons.Color.accent : Qt.lighter(Commons.Color.background, 1.5); radius: 4 }
         Keys.onPressed: function(event) {
           const ctrl = event.modifiers & Qt.ControlModifier
           if (ctrl && (event.key === Qt.Key_S || event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) { dlg.save(); event.accepted = true }
@@ -92,7 +93,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -102,12 +103,12 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Ctrl+S saves · Esc cancels"
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
       Ui.Button { text: "Cancel"; enabled: !dlg.busy; onClicked: dlg.close() }
-      Ui.Button { bordered: true; foreground: Color.accent; text: dlg.busy ? "Saving…" : dlg.confirmText; enabled: !dlg.busy; onClicked: dlg.save() }
+      Ui.Button { bordered: true; foreground: Commons.Color.accent; text: dlg.busy ? "Saving…" : dlg.confirmText; enabled: !dlg.busy; onClicked: dlg.save() }
     }
   }
 }

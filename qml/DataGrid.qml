@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // The table grid. Data and staged edits live in the TableTab (`tab`); the
@@ -94,7 +95,7 @@ FocusScope {
     id: header
     width: parent.width
     height: grid.rowHeight + 4
-    color: Qt.lighter(Color.background, 1.15)
+    color: Qt.lighter(Commons.Color.background, 1.15)
     clip: true
     z: 2
 
@@ -117,7 +118,7 @@ FocusScope {
             anchors.right: sortMark.left
             anchors.verticalCenter: parent.verticalCenter
             text: (col.pk ? "\uf084  " : "") + col.name
-            color: Color.foreground
+            color: Commons.Color.foreground
             elide: Text.ElideRight
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -130,7 +131,7 @@ FocusScope {
             anchors.rightMargin: 8
             anchors.verticalCenter: parent.verticalCenter
             text: grid.tab.sortMark(col.name)
-            color: Color.accent
+            color: Commons.Color.accent
             font.family: Style.font.family
             font.pixelSize: Style.font.bodySmall
           }
@@ -149,13 +150,13 @@ FocusScope {
               textFormat: Text.PlainText
               text: col.name + "  " + col.type + (col.nullable ? "" : "  NOT NULL")
                 + (col.default !== null && col.default !== undefined ? "  DEFAULT " + col.default : "")
-              color: Color.tooltip.text
+              color: Commons.Color.tooltip.text
               font.family: Style.font.family
               font.pixelSize: Style.font.bodySmall
             }
-            background: Rectangle { color: Color.tooltip.background; border.color: Color.tooltip.border; border.width: 1 }
+            background: Rectangle { color: Commons.Color.tooltip.background; border.color: Commons.Color.tooltip.border; border.width: 1 }
           }
-          Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Color.background, 1.6) }
+          Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Commons.Color.background, 1.6) }
           MouseArea {
             // drag to resize
             anchors.right: parent.right
@@ -173,7 +174,7 @@ FocusScope {
         }
       }
     }
-    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.lighter(Color.background, 1.6) }
+    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Qt.lighter(Commons.Color.background, 1.6) }
   }
 
   // ---- rows ----
@@ -204,8 +205,8 @@ FocusScope {
         anchors.fill: parent
         color: rowItem.state_ === "deleted" ? Qt.rgba(0.85, 0.25, 0.25, 0.22)
           : rowItem.state_ === "inserted" ? Qt.rgba(0.3, 0.75, 0.35, 0.18)
-          : rowItem.index === grid.tab.selRow ? Qt.lighter(Color.background, 1.35)
-          : rowItem.index % 2 ? Qt.lighter(Color.background, 1.06) : Color.background
+          : rowItem.index === grid.tab.selRow ? Qt.lighter(Commons.Color.background, 1.35)
+          : rowItem.index % 2 ? Qt.lighter(Commons.Color.background, 1.06) : Commons.Color.background
       }
       Text {
         textFormat: Text.PlainText
@@ -213,7 +214,7 @@ FocusScope {
         anchors.verticalCenter: parent.verticalCenter
         horizontalAlignment: Text.AlignRight
         text: rowItem.state_ === "inserted" ? "+" : String(grid.tab.offset + rowItem.index + 1)
-        color: Color.muted
+        color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
       }
@@ -231,7 +232,7 @@ FocusScope {
           height: grid.rowHeight
           color: edited ? Qt.rgba(0.95, 0.75, 0.2, 0.25) : "transparent"
           border.width: selected ? 1 : 0
-          border.color: Color.accent
+          border.color: Commons.Color.accent
           Text {
             textFormat: Text.PlainText
             anchors.fill: parent
@@ -239,7 +240,7 @@ FocusScope {
             anchors.rightMargin: 8
             verticalAlignment: Text.AlignVCenter
             text: grid.tab.display(value)
-            color: value === null ? Color.muted : Color.foreground
+            color: value === null ? Commons.Color.muted : Commons.Color.foreground
             font.italic: value === null
             font.strikeout: rowItem.state_ === "deleted"
             elide: Text.ElideRight
@@ -247,7 +248,7 @@ FocusScope {
             font.family: Style.font.family
             font.pixelSize: Style.font.body
           }
-          Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Color.background, 1.3) }
+          Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Commons.Color.background, 1.3) }
         }
       }
 
@@ -279,7 +280,7 @@ FocusScope {
       x: 16
       visible: grid.tab && grid.tab.rowCount === 0 && !grid.tab.loading
       text: grid.tab && grid.tab.error ? "" : (grid.tab && grid.tab.emptyText) || "No rows"
-      color: Color.muted
+      color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.body
     }
@@ -315,7 +316,7 @@ FocusScope {
     id: menu
     padding: 4
     width: 200
-    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.menu.background; border.color: Commons.Color.menu.border; border.width: 1 }
     Column {
       width: parent.width
       Repeater {

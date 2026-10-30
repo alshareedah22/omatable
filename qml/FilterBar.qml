@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Column · operator · value rows joined by AND/OR. Emits `apply` with the
@@ -21,7 +22,7 @@ Rectangle {
     { value: "not_null", label: "is not NULL" }]
 
   implicitHeight: body.implicitHeight + 12
-  color: Qt.lighter(Color.background, 1.08)
+  color: Qt.lighter(Commons.Color.background, 1.08)
 
   function addFilter() {
     filterModel.append({ column: columns.length ? columns[0] : "", op: "contains", value: "" })
@@ -72,7 +73,7 @@ Rectangle {
           textFormat: Text.PlainText
           Layout.preferredWidth: 36
           text: frow.index === 0 ? "where" : bar.match
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
         }

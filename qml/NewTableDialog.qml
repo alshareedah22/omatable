@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Create a table: a name, a schema and a list of columns. The CREATE TABLE
@@ -96,11 +97,11 @@ Popup {
   modal: true
   focus: true
   closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   component HeadText: Text {
     textFormat: Text.PlainText
-    color: Color.muted
+    color: Commons.Color.muted
     font.family: Style.font.family
     font.pixelSize: Style.font.bodySmall
     font.bold: true
@@ -113,7 +114,7 @@ Popup {
     Text {
       textFormat: Text.PlainText
       text: "New table"
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -131,7 +132,7 @@ Popup {
       ColumnLayout {
         visible: dlg.schemas.length > 1
         spacing: 4
-        Text { textFormat: Text.PlainText; text: dlg.mysql ? "Database" : "Schema"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: dlg.mysql ? "Database" : "Schema"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown {
           Layout.preferredWidth: 200
           showLabel: false
@@ -242,7 +243,7 @@ Popup {
         textFormat: Text.PlainText
         Layout.fillWidth: true
         text: "Defaults are SQL: 'text' needs quotes, now() does not"
-        color: Color.muted
+        color: Commons.Color.muted
         elide: Text.ElideRight
         font.family: Style.font.family
         font.pixelSize: Style.font.bodySmall
@@ -257,10 +258,10 @@ Popup {
         readOnly: true
         selectByMouse: true
         text: dlg.sql
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.bodySmall
-        background: Rectangle { color: Qt.lighter(Color.background, 1.1); radius: 4 }
+        background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.1); radius: 4 }
       }
     }
     Text {
@@ -269,7 +270,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -279,7 +280,7 @@ Popup {
       Ui.Button { text: "Cancel"; enabled: !dlg.busy; onClicked: dlg.close() }
       Ui.Button {
         bordered: true
-        foreground: Color.accent
+        foreground: Commons.Color.accent
         text: dlg.busy ? "Creating…" : "Create table"
         enabled: !dlg.busy && dlg.sql !== ""
         onClicked: dlg.create()
@@ -293,7 +294,7 @@ Popup {
     parent: Overlay.overlay
     padding: 4
     width: 200
-    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.menu.background; border.color: Commons.Color.menu.border; border.width: 1 }
     Column {
       width: parent.width
       Repeater {

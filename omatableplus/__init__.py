@@ -1,3 +1,3 @@
 """OmaTablePlus helper: talks to databases for the OmaTablePlus window."""
 
-__version__ = "1.6.1"
+__version__ = "2.0.0"

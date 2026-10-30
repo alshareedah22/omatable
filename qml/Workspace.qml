@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // An open session: title strip, schema sidebar and one tab per table or query.
@@ -302,7 +303,7 @@ Item {
         functions: ws.info && ws.info.engine !== "sqlite"
         onNewTableRequested: function(schema) { newTable.show(ws.tree.map(function(s) { return s.name }), schema || ws.info.database) }
       }
-      Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Color.background, 1.5) }
+      Rectangle { Layout.fillHeight: true; implicitWidth: 1; color: Qt.lighter(Commons.Color.background, 1.5) }
 
       ColumnLayout {
         Layout.fillWidth: true
@@ -328,15 +329,15 @@ Item {
                 readonly property var page: { tabStack.count; return ws.page(index) }
                 implicitWidth: tabLabel.implicitWidth + closeBtn.implicitWidth + 24
                 implicitHeight: Math.round(Style.font.body * 2.4)
-                color: index === ws.current ? Color.background : Qt.lighter(Color.background, 1.1)
-                Rectangle { visible: index === ws.current; width: parent.width; height: 2; color: Color.accent }
+                color: index === ws.current ? Commons.Color.background : Qt.lighter(Commons.Color.background, 1.1)
+                Rectangle { visible: index === ws.current; width: parent.width; height: 2; color: Commons.Color.accent }
                 Text {
                   id: tabLabel
                   textFormat: Text.PlainText
                   x: 12
                   anchors.verticalCenter: parent.verticalCenter
                   text: (page && page.dirty ? "● " : "") + (kind === "query" ? "\uf1c0  " : "") + title
-                  color: index === ws.current ? Color.foreground : Color.muted
+                  color: index === ws.current ? Commons.Color.foreground : Commons.Color.muted
                   font.family: Style.font.family
                   font.pixelSize: Style.font.body
                 }
@@ -355,7 +356,7 @@ Item {
                   tooltipText: "Close (Ctrl+W)"
                   onClicked: ws.closeTab(index)
                 }
-                Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Color.background, 1.4) }
+                Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Qt.lighter(Commons.Color.background, 1.4) }
               }
             }
           }
@@ -429,7 +430,7 @@ Item {
           horizontalAlignment: Text.AlignHCenter
           verticalAlignment: Text.AlignVCenter
           text: "Pick a table on the left, or press Ctrl+T for a SQL query"
-          color: Color.muted
+          color: Commons.Color.muted
           font.family: Style.font.family
           font.pixelSize: Style.font.body
         }
@@ -455,7 +456,7 @@ Item {
     readonly property bool sqlite: ws.info && ws.info.engine === "sqlite"
     padding: 4
     width: 220
-    background: Rectangle { color: Color.menu.background; border.color: Color.menu.border; border.width: 1 }
+    background: Rectangle { color: Commons.Color.menu.background; border.color: Commons.Color.menu.border; border.width: 1 }
     Column {
       width: parent.width
       Repeater {
@@ -532,8 +533,8 @@ Item {
     width: Math.min(toastText.implicitWidth + 32, parent.width - 40)
     height: toastText.implicitHeight + 16
     radius: 6
-    color: Color.popups.background
-    border.color: Color.popups.border
+    color: Commons.Color.popups.background
+    border.color: Commons.Color.popups.border
     Text {
       id: toastText
       textFormat: Text.PlainText
@@ -542,7 +543,7 @@ Item {
       horizontalAlignment: Text.AlignHCenter
       wrapMode: Text.Wrap
       text: ws.toast
-      color: Color.popups.text
+      color: Commons.Color.popups.text
       font.family: Style.font.family
       font.pixelSize: Style.font.body
     }

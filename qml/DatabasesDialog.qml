@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // The server's databases: create one, open one, or drop one.
@@ -73,7 +74,7 @@ Popup {
   modal: true
   focus: true
   closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-  background: Rectangle { color: Color.popups.background; border.color: Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: Commons.Color.popups.border; border.width: 1 }
 
   ColumnLayout {
     anchors.fill: parent
@@ -82,7 +83,7 @@ Popup {
     Text {
       textFormat: Text.PlainText
       text: "Databases"
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -101,7 +102,7 @@ Popup {
       Ui.Button {
         Layout.alignment: Qt.AlignBottom
         bordered: true
-        foreground: Color.accent
+        foreground: Commons.Color.accent
         text: dlg.busy ? "Creating…" : "Create"
         enabled: !dlg.busy && nameField.text.trim() !== ""
         onClicked: dlg.create()
@@ -113,7 +114,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -130,7 +131,7 @@ Popup {
         width: ListView.view.width
         height: Math.round(Style.font.body * 2.3)
         radius: 4
-        color: hover.hovered ? Qt.lighter(Color.background, 1.25) : "transparent"
+        color: hover.hovered ? Qt.lighter(Commons.Color.background, 1.25) : "transparent"
         HoverHandler { id: hover }
         RowLayout {
           anchors.fill: parent
@@ -142,7 +143,7 @@ Popup {
             Layout.fillWidth: true
             elide: Text.ElideRight
             text: "  " + row.modelData + (row.isCurrent ? "   (open)" : "")
-            color: dlg.system.indexOf(row.modelData) >= 0 ? Color.muted : Color.foreground
+            color: dlg.system.indexOf(row.modelData) >= 0 ? Commons.Color.muted : Commons.Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.body
             font.bold: row.isCurrent
@@ -154,7 +155,7 @@ Popup {
           }
           Ui.Button {
             text: "Drop…"
-            foreground: Color.urgent
+            foreground: Commons.Color.urgent
             visible: !(dlg.postgres && row.isCurrent)   // PostgreSQL cannot drop the database it is connected to
             tooltipText: "Drop this database"
             onClicked: dlg.drop(row.modelData)

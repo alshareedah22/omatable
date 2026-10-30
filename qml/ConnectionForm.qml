@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // Create or edit one connection. Passwords are only sent when typed, so an
@@ -123,7 +124,7 @@ Flickable {
     Text {
       textFormat: Text.PlainText
       text: form.fromOmadb ? "OmaDBngin server · " + form.conn.name : form.isNew ? "New connection" : "Edit connection"
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body * 1.4
       font.bold: true
@@ -137,7 +138,7 @@ Flickable {
       Column {
         spacing: 4
         Layout.fillWidth: true
-        Text { textFormat: Text.PlainText; text: "Engine"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: "Engine"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown {
           id: engineBox
           width: parent.width
@@ -152,7 +153,7 @@ Flickable {
       Column {
         spacing: 4
         Layout.preferredWidth: 160
-        Text { textFormat: Text.PlainText; text: "Tag"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: "Tag"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown { id: tagBox; width: parent.width; showLabel: false; value: "local"; options: form.tags }
       }
       Field { id: colorField; label: "Color"; Layout.preferredWidth: 110; placeholder: "#rrggbb" }
@@ -188,7 +189,7 @@ Flickable {
       Layout.fillWidth: true
       visible: !form.keyring && form.engine !== "sqlite"
       text: "No keyring is available: passwords are stored in ~/.config/omatableplus/connections.json (readable only by you)."
-      color: Color.muted
+      color: Commons.Color.muted
       wrapMode: Text.Wrap
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
@@ -229,7 +230,7 @@ Flickable {
       Column {
         spacing: 4
         Layout.preferredWidth: 110
-        Text { textFormat: Text.PlainText; text: "Auth"; color: Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
+        Text { textFormat: Text.PlainText; text: "Auth"; color: Commons.Color.muted; font.family: Style.font.family; font.pixelSize: Style.font.bodySmall }
         Ui.Dropdown { id: sshAuthBox; width: parent.width; showLabel: false; value: "agent"; options: form.sshAuths }
       }
       Field { id: sshKey; label: "Key file"; Layout.fillWidth: true; Layout.columnSpan: 2; visible: sshAuthBox.value === "key"; placeholder: "~/.ssh/id_ed25519" }
@@ -241,7 +242,7 @@ Flickable {
       Layout.fillWidth: true
       visible: form.errorText !== ""
       text: form.errorText
-      color: Color.urgent
+      color: Commons.Color.urgent
       wrapMode: Text.Wrap
       font.family: Style.font.family
       font.pixelSize: Style.font.body
@@ -252,7 +253,7 @@ Flickable {
       Layout.fillWidth: true
       visible: form.testText !== ""
       text: form.testText
-      color: form.testOk ? Color.accent : form.busy ? Color.muted : Color.urgent
+      color: form.testOk ? Commons.Color.accent : form.busy ? Commons.Color.muted : Commons.Color.urgent
       wrapMode: Text.Wrap
       font.family: Style.font.family
       font.pixelSize: Style.font.body
@@ -284,7 +285,7 @@ Flickable {
       Ui.Button {
         id: deleteButton
         bordered: true
-        foreground: armed ? Color.urgent : Color.foreground
+        foreground: armed ? Commons.Color.urgent : Commons.Color.foreground
         property bool armed: false
         text: armed ? "Click again to delete" : "Delete"
         visible: !form.isNew && !form.fromOmadb

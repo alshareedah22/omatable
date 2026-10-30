@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui as Ui
 
 // A question with an optional block of SQL to read before saying yes.
@@ -47,7 +48,7 @@ Popup {
   modal: true
   focus: true
   closePolicy: busy ? Popup.NoAutoClose : Popup.CloseOnEscape | Popup.CloseOnPressOutside
-  background: Rectangle { color: Color.popups.background; border.color: dlg.danger ? Color.urgent : Color.popups.border; border.width: 1 }
+  background: Rectangle { color: Commons.Color.popups.background; border.color: dlg.danger ? Commons.Color.urgent : Commons.Color.popups.border; border.width: 1 }
 
   ColumnLayout {
     anchors.fill: parent
@@ -55,7 +56,7 @@ Popup {
     Text {
       textFormat: Text.PlainText
       text: dlg.title
-      color: dlg.danger ? Color.urgent : Color.foreground
+      color: dlg.danger ? Commons.Color.urgent : Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
       font.bold: true
@@ -66,7 +67,7 @@ Popup {
       visible: dlg.text !== ""
       text: dlg.text
       wrapMode: Text.Wrap
-      color: Color.foreground
+      color: Commons.Color.foreground
       font.family: Style.font.family
       font.pixelSize: Style.font.body
     }
@@ -79,10 +80,10 @@ Popup {
         selectByMouse: true
         text: dlg.detail
         wrapMode: TextEdit.Wrap
-        color: Color.foreground
+        color: Commons.Color.foreground
         font.family: "monospace"
         font.pixelSize: Style.font.body
-        background: Rectangle { color: Qt.lighter(Color.background, 1.1) }
+        background: Rectangle { color: Qt.lighter(Commons.Color.background, 1.1) }
       }
     }
     Text {
@@ -91,7 +92,7 @@ Popup {
       visible: dlg.error !== ""
       text: dlg.error
       wrapMode: Text.Wrap
-      color: Color.urgent
+      color: Commons.Color.urgent
       font.family: "monospace"
       font.pixelSize: Style.font.bodySmall
     }
@@ -101,7 +102,7 @@ Popup {
       Ui.Button { text: "Cancel"; enabled: !dlg.busy; onClicked: dlg.close() }
       Ui.Button {
         bordered: true
-        foreground: dlg.danger ? Color.urgent : Color.accent
+        foreground: dlg.danger ? Commons.Color.urgent : Commons.Color.accent
         text: dlg.busy ? "Working…" : dlg.confirmText
         enabled: !dlg.busy
         onClicked: {
